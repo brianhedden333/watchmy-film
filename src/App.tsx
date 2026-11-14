@@ -123,7 +123,7 @@ function HowItWorks() {
     },
     {
       title: "Share your link",
-      body: "Point a Watch now button on your website at it, and use the same link in newsletters, social posts and screening Q&As.",
+      body: "Point a 'Watch Now' button on your website at it, and use the same link in newsletters, social posts and screening Q&As.",
     },
   ];
   return (
