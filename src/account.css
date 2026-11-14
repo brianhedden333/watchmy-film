@@ -2,8 +2,8 @@
 
 .acct {
   min-height: 100vh;
-  background: var(--screen);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
   padding-bottom: 120px;
 }
 
@@ -23,7 +23,8 @@
 }
 
 .acct-head {
-  background: var(--velvet);
+  background: var(--bg);
+  border-bottom: 1px solid var(--red);
   color: var(--screen);
 }
 
@@ -149,9 +150,9 @@
 .acct-form select {
   width: 100%;
   font: 400 16px/1.4 var(--body);
-  color: var(--ink);
-  background: #fff;
-  border: 1px solid #b9b2b5;
+  color: var(--text-strong);
+  background: var(--surface);
+  border: 1px solid #3a3a3a;
   border-radius: 4px;
   padding: 11px 12px;
 }
@@ -163,14 +164,14 @@
 .acct-form input:focus-visible,
 .acct-form textarea:focus-visible,
 .acct-form select:focus-visible {
-  outline: 3px solid var(--velvet);
+  outline: 3px solid var(--gold);
   outline-offset: 0;
-  border-color: var(--velvet);
+  border-color: var(--gold);
 }
 
 .has-error input,
 .has-error textarea {
-  border-color: #b3261e !important;
+  border-color: #ff7a7a !important;
 }
 
 .field-hint {
@@ -180,12 +181,12 @@
 }
 
 .field-hint .ok {
-  color: #1f7a4c;
+  color: #6fd6a0;
 }
 
 .field-error {
   font-size: 14px;
-  color: #b3261e;
+  color: #ff8a8a;
   margin: 0;
 }
 
@@ -211,9 +212,9 @@
 .prefix-input {
   display: flex;
   align-items: stretch;
-  border: 1px solid #b9b2b5;
+  border: 1px solid #3a3a3a;
   border-radius: 4px;
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -223,8 +224,8 @@
   display: flex;
   align-items: center;
   padding: 0 12px;
-  background: var(--screen);
-  color: var(--ink-soft);
+  background: #1c1c1c;
+  color: var(--text-soft);
   font-size: 15px;
 }
 
@@ -242,8 +243,8 @@
 .money-input:focus-within,
 .suffix-input:focus-within,
 .prefix-input:focus-within {
-  outline: 3px solid var(--velvet);
-  border-color: var(--velvet);
+  outline: 3px solid var(--gold);
+  border-color: var(--gold);
 }
 
 .acct-form .money-input input:focus-visible,
@@ -279,8 +280,8 @@
 }
 
 .upload {
-  background: var(--screen-dim);
-  border: 1px dashed #a39aa0;
+  background: var(--surface);
+  border: 1px dashed #4a4a4a;
   border-radius: 6px;
   overflow: hidden;
   display: grid;
@@ -317,16 +318,16 @@
 .btn-quiet {
   display: inline-block;
   font: 600 15px/1 var(--body);
-  color: var(--ink);
-  background: #fff;
-  border: 1px solid #b9b2b5;
+  color: var(--text-strong);
+  background: var(--surface);
+  border: 1px solid #3a3a3a;
   border-radius: 4px;
   padding: 10px 14px;
   cursor: pointer;
 }
 
 .visually-hidden:focus-visible + .btn-quiet {
-  outline: 3px solid var(--velvet);
+  outline: 3px solid var(--gold);
   outline-offset: 2px;
 }
 
@@ -335,7 +336,7 @@
   border: 0;
   padding: 0;
   font: 500 15px/1.4 var(--body);
-  color: var(--velvet);
+  color: var(--gold);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -365,7 +366,7 @@
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: var(--velvet);
+  accent-color: var(--gold);
 }
 
 .radio-set {
@@ -380,8 +381,8 @@
 /* DNS and Stripe boxes */
 .dns-box,
 .stripe-box {
-  background: #fff;
-  border: 1px solid var(--screen-dim);
+  background: var(--red-deep);
+  border: 1px solid var(--red);
   border-left: 4px solid var(--brass);
   border-radius: 4px;
   padding: 18px 20px;
@@ -418,7 +419,7 @@
 }
 
 .dns-status {
-  color: #7a5a1e;
+  color: var(--gold);
   margin-bottom: 0 !important;
 }
 
@@ -449,8 +450,8 @@
   gap: 18px;
   padding: 16px 0;
   margin-top: 8px;
-  background: var(--screen);
-  border-top: 1px solid var(--screen-dim);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
   font-size: 15px;
   color: var(--ink-soft);
 }
@@ -461,6 +462,7 @@
 }
 
 .toast {
+  border: 1px solid var(--red-bright);
   position: fixed;
   left: 50%;
   bottom: 88px;

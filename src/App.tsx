@@ -55,7 +55,7 @@ function Hero() {
   const inputId = useId();
 
   const slug = slugify(title);
-  const address = addressType === "sub" ? `${slug}.watch.film` : `watch.${slug}.com`;
+  const address = addressType === "sub" ? `${slug}.watchmy.film` : `watch.${slug}.com`;
 
   return (
     <section className="hero" aria-labelledby="hero-title">
@@ -87,7 +87,7 @@ function Hero() {
                   checked={addressType === "sub"}
                   onChange={() => setAddressType("sub")}
                 />
-                On watch.film
+                On watchmy.film
               </label>
               <label>
                 <input
@@ -291,7 +291,7 @@ function Faq() {
   const items = [
     {
       q: "Do I need my own domain?",
-      a: "No. Every film gets an address like yourfilm.watch.film. If you already own a domain, we can put the page at watch.yourfilm.com instead.",
+      a: "No. Every film gets an address like yourfilm.watchmy.film. If you already own a domain, we can put the page at watch.yourfilm.com instead.",
     },
     {
       q: "Who actually receives the money?",

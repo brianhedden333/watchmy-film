@@ -1,7 +1,7 @@
 // Business settings for the landing page. Edit these, not the components.
 
 export const site = {
-  name: "watch.film", // working title
+  name: "watchmy.film", // working title
   // Where the "Request a watch page" form posts (e.g. a Formspree endpoint like
   // "https://formspree.io/f/xxxxxxx"). Leave empty until one is set up — the form
   // will say it isn't connected yet instead of pretending to send.

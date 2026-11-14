@@ -2,8 +2,8 @@
 
 .wf {
   min-height: 100vh;
-  background: var(--screen);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .wf-head {
@@ -126,7 +126,7 @@
   max-width: none;
   margin: 0 0 12px;
   padding-bottom: 10px;
-  border-bottom: 3px solid var(--velvet);
+  border-bottom: 3px solid var(--red-bright);
 }
 
 .wf-phases h2::before {
@@ -164,7 +164,7 @@
   width: 20px;
   height: 20px;
   margin: 2px 0 0;
-  accent-color: var(--velvet);
+  accent-color: var(--gold);
 }
 
 .wf-phases input:disabled + .wf-task {
@@ -200,15 +200,15 @@
 }
 
 .who-you {
-  color: var(--velvet);
+  color: #e0687f;
 }
 
 .who-filmmaker {
-  color: #6b5222;
+  color: var(--gold);
 }
 
 .who-both {
-  color: #4f6470;
+  color: #a9b6bd;
 }
 
 .is-done .wf-title {
@@ -222,6 +222,7 @@
 }
 
 @media print {
+  .wf,
   .wf-head {
     background: none;
     color: #000;
