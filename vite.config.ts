@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
 export default defineConfig({
+  // Sub-path the site is served from. GitHub Pages project sites need
+  // "/watchmy-film/" (set by the deploy workflow); a custom domain uses "/".
+  base: process.env.BASE_PATH || "/",
   plugins: [
     react(),
     {

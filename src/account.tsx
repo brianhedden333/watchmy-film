@@ -216,7 +216,7 @@ function Account() {
 
       <header className="acct-head">
         <div className="acct-wrap acct-head-inner">
-          <a href="/" className="wordmark">
+          <a href={import.meta.env.BASE_URL} className="wordmark">
             {site.name}
           </a>
           <span className="acct-user">Signed in as filmmaker@example.com</span>

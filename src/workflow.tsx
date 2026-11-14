@@ -143,7 +143,7 @@ function Workflow() {
     <div className="wf">
       <header className="wf-head">
         <div className="wrap">
-          <a href="/" className="wordmark">
+          <a href={import.meta.env.BASE_URL} className="wordmark">
             {site.name}
           </a>
           <h1>Setup checklist</h1>
