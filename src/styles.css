@@ -928,3 +928,13 @@ a {
     padding: 9px 12px;
   }
 }
+
+/* Honeypot field: keep it off-screen to the left so it can't widen the page */
+.form .hp {
+  position: absolute !important;
+  left: -10000px;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
