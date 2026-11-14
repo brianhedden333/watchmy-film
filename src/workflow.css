@@ -1,0 +1,237 @@
+/* Internal checklist page. Builds on styles.css tokens. */
+
+.wf {
+  min-height: 100vh;
+  background: var(--screen);
+  color: var(--ink);
+}
+
+.wf-head {
+  background: var(--velvet);
+  color: var(--screen);
+  padding: 28px 0 32px;
+}
+
+.wf-head .wordmark {
+  font-size: 22px;
+}
+
+.wf-head h1 {
+  font-size: clamp(48px, 8vw, 88px);
+  margin: 24px 0 10px;
+}
+
+.wf-head p {
+  color: var(--on-dark-soft);
+  max-width: 60ch;
+}
+
+.wf-films {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 28px;
+  margin-top: 24px;
+}
+
+.wf-films label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--tungsten);
+}
+
+.wf-films select,
+.wf-films input {
+  font: 500 16px/1.2 var(--body);
+  color: var(--screen);
+  background: var(--velvet-deep);
+  border: 1px solid var(--brass);
+  border-radius: 4px;
+  padding: 10px 12px;
+  min-width: 220px;
+}
+
+.wf-add {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wf-progress {
+  margin-top: 24px;
+}
+
+.wf-meter {
+  height: 8px;
+  background: var(--velvet-deep);
+  border-radius: 4px;
+  overflow: hidden;
+  max-width: 560px;
+}
+
+.wf-meter span {
+  display: block;
+  height: 100%;
+  background: var(--tungsten);
+  transition: width 0.3s ease;
+}
+
+.wf-progress p {
+  margin: 10px 0 0;
+  font-size: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.wf-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--on-dark-soft);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.wf-body {
+  padding-top: 48px;
+  padding-bottom: 96px;
+  max-width: 860px;
+}
+
+.wf-empty {
+  font-size: 18px;
+  color: var(--ink-soft);
+}
+
+.wf-phases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: phase;
+}
+
+.wf-phases > li {
+  counter-increment: phase;
+  margin-bottom: 48px;
+}
+
+.wf-phases h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 40px;
+  max-width: none;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--velvet);
+}
+
+.wf-phases h2::before {
+  content: counter(phase);
+  color: var(--brass);
+}
+
+.wf-count {
+  margin-left: auto;
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.wf-phases ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wf-phases ul li {
+  border-bottom: 1px solid var(--screen-dim);
+}
+
+.wf-phases label {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  cursor: pointer;
+}
+
+.wf-phases input[type="checkbox"] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--velvet);
+}
+
+.wf-phases input:disabled + .wf-task {
+  cursor: default;
+}
+
+.wf-task {
+  display: grid;
+  gap: 4px;
+}
+
+.wf-title {
+  font-weight: 600;
+  font-size: 17px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.wf-note {
+  color: var(--ink-soft);
+  font-size: 15px;
+  max-width: 64ch;
+}
+
+.wf-who {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.who-you {
+  color: var(--velvet);
+}
+
+.who-filmmaker {
+  color: #6b5222;
+}
+
+.who-both {
+  color: #4f6470;
+}
+
+.is-done .wf-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--brass);
+  color: var(--ink-soft);
+}
+
+.is-done .wf-note {
+  opacity: 0.6;
+}
+
+@media print {
+  .wf-head {
+    background: none;
+    color: #000;
+  }
+  .wf-films,
+  .wf-link {
+    display: none;
+  }
+}
+
+.wf-head .wrap {
+  max-width: 860px;
+}
