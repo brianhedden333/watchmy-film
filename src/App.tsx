@@ -60,6 +60,7 @@ function Hero() {
   return (
     <section className="hero" aria-labelledby="hero-title">
       <div className="house-lights" aria-hidden="true" />
+      <p className="wrap tagline">Independent films direct from the filmmakers</p>
       <div className="wrap hero-grid">
         <div className="hero-copy">
           <h1 id="hero-title">Sell your film from your own website.</h1>
