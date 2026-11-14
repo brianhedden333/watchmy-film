@@ -1,5 +1,6 @@
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { money, pricing, site, splitSale, type TierKey } from "./config";
+import { WatchPreview, slugify } from "./WatchPreview";
 
 export default function App() {
   return (
@@ -48,22 +49,6 @@ function Header() {
 
 /* ---------- Hero: live preview of the filmmaker's own watch page ---------- */
 
-function slugify(title: string) {
-  return (
-    title
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/[^a-z0-9]+/g, "")
-      .slice(0, 40) || "yourfilm"
-  );
-}
-
-function hueFor(title: string) {
-  let h = 0;
-  for (const c of title) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return h;
-}
-
 function Hero() {
   const [title, setTitle] = useState("Saltwater Hymns");
   const [addressType, setAddressType] = useState<"sub" | "own">("sub");
@@ -71,8 +56,6 @@ function Hero() {
 
   const slug = slugify(title);
   const address = addressType === "sub" ? `${slug}.watch.film` : `watch.${slug}.com`;
-  const shownTitle = title.trim() || "Your film";
-  const hue = hueFor(shownTitle);
 
   return (
     <section className="hero" aria-labelledby="hero-title">
@@ -119,49 +102,7 @@ function Hero() {
           </div>
         </div>
 
-        <figure
-          className="browser"
-          role="img"
-          aria-label={`Preview of the watch page for ${shownTitle} at ${address}`}
-        >
-          <div className="browser-bar" aria-hidden="true">
-            <span className="dots">
-              <i />
-              <i />
-              <i />
-            </span>
-            <span className="address">
-              <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-                <path
-                  d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2h.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1.5 0h4V5a2 2 0 0 0-4 0z"
-                  fill="currentColor"
-                />
-              </svg>
-              {address}
-            </span>
-          </div>
-          <div className="screen" aria-hidden="true">
-            <div
-              className="poster"
-              style={{
-                background: `linear-gradient(160deg, hsl(${hue} 42% 30%), hsl(${(hue + 45) % 360} 48% 12%))`,
-              }}
-            >
-              <span className="beam" />
-              <span className="poster-title">{shownTitle}</span>
-              <span className="play" />
-            </div>
-            <div className="offer">
-              <span className="offer-btn primary">
-                Rent for 48 hours <b>$5.99</b>
-              </span>
-              <span className="offer-btn">
-                Buy <b>$12.99</b>
-              </span>
-            </div>
-            <p className="offer-note">Card, Apple Pay or Google Pay. Already bought it? Sign in with your email.</p>
-          </div>
-        </figure>
+        <WatchPreview title={title} address={address} />
       </div>
     </section>
   );
