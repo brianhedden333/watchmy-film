@@ -276,9 +276,8 @@ function Pricing() {
         <ul className="fine">
           <li>
             Setup is {money(pricing.setupFee).replace(".00", "")} once: your page, Stripe connection
-            and a test purchase together. Waived for our first {pricing.foundingFilms} films.
+            and a test purchase together.
           </li>
-          <li>Educational and screening licenses: {pricing.licensePercent * 100}% per sale.</li>
           <li>Stripe's card fee is 2.9% + 30¢ per sale on any plan.</li>
         </ul>
       </div>
