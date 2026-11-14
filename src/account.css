@@ -36,7 +36,7 @@
 }
 
 .acct-head .wordmark {
-  font-size: 22px;
+  font-size: 18px;
 }
 
 .acct-user {
@@ -50,7 +50,7 @@
 }
 
 .acct-title h1 {
-  font-size: clamp(44px, 6vw, 72px);
+  font-size: clamp(32px, 4.6vw, 56px);
   overflow-wrap: anywhere;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .acct-preview .poster-title {
-  font-size: 32px;
+  font-size: 24px;
 }
 
 .acct-preview .offer-btn {
@@ -125,7 +125,7 @@
 }
 
 .acct-form h2 {
-  font-size: 34px;
+  font-size: 24px;
   max-width: none;
   margin-bottom: 20px;
 }
