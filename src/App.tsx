@@ -1,0 +1,475 @@
+import { useId, useMemo, useState, type FormEvent } from "react";
+import { money, pricing, site, splitSale, type TierKey } from "./config";
+
+export default function App() {
+  return (
+    <>
+      <a className="skip" href="#main">
+        Skip to content
+      </a>
+      <Header />
+      <main id="main">
+        <Hero />
+        <HowItWorks />
+        <WhatYouGet />
+        <Pricing />
+        <Faq />
+        <RequestForm />
+      </main>
+      <footer className="footer">
+        <div className="wrap footer-inner">
+          <span className="wordmark">{site.name}</span>
+          <span>Paywalls for films that are distributed by the people who made them.</span>
+        </div>
+      </footer>
+    </>
+  );
+}
+
+function Header() {
+  return (
+    <header className="header">
+      <div className="wrap header-inner">
+        <a href="#main" className="wordmark" aria-label={`${site.name} home`}>
+          {site.name}
+        </a>
+        <nav aria-label="Main">
+          <a href="#how">How it works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faq">Questions</a>
+          <a href="#request" className="btn btn-small">
+            Request a watch page
+          </a>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+/* ---------- Hero: live preview of the filmmaker's own watch page ---------- */
+
+function slugify(title: string) {
+  return (
+    title
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 40) || "yourfilm"
+  );
+}
+
+function hueFor(title: string) {
+  let h = 0;
+  for (const c of title) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return h;
+}
+
+function Hero() {
+  const [title, setTitle] = useState("Saltwater Hymns");
+  const [addressType, setAddressType] = useState<"sub" | "own">("sub");
+  const inputId = useId();
+
+  const slug = slugify(title);
+  const address = addressType === "sub" ? `${slug}.watch.film` : `watch.${slug}.com`;
+  const shownTitle = title.trim() || "Your film";
+  const hue = hueFor(shownTitle);
+
+  return (
+    <section className="hero" aria-labelledby="hero-title">
+      <div className="house-lights" aria-hidden="true" />
+      <div className="wrap hero-grid">
+        <div className="hero-copy">
+          <h1 id="hero-title">Sell your film from your own website.</h1>
+          <p className="lede">
+            {site.name} builds a paywall on your film's own web address. Viewers rent or buy in
+            two clicks, every sale lands in your Stripe account, and the viewer list is yours.
+          </p>
+
+          <div className="try">
+            <label htmlFor={inputId}>Type your film's title to see its watch page</label>
+            <input
+              id={inputId}
+              value={title}
+              maxLength={60}
+              onChange={(e) => setTitle(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <fieldset className="address-choice">
+              <legend>Web address</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="address"
+                  checked={addressType === "sub"}
+                  onChange={() => setAddressType("sub")}
+                />
+                On watch.film
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="address"
+                  checked={addressType === "own"}
+                  onChange={() => setAddressType("own")}
+                />
+                On your own domain
+              </label>
+            </fieldset>
+          </div>
+        </div>
+
+        <figure
+          className="browser"
+          role="img"
+          aria-label={`Preview of the watch page for ${shownTitle} at ${address}`}
+        >
+          <div className="browser-bar" aria-hidden="true">
+            <span className="dots">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className="address">
+              <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+                <path
+                  d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2h.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1.5 0h4V5a2 2 0 0 0-4 0z"
+                  fill="currentColor"
+                />
+              </svg>
+              {address}
+            </span>
+          </div>
+          <div className="screen" aria-hidden="true">
+            <div
+              className="poster"
+              style={{
+                background: `linear-gradient(160deg, hsl(${hue} 42% 30%), hsl(${(hue + 45) % 360} 48% 12%))`,
+              }}
+            >
+              <span className="beam" />
+              <span className="poster-title">{shownTitle}</span>
+              <span className="play" />
+            </div>
+            <div className="offer">
+              <span className="offer-btn primary">
+                Rent for 48 hours <b>$5.99</b>
+              </span>
+              <span className="offer-btn">
+                Buy <b>$12.99</b>
+              </span>
+            </div>
+            <p className="offer-note">Card, Apple Pay or Google Pay. Already bought it? Sign in with your email.</p>
+          </div>
+        </figure>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- How it works (a real sequence, so it's numbered) ---------- */
+
+function HowItWorks() {
+  const steps = [
+    {
+      title: "Connect your Stripe account",
+      body: "Sales are charged on your own account and paid out to your bank on Stripe's normal schedule. We never hold your money.",
+    },
+    {
+      title: "Send us your film",
+      body: "Keep it on your own Vimeo account, or let us stream it with download-resistant links. We build the page with your poster, trailer and prices, and you approve it before it goes live.",
+    },
+    {
+      title: "Share your link",
+      body: "Point a Watch now button on your website at it, and use the same link in newsletters, social posts and screening Q&As.",
+    },
+  ];
+  return (
+    <section id="how" className="band light" aria-labelledby="how-title">
+      <div className="wrap">
+        <h2 id="how-title">From finished film to first sale</h2>
+        <ol className="steps">
+          {steps.map((s) => (
+            <li key={s.title}>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- What viewers get / what you keep ---------- */
+
+function WhatYouGet() {
+  return (
+    <section className="band light tight" aria-labelledby="get-title">
+      <div className="wrap">
+        <h2 id="get-title" className="visually-hidden">
+          What viewers get and what you keep
+        </h2>
+        <div className="two-col">
+          <div>
+            <h3>Your viewers</h3>
+            <ul className="ticks">
+              <li>Rent or buy without creating a password; they sign in with a link sent to their email</li>
+              <li>Pay by card, Apple Pay or Google Pay</li>
+              <li>Watch on a phone or laptop, or cast to a TV</li>
+              <li>Turn on captions in the player</li>
+            </ul>
+          </div>
+          <div>
+            <h3>You</h3>
+            <ul className="ticks">
+              <li>Every sale goes to your own Stripe account</li>
+              <li>A list of everyone who watched, ready to export</li>
+              <li>Your prices, your rental window, promo codes and free press screeners</li>
+              <li>Educational and community screening licenses</li>
+              <li>No exclusivity. Sell on any other platform too</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Pricing: where each dollar of a sale goes ---------- */
+
+function Pricing() {
+  const [price, setPrice] = useState(5.99);
+  const [tier, setTier] = useState<TierKey>("standard");
+  const split = useMemo(() => splitSale(price, tier), [price, tier]);
+  const pct = (n: number) => `${((n / price) * 100).toFixed(1)}%`;
+  const { standard, secure } = pricing.tiers;
+
+  return (
+    <section id="pricing" className="band dark" aria-labelledby="pricing-title">
+      <div className="wrap">
+        <h2 id="pricing-title">No monthly fee. We earn when you sell.</h2>
+
+        <div className="splitter">
+          <div className="controls">
+            <div className="seg" role="radiogroup" aria-label="Ticket price">
+              {pricing.examplePrices.map((p) => (
+                <button
+                  key={p}
+                  role="radio"
+                  aria-checked={price === p}
+                  className={price === p ? "on" : ""}
+                  onClick={() => setPrice(p)}
+                >
+                  {money(p)}
+                </button>
+              ))}
+            </div>
+            <div className="seg" role="radiogroup" aria-label="Plan">
+              {(["standard", "secure"] as TierKey[]).map((k) => (
+                <button
+                  key={k}
+                  role="radio"
+                  aria-checked={tier === k}
+                  className={tier === k ? "on" : ""}
+                  onClick={() => setTier(k)}
+                >
+                  {k === "standard" ? "Standard" : "Secure"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bar" aria-hidden="true">
+            <span className="seg-you" style={{ flexGrow: split.filmmaker }} />
+            <span className="seg-us" style={{ flexGrow: split.fee }} />
+            <span className="seg-stripe" style={{ flexGrow: split.stripe }} />
+          </div>
+          <dl className="split-legend" aria-live="polite">
+            <div className="you">
+              <dt>You keep</dt>
+              <dd>
+                {money(split.filmmaker)} <small>{pct(split.filmmaker)}</small>
+              </dd>
+            </div>
+            <div className="us">
+              <dt>{site.name}</dt>
+              <dd>
+                {money(split.fee)} <small>{pct(split.fee)}</small>
+              </dd>
+            </div>
+            <div className="stripe">
+              <dt>Stripe card fee</dt>
+              <dd>
+                {money(split.stripe)} <small>{pct(split.stripe)}</small>
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="tiers">
+          <div>
+            <h3>Standard</h3>
+            <p className="rate">
+              {standard.percent * 100}% per sale <span>minimum {money(standard.minimum)}</span>
+            </p>
+            <p>
+              Your film streams from your own Vimeo account, locked so it only plays on your watch
+              page. That stops casual sharing. Your Vimeo plan covers the streaming.
+            </p>
+          </div>
+          <div>
+            <h3>Secure</h3>
+            <p className="rate">
+              {secure.percent * 100}% per sale <span>minimum {money(secure.minimum)}</span>
+            </p>
+            <p>
+              We host and stream the film with links that expire after each viewing session, which
+              makes it much harder to download. Streaming costs are included. Choose this if a
+              distributor or festival requires it.
+            </p>
+          </div>
+        </div>
+
+        <ul className="fine">
+          <li>
+            Setup is {money(pricing.setupFee).replace(".00", "")} once: your page, Stripe connection
+            and a test purchase together. Waived for our first {pricing.foundingFilms} films.
+          </li>
+          <li>Educational and screening licenses: {pricing.licensePercent * 100}% per sale.</li>
+          <li>Stripe's card fee is 2.9% + 30¢ per sale on any plan.</li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Questions ---------- */
+
+function Faq() {
+  const items = [
+    {
+      q: "Do I need my own domain?",
+      a: "No. Every film gets an address like yourfilm.watch.film. If you already own a domain, we can put the page at watch.yourfilm.com instead.",
+    },
+    {
+      q: "Who actually receives the money?",
+      a: "You do. Each sale is charged on your own Stripe account, our fee is deducted automatically, and Stripe pays the rest out to your bank.",
+    },
+    {
+      q: "Can I keep selling on other platforms?",
+      a: "Yes. There's no exclusivity, and you can leave whenever you want. Your viewer list comes with you.",
+    },
+    {
+      q: "Can people pirate it?",
+      a: "No streaming site can stop someone determined to record their screen. Standard stops casual sharing: the video won't play anywhere but your page. Secure adds expiring links, which make downloading much harder.",
+    },
+    {
+      q: "Who handles viewers who can't get it to play?",
+      a: "We do. Playback and sign-in questions come to us. Refund decisions stay with you.",
+    },
+    {
+      q: "What about sales tax?",
+      a: "You're the seller, so tax registration is yours. Stripe can calculate and collect sales tax and VAT on each sale, and we'll help you switch it on during setup.",
+    },
+  ];
+  return (
+    <section id="faq" className="band light" aria-labelledby="faq-title">
+      <div className="wrap narrow">
+        <h2 id="faq-title">Questions filmmakers ask</h2>
+        <div className="faq">
+          {items.map((i) => (
+            <details key={i.q}>
+              <summary>{i.q}</summary>
+              <p>{i.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Request form ---------- */
+
+type Status = "idle" | "sending" | "sent" | "error" | "unconfigured";
+
+function RequestForm() {
+  const [status, setStatus] = useState<Status>("idle");
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!site.formEndpoint) {
+      setStatus("unconfigured");
+      return;
+    }
+    setStatus("sending");
+    try {
+      const res = await fetch(site.formEndpoint, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: new FormData(e.currentTarget),
+      });
+      setStatus(res.ok ? "sent" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <section id="request" className="band dark closing" aria-labelledby="request-title">
+      <div className="wrap narrow">
+        <h2 id="request-title">Tell us about your film</h2>
+        <p className="lede">
+          We'll reply by email with a draft of your watch page and a setup date.
+        </p>
+
+        {status === "sent" ? (
+          <p className="form-msg ok" role="status">
+            Request sent. Check your inbox for our reply.
+          </p>
+        ) : (
+          <form onSubmit={onSubmit} className="form">
+            <label>
+              Your name
+              <input name="name" required autoComplete="name" />
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" required autoComplete="email" />
+            </label>
+            <label>
+              Film title
+              <input name="film" required />
+            </label>
+            <label>
+              When do you want to release it?
+              <input name="release" placeholder="e.g. March 2027, or it's out already" />
+            </label>
+            <label className="full">
+              Anything we should know
+              <textarea name="notes" rows={4} placeholder="Runtime, festival run, distributor terms, your website…" />
+            </label>
+            {/* Honeypot: hidden from people, bots tend to fill it in */}
+            <input type="text" name="_gotcha" tabIndex={-1} autoComplete="off" className="hp" aria-hidden="true" />
+            <div className="full form-foot">
+              <button type="submit" className="btn" disabled={status === "sending"}>
+                {status === "sending" ? "Sending request…" : "Request a watch page"}
+              </button>
+              {status === "error" && (
+                <p className="form-msg err" role="alert">
+                  The request didn't go through. Check your connection and send it again.
+                </p>
+              )}
+              {status === "unconfigured" && (
+                <p className="form-msg err" role="alert">
+                  This form isn't connected yet. Set formEndpoint in src/config.ts.
+                </p>
+              )}
+            </div>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+}
