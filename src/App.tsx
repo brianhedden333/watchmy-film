@@ -256,7 +256,7 @@ function Pricing() {
               {standard.percent * 100}% per sale <span>minimum {money(standard.minimum)}</span>
             </p>
             <p>
-              Your film streams from your own Vimeo account, locked so it only plays on your watch
+              Your film streams behind a secure paywall, from your own Vimeo account, locked so it only plays on your watch
               page. That stops casual sharing. Your Vimeo plan covers the streaming.
             </p>
           </div>
