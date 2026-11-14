@@ -11,16 +11,18 @@ export default function App() {
       <Header />
       <main id="main">
         <Hero />
+        <SampleStrip />
         <HowItWorks />
         <WhatYouGet />
         <Pricing />
+        <Story />
         <Faq />
-        <RequestForm />
+        <ContactForm />
       </main>
       <footer className="footer">
         <div className="wrap footer-inner">
           <span className="wordmark">{site.name}</span>
-          <span>Paywalls for films that are distributed by the people who made them.</span>
+          <span>Independent films direct from the filmmakers</span>
         </div>
       </footer>
     </>
@@ -37,9 +39,10 @@ function Header() {
         <nav aria-label="Main">
           <a href="#how">How it works</a>
           <a href="#pricing">Pricing</a>
+          <a href="#about">About us</a>
           <a href="#faq">Questions</a>
-          <a href="#request" className="btn btn-small">
-            Request a watch page
+          <a href={`${import.meta.env.BASE_URL}signup/`} className="btn btn-small">
+            Get started
           </a>
         </nav>
       </div>
@@ -57,6 +60,8 @@ function Hero() {
   const slug = slugify(title);
   const address = addressType === "sub" ? `${slug}.watchmy.film` : `watch.${slug}.com`;
 
+  const signupUrl = `${import.meta.env.BASE_URL}signup/`;
+
   return (
     <section className="hero" aria-labelledby="hero-title">
       <div className="house-lights" aria-hidden="true" />
@@ -69,16 +74,28 @@ function Hero() {
             two clicks, every sale lands in your Stripe account, and the viewer list is yours.
           </p>
 
+          <ul className="hero-points">
+            <li>No monthly fee</li>
+            <li>No exclusivity</li>
+            <li>Custom domain</li>
+          </ul>
+
           <div className="try">
-            <label htmlFor={inputId}>Type your film's title to see its watch page</label>
-            <input
-              id={inputId}
-              value={title}
-              maxLength={60}
-              onChange={(e) => setTitle(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-            />
+            <label htmlFor={inputId}>Type your film's title to get started</label>
+            <div className="try-row">
+              <input
+                id={inputId}
+                value={title}
+                maxLength={60}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && window.location.assign(signupUrl)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <a href={signupUrl} className="btn">
+                Get started
+              </a>
+            </div>
             <fieldset className="address-choice">
               <legend>Web address</legend>
               <label>
@@ -109,6 +126,71 @@ function Hero() {
   );
 }
 
+/* ---------- Sample: a real watch page ---------- */
+
+function SampleStrip() {
+  return (
+    <section className="sample-strip" aria-labelledby="sample-title">
+      <div className="wrap sample-strip-inner">
+        <h2 id="sample-title">See a sample</h2>
+        <a href={`${import.meta.env.BASE_URL}sample/`} className="sample-shot">
+          <img
+            src={`${import.meta.env.BASE_URL}sample/fts-watch-screenshot.jpg`}
+            alt="Fracking the System's watch page: the film poster beside Rent for $4.99 and Buy for $14.99 options"
+            width={1600}
+            height={834}
+            loading="lazy"
+          />
+        </a>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Story: why this exists ---------- */
+
+function Story() {
+  return (
+    <section id="about" className="band story" aria-labelledby="story-title">
+      <div className="wrap story-grid">
+        <h2 id="story-title">By filmmakers, for filmmakers</h2>
+        <div className="story-body">
+          <p>
+            When I finished my documentary <em>Fracking the System</em>, I tried the usual routes for independent
+            films, like Vimeo On Demand and Gathr. None of them gave me the control I wanted over how my film was
+            presented, priced and shared, or a direct line to the people who watched it.
+          </p>
+          <p className="story-close">
+            So I built my own watch page at{" "}
+            <a href="https://frackingthesystem.com" target="_blank" rel="noopener">
+              frackingthesystem.com
+            </a>
+            . {site.name} is that same setup for other filmmakers: the best viewing experience for your audience, and
+            as much of each sale as possible back in your pocket.
+          </p>
+          <ul className="story-points">
+            <li>
+              <h3>No exclusivity</h3>
+              <p>
+                You stay in control of your film's rights. We're software, not a distributor: our job is to give your
+                audience the best possible way to watch.
+              </p>
+            </li>
+            <li>
+              <h3>Your viewer list comes with you</h3>
+              <p>Connect directly with your audience after they watch your film.</p>
+            </li>
+            <li>
+              <h3>Transparency</h3>
+              <p>A live dashboard shows you how your film is doing.</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- How it works (a real sequence, so it's numbered) ---------- */
 
 function HowItWorks() {
@@ -118,8 +200,8 @@ function HowItWorks() {
       body: "Sales are charged on your own account and paid out to your bank on Stripe's normal schedule. We never hold your money.",
     },
     {
-      title: "Send us your film",
-      body: "Keep it on your own Vimeo account, or let us stream it with download-resistant links. We build the page with your poster, trailer and prices, and you approve it before it goes live.",
+      title: "Add your film",
+      body: "Add your poster, trailer and prices. Keep the film on your own Vimeo account, or let us stream it with download-resistant links. On Vimeo, set the video to Hide from Vimeo and allow embedding only on your watch page's address: those privacy settings are what keep it from playing anywhere else. You approve the page before it goes live.",
     },
     {
       title: "Share your link",
@@ -168,7 +250,6 @@ function WhatYouGet() {
               <li>Every sale goes to your own Stripe account</li>
               <li>A list of everyone who watched, ready to export</li>
               <li>Your prices, your rental window, promo codes and free press screeners</li>
-              <li>Educational and community screening licenses</li>
               <li>No exclusivity. Sell on any other platform too</li>
             </ul>
           </div>
@@ -302,12 +383,12 @@ function Faq() {
       a: "Yes. There's no exclusivity, and you can leave whenever you want. Your viewer list comes with you.",
     },
     {
-      q: "Can people pirate it?",
-      a: "No streaming site can stop someone determined to record their screen. Standard stops casual sharing: the video won't play anywhere but your page. Secure adds expiring links, which make downloading much harder.",
+      q: "What happens to my buyers if watchmy.film shuts down?",
+      a: "You keep everything you need to look after them. Every sale was already paid into your own Stripe account, so there's no balance waiting with us. Your viewer list is yours to export at any time, so you can email every buyer directly. And your film stays yours: on Standard it lives on your own Vimeo account, and on Secure we'll send you back every file we host. With those, you can give your buyers access somewhere else.",
     },
     {
-      q: "Who handles viewers who can't get it to play?",
-      a: "We do. Playback and sign-in questions come to us. Refund decisions stay with you.",
+      q: "Can people pirate it?",
+      a: "No streaming site can stop someone determined to record their screen. Standard stops casual sharing: the video won't play anywhere but your page. Secure adds expiring links, which make downloading much harder.",
     },
     {
       q: "What about sales tax?",
@@ -331,11 +412,11 @@ function Faq() {
   );
 }
 
-/* ---------- Request form ---------- */
+/* ---------- Contact form ---------- */
 
 type Status = "idle" | "sending" | "sent" | "error" | "unconfigured";
 
-function RequestForm() {
+function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -358,16 +439,16 @@ function RequestForm() {
   }
 
   return (
-    <section id="request" className="band dark closing" aria-labelledby="request-title">
+    <section id="contact" className="band dark closing" aria-labelledby="contact-title">
       <div className="wrap narrow">
-        <h2 id="request-title">Tell us about your film</h2>
+        <h2 id="contact-title">Have questions? Reach out to us</h2>
         <p className="lede">
-          We'll reply by email with a draft of your watch page and a setup date.
+          Ask us anything about selling your film. We'll get back to you by email.
         </p>
 
         {status === "sent" ? (
           <p className="form-msg ok" role="status">
-            Request sent. Check your inbox for our reply.
+            Message sent. We'll get back to you by email.
           </p>
         ) : (
           <form onSubmit={onSubmit} className="form">
@@ -379,27 +460,24 @@ function RequestForm() {
               Email
               <input name="email" type="email" required autoComplete="email" />
             </label>
-            <label>
-              Film title
-              <input name="film" required />
-            </label>
-            <label>
-              When do you want to release it?
-              <input name="release" placeholder="e.g. March 2027, or it's out already" />
+            <label className="full">
+              Film title (optional)
+              <input name="film" />
             </label>
             <label className="full">
-              Anything we should know
-              <textarea name="notes" rows={4} placeholder="Runtime, festival run, distributor terms, your website…" />
+              Your question
+              <textarea name="message" rows={5} required />
             </label>
+            <input type="hidden" name="_subject" value={`${site.name} question`} />
             {/* Honeypot: hidden from people, bots tend to fill it in */}
             <input type="text" name="_gotcha" tabIndex={-1} autoComplete="off" className="hp" aria-hidden="true" />
             <div className="full form-foot">
               <button type="submit" className="btn" disabled={status === "sending"}>
-                {status === "sending" ? "Sending request…" : "Request a watch page"}
+                {status === "sending" ? "Sending…" : "Send message"}
               </button>
               {status === "error" && (
                 <p className="form-msg err" role="alert">
-                  The request didn't go through. Check your connection and send it again.
+                  Your message didn't go through. Check your connection and send it again.
                 </p>
               )}
               {status === "unconfigured" && (

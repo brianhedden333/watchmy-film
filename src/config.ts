@@ -2,10 +2,10 @@
 
 export const site = {
   name: "watchmy.film", // working title
-  // Where the "Request a watch page" form posts (e.g. a Formspree endpoint like
+  // Where the contact form at the bottom of the home page posts (e.g. a Formspree endpoint like
   // "https://formspree.io/f/xxxxxxx"). Leave empty until one is set up — the form
   // will say it isn't connected yet instead of pretending to send.
-  formEndpoint: "",
+  formEndpoint: "https://formspree.io/f/xbgodbay",
 };
 
 export const pricing = {

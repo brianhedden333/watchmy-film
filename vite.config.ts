@@ -9,11 +9,11 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      // Dev server: send /workflow and /account to their trailing-slash pages (production hosts do this already)
+      // Dev server: send /workflow, /account, /signup and /sample to their trailing-slash pages (production hosts do this already)
       name: "workflow-slash",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (req.url === "/workflow" || req.url === "/account") {
+          if (req.url === "/workflow" || req.url === "/account" || req.url === "/signup" || req.url === "/sample") {
             res.statusCode = 301;
             res.setHeader("Location", `${req.url}/`);
             res.end();
@@ -30,6 +30,8 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         workflow: resolve(__dirname, "workflow/index.html"), // internal, not linked
         account: resolve(__dirname, "account/index.html"), // mockup, not linked
+        signup: resolve(__dirname, "signup/index.html"), // sign-up screen, no backend yet
+        sample: resolve(__dirname, "sample/index.html"), // sample watch page (Fracking the System)
       },
     },
   },
