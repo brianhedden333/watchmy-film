@@ -184,7 +184,7 @@
 
 .field-err {
   font-size: 14px;
-  color: #ff9db0;
+  color: #ffb4a8;
   margin: 6px 0 0;
 }
 
@@ -382,7 +382,7 @@
 
 .dp-title {
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 800;
   font-size: 24px;
   line-height: 1.1;
@@ -429,7 +429,7 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.03em;
-  text-transform: uppercase;
+  text-transform: none;
   padding: 4px 9px;
   border-radius: 99px;
   border: 1px solid var(--line);
@@ -444,7 +444,7 @@
 
 .pill-changes_requested {
   border-color: var(--red-bright);
-  color: #ff9db0;
+  color: #ffb4a8;
 }
 
 .pill-approved,
@@ -525,7 +525,7 @@
   margin: 0 0 6px;
   font-size: 13px;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-soft);
 }
 
@@ -592,11 +592,11 @@
 
 .film-form legend {
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 800;
   font-size: 15px;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--gold);
   padding: 0 12px 0 0;
 }
@@ -675,7 +675,7 @@
 
 .setup-price {
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 800;
   font-size: 34px;
   color: var(--screen);
@@ -733,7 +733,7 @@
 }
 
 .dash .code-row input {
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.04em;
 }
 
@@ -770,7 +770,7 @@
 .stats dd {
   margin: 6px 0 0;
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 800;
   font-size: 26px;
   color: var(--screen);

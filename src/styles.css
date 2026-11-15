@@ -1,23 +1,24 @@
-/* watchmyfilm.online — black base, light gray type, red and gold accents */
+/* watchmyfilm.online app pages (sign-up, sign-in, sample, dashboard, admin). Same palette as the landing page:
+   true black, warm off-white, greys. The old red/gold token names now map to that palette. */
 :root {
   /* Base */
   --bg: #000000;
-  --surface: #111111;
-  --surface-raised: #1e1e1e;
-  --line: #2b2b2b;
-  --text: #d4d4d4;
-  --text-strong: #efefef;
-  --text-soft: #9a9a9a;
+  --surface: #1f1d1b;
+  --surface-raised: #2a2724;
+  --line: #3a3734;
+  --text: #ede8df;
+  --text-strong: #ede8df;
+  --text-soft: #a39e95;
 
   /* Accents */
-  --red: #4a1424;
-  --red-deep: #2c0b15;
-  --red-raised: #5e1c30;
-  --red-bright: #a12a45; /* same red, bright enough for thin lines on black */
-  --gold: #ffe7a3;
-  --brass: #b8925a;
+  --red: #3a3734;
+  --red-deep: #141312;
+  --red-raised: #2a2724;
+  --red-bright: #5c5853;
+  --gold: #ede8df; /* primary: the projector's light */
+  --brass: #5c5853;
   --exit: #3dbe7e;
-  --ink: #2c0b15; /* text on gold */
+  --ink: #000000; /* text on primary buttons */
 
   /* Older names, kept so every page shares one palette */
   --velvet: var(--red);
@@ -29,8 +30,8 @@
   --on-dark-soft: var(--text-soft);
   --ink-soft: var(--text-soft);
 
-  --display: "Archivo", "Arial Black", sans-serif;
-  --body: "Hanken Grotesk", system-ui, sans-serif;
+  --display: "Archivo", "Arial Narrow", sans-serif;
+  --body: "Archivo", system-ui, sans-serif;
 
   --wrap: 1160px;
   --gutter: clamp(16px, 4vw, 40px);
@@ -61,7 +62,7 @@ h1,
 h2,
 h3 {
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -0.01em;
@@ -188,12 +189,12 @@ a {
 
 .wordmark {
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 900;
   font-size: 20px;
   text-decoration: none;
   color: var(--tungsten);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.01em;
 }
 
@@ -252,7 +253,7 @@ a {
 .tagline {
   position: relative;
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 200;
   font-size: clamp(15px, 2.15vw, 30px);
   line-height: 1.2;
@@ -302,22 +303,10 @@ a {
 
 .hero-points li {
   position: relative;
-  padding-left: 26px;
-  font-size: 17px;
+  font-stretch: 75%;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-strong);
-}
-
-.hero-points li::before {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 0.32em;
-  width: 6px;
-  height: 11px;
-  border: solid var(--gold);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
 }
 
 .try {
@@ -487,7 +476,7 @@ a {
 .poster-title {
   position: relative;
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 800;
   font-size: clamp(22px, 2.8vw, 36px);
   line-height: 1;
@@ -723,7 +712,7 @@ a {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.03em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-soft);
   background: var(--surface);
 }
@@ -826,7 +815,7 @@ a {
   content: counter(step);
   display: block;
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 800;
   font-size: 48px;
   line-height: 1;
@@ -994,7 +983,7 @@ a {
 .split-legend dd {
   margin: 4px 0 0;
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-weight: 700;
   font-size: 26px;
   line-height: 1;
@@ -1111,7 +1100,7 @@ a {
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--display);
-  font-stretch: expanded;
+  font-stretch: 62%;
   font-size: 26px;
   color: var(--brass);
   transition: transform 0.2s ease;
