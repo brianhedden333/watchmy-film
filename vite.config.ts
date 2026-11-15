@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
+const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/admin"];
+
 export default defineConfig({
   // Sub-path the site is served from. GitHub Pages project sites need
   // "/watchmy-film/" (set by the deploy workflow); a custom domain uses "/".
@@ -9,13 +11,14 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      // Dev server: send /workflow, /account, /signup and /sample to their trailing-slash pages (production hosts do this already)
+      // Dev server: send /signup etc. to their trailing-slash pages (production hosts do this already)
       name: "workflow-slash",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (req.url === "/workflow" || req.url === "/account" || req.url === "/signup" || req.url === "/sample") {
+          const path = req.url?.split("?")[0];
+          if (path && SLASH_PAGES.includes(path)) {
             res.statusCode = 301;
-            res.setHeader("Location", `${req.url}/`);
+            res.setHeader("Location", `${path}/${req.url!.slice(path.length)}`);
             res.end();
             return;
           }
@@ -24,13 +27,23 @@ export default defineConfig({
       },
     },
   ],
+  // Dev: the API runs separately (cd server && npm run dev)
+  server: {
+    proxy: { "/api": "http://127.0.0.1:5050", "/uploads": "http://127.0.0.1:5050" },
+  },
   build: {
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
         workflow: resolve(__dirname, "workflow/index.html"), // internal, not linked
         account: resolve(__dirname, "account/index.html"), // mockup, not linked
-        signup: resolve(__dirname, "signup/index.html"), // sign-up screen, no backend yet
+        signup: resolve(__dirname, "signup/index.html"),
+        // Account pages need the API server, so they're only built with VITE_ACCOUNTS=open
+        ...(process.env.VITE_ACCOUNTS === "open" && {
+          signin: resolve(__dirname, "signin/index.html"), // also where emailed sign-in links land
+          dashboard: resolve(__dirname, "dashboard/index.html"),
+          admin: resolve(__dirname, "admin/index.html"),
+        }),
         sample: resolve(__dirname, "sample/index.html"), // sample watch page (Fracking the System)
       },
     },

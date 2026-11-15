@@ -16,13 +16,14 @@ export default function App() {
         <WhatYouGet />
         <Pricing />
         <Story />
+        <Compare />
         <Faq />
         <ContactForm />
       </main>
       <footer className="footer">
         <div className="wrap footer-inner">
           <span className="wordmark">{site.name}</span>
-          <span>Independent films direct from the filmmakers</span>
+          <span>Fully customizable paywall for independent films</span>
         </div>
       </footer>
     </>
@@ -41,6 +42,7 @@ function Header() {
           <a href="#pricing">Pricing</a>
           <a href="#about">About us</a>
           <a href="#faq">Questions</a>
+          {site.accountsOpen && <a href={`${import.meta.env.BASE_URL}signin/`}>Sign in</a>}
           <a href={`${import.meta.env.BASE_URL}signup/`} className="btn btn-small">
             Get started
           </a>
@@ -58,20 +60,20 @@ function Hero() {
   const inputId = useId();
 
   const slug = slugify(title);
-  const address = addressType === "sub" ? `${slug}.watchmy.film` : `watch.${slug}.com`;
+  const address = addressType === "sub" ? `${slug}.watchmyfilm.online` : `watch.${slug}.com`;
 
   const signupUrl = `${import.meta.env.BASE_URL}signup/`;
 
   return (
     <section className="hero" aria-labelledby="hero-title">
       <div className="house-lights" aria-hidden="true" />
-      <p className="wrap tagline">Independent films direct from the filmmakers</p>
+      <p className="wrap tagline">Fully customizable paywall for independent films</p>
       <div className="wrap hero-grid">
         <div className="hero-copy">
           <h1 id="hero-title">Sell your film from your own website.</h1>
           <p className="lede">
             {site.name} builds a paywall on your film's own web address. Viewers rent or buy in
-            two clicks, every sale lands in your Stripe account, and the viewer list is yours.
+            two clicks, no sign-up needed. Every sale lands in your Stripe account, and the viewer list is yours.
           </p>
 
           <ul className="hero-points">
@@ -105,7 +107,7 @@ function Hero() {
                   checked={addressType === "sub"}
                   onChange={() => setAddressType("sub")}
                 />
-                On watchmy.film
+                On watchmyfilm.online
               </label>
               <label>
                 <input
@@ -191,17 +193,150 @@ function Story() {
   );
 }
 
+/* ---------- How we compare ----------
+   Checked against each company's own pricing page (Eventive also from its help center) on Nov 14, 2026.
+   Recheck before changing: competitors change prices often. */
+
+type Rival = { name: string; plan?: string; builtFor: string; fees: string[]; rental: string; setup: string; us?: boolean };
+
+const rivals: Rival[] = [
+  {
+    name: site.name,
+    builtFor: "Selling your film from its own website",
+    fees: ["$249 one-time setup", "No monthly fee", "8%–10% platform fee per sale"],
+    rental: "$0.50–$0.75",
+    setup: "Done for you",
+    us: true,
+  },
+  {
+    name: "Eventive",
+    plan: "Virtual Single Film",
+    builtFor: "Festival-style virtual screenings",
+    fees: ["$299 one-time", "2.1% + 69¢–99¢ ticketing fee per sale", "99¢ streaming fee per viewer after the first 100"],
+    rental: "$0.82–$1.81",
+    setup: "Self-serve",
+  },
+  {
+    name: "MediaZilla",
+    plan: "Growth",
+    builtFor: "Video storefronts",
+    fees: ["$37 monthly, billed annually ($444 a year)", "0% per sale"],
+    rental: "$0",
+    setup: "Self-serve",
+  },
+  {
+    name: "Uscreen",
+    plan: "Starter",
+    builtFor: "Video memberships",
+    fees: ["$49 monthly", "10% per sale"],
+    rental: "$0.60",
+    setup: "Self-serve",
+  },
+  {
+    name: "Vimeo OTT",
+    plan: "Starter",
+    builtFor: "Subscription channels",
+    fees: ["$1 monthly per subscriber", "10% per sale"],
+    rental: "$0.60",
+    setup: "Self-serve",
+  },
+  {
+    name: "Dacast",
+    plan: "Event",
+    builtFor: "Live events",
+    fees: ["$63 monthly, billed annually ($756 a year)", "9.9% + 40¢ per sale, card processing included"],
+    rental: "$0.99*",
+    setup: "Self-serve",
+  },
+  {
+    name: "Vodlix",
+    plan: "Launch",
+    builtFor: "Streaming services",
+    fees: ["$99 monthly, or $990 annually", "0% per sale"],
+    rental: "$0",
+    setup: "Self-serve",
+  },
+  {
+    name: "Gumroad",
+    builtFor: "Digital downloads",
+    fees: ["No monthly fee", "10% + 50¢ per sale"],
+    rental: "$1.10",
+    setup: "Self-serve",
+  },
+  {
+    name: "Payhip",
+    plan: "Free Forever",
+    builtFor: "Downloads and courses",
+    fees: ["No monthly fee", "5% per sale"],
+    rental: "$0.30",
+    setup: "Self-serve",
+  },
+];
+
+function Compare() {
+  return (
+    <section id="compare" className="band compare" aria-labelledby="compare-title">
+      <div className="wrap">
+        <h2 id="compare-title">How we compare</h2>
+        <p className="lede compare-lede">
+          What it costs to sell a film on each platform, from their own pricing pages.
+        </p>
+
+        <div className="compare-scroll" role="region" aria-labelledby="compare-title" tabIndex={0}>
+          <table className="compare-table">
+            <thead>
+              <tr>
+                <th scope="col">Platform</th>
+                <th scope="col">Built for</th>
+                <th scope="col">Fees</th>
+                <th scope="col">Platform fee on a $5.99 rental</th>
+                <th scope="col">Setup</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rivals.map((r) => (
+                <tr key={r.name} className={r.us ? "us" : undefined}>
+                  <th scope="row">
+                    {r.name}
+                    {r.plan && <span>{r.plan}</span>}
+                  </th>
+                  <td>{r.builtFor}</td>
+                  <td>
+                    <ul>
+                      {r.fees.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                  </td>
+                  <td className="compare-num">{r.rental}</td>
+                  <td>{r.setup}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="compare-note">
+          Prices checked November 2026 and can change. Card processing (about 2.9% + 30¢ per sale through Stripe) is
+          extra on every platform except where marked *. Our platform fee has a minimum of 50¢ (Standard) or 75¢
+          (Secure) per sale.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- How it works (a real sequence, so it's numbered) ---------- */
 
 function HowItWorks() {
   const steps = [
     {
-      title: "Connect your Stripe account",
-      body: "Sales are charged on your own account and paid out to your bank on Stripe's normal schedule. We never hold your money.",
+      title: "Add your film",
+      body: "Add your poster, trailer and prices. Keep the film on your own Vimeo account, or let us stream it with download-resistant links. You approve the page before it goes live.",
     },
     {
-      title: "Add your film",
-      body: "Add your poster, trailer and prices. Keep the film on your own Vimeo account, or let us stream it with download-resistant links. On Vimeo, set the video to Hide from Vimeo and allow embedding only on your watch page's address: those privacy settings are what keep it from playing anywhere else. You approve the page before it goes live.",
+      title: "Connect your Stripe account",
+      body: "Sales are charged on your own account and paid out to your bank on Stripe's normal schedule. We never hold your money.",
     },
     {
       title: "Share your link",
@@ -248,7 +383,7 @@ function WhatYouGet() {
             <h3>You</h3>
             <ul className="ticks">
               <li>Every sale goes to your own Stripe account</li>
-              <li>A list of everyone who watched, ready to export</li>
+              <li>Get a list of everyone who watched, ready to export</li>
               <li>Your prices, your rental window, promo codes and free press screeners</li>
               <li>No exclusivity. Sell on any other platform too</li>
             </ul>
@@ -372,7 +507,7 @@ function Faq() {
   const items = [
     {
       q: "Do I need my own domain?",
-      a: "No. Every film gets an address like yourfilm.watchmy.film. If you already own a domain, we can put the page at watch.yourfilm.com instead.",
+      a: "No. Every film gets an address like yourfilm.watchmyfilm.online. If you already own a domain, we can put the page at watch.yourfilm.com instead.",
     },
     {
       q: "Who actually receives the money?",
@@ -383,7 +518,7 @@ function Faq() {
       a: "Yes. There's no exclusivity, and you can leave whenever you want. Your viewer list comes with you.",
     },
     {
-      q: "What happens to my buyers if watchmy.film shuts down?",
+      q: "What happens to my buyers if watchmyfilm.online shuts down?",
       a: "You keep everything you need to look after them. Every sale was already paid into your own Stripe account, so there's no balance waiting with us. Your viewer list is yours to export at any time, so you can email every buyer directly. And your film stays yours: on Standard it lives on your own Vimeo account, and on Secure we'll send you back every file we host. With those, you can give your buyers access somewhere else.",
     },
     {
@@ -448,7 +583,7 @@ function ContactForm() {
 
         {status === "sent" ? (
           <p className="form-msg ok" role="status">
-            Message sent. We'll get back to you by email.
+            Thanks! We'll be in touch soon.
           </p>
         ) : (
           <form onSubmit={onSubmit} className="form">

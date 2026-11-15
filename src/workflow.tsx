@@ -16,7 +16,7 @@ const phases: Phase[] = [
     items: [
       { id: "intake", who: "Both", task: "Intake call", note: "Title, runtime, release date, prices, rental window, existing domain, festival or distributor restrictions, territories they hold rights in." },
       { id: "rights", who: "Filmmaker", task: "Confirm rights", note: "They own distribution rights in the territories they'll sell to, music is licensed for streaming, and content fits Stripe's acceptable-use rules." },
-      { id: "tier", who: "Both", task: "Choose plan and address", note: "Standard (their Vimeo) or Secure (Mux). Address: film.watchmy.film or watch.theirdomain.com." },
+      { id: "tier", who: "Both", task: "Choose plan and address", note: "Standard (their Vimeo) or Secure (Mux). Address: film.watchmyfilm.online or watch.theirdomain.com." },
       { id: "agreement", who: "You", task: "Send filmmaker agreement", note: "Fees, payout terms, rights warranty, refund policy, 60 days' notice before fee changes, no exclusivity." },
       { id: "setup-fee", who: "You", task: `Invoice setup fee ($${pricing.setupFee})`, note: `Skip for the first ${pricing.foundingFilms} founding films. Don't start work until the agreement is signed.` },
     ],
@@ -48,7 +48,7 @@ const phases: Phase[] = [
       { id: "assets", who: "Filmmaker", task: "Send page assets", note: "Poster (2:3) and wide key art (16:9), logline, synopsis, credits, laurels, press quotes." },
       { id: "record", who: "You", task: "Create the film record", note: "Slug, prices, rental window, plan, video IDs, connected account ID, territories, on-sale date." },
       { id: "domain", who: "Both", task: "Set up the address", note: "Subdomain: automatic. Own domain: they add a CNAME for watch.theirdomain.com; you add the custom hostname and wait for the certificate." },
-      { id: "email", who: "You", task: "Check outgoing email", note: "Sending domain is authenticated in SendGrid (DKIM). Sender name like “Film Title via watchmy.film”, reply-to set to the support inbox." },
+      { id: "email", who: "You", task: "Check outgoing email", note: "Sending domain is authenticated in SendGrid (DKIM). Sender name like “Film Title via watchmyfilm.online”, reply-to set to the support inbox." },
       { id: "preview", who: "Filmmaker", task: "Approve the preview", note: "Send the preview link; they sign off on copy, images, prices." },
     ],
   },

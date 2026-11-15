@@ -1,4 +1,4 @@
-# watchmy.film (working title)
+# watchmyfilm.online (working title)
 
 Landing site for a service that builds custom-domain paywalls for
 filmmakers who self-distribute.

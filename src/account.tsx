@@ -169,7 +169,7 @@ function Account() {
 
   const vimeo = parseVimeo(s.vimeo);
   const trailer = parseTrailer(s.trailer);
-  const address = s.addressType === "sub" ? `${s.subdomain || "yourfilm"}.watchmy.film` : s.ownDomain ? `watch.${s.ownDomain}` : "watch.yourfilm.com";
+  const address = s.addressType === "sub" ? `${s.subdomain || "yourfilm"}.watchmyfilm.online` : s.ownDomain ? `watch.${s.ownDomain}` : "watch.yourfilm.com";
 
   const errors = useMemo(
     () => ({
@@ -388,7 +388,7 @@ function Account() {
               <legend className="visually-hidden">Where your watch page lives</legend>
               <label>
                 <input type="radio" name="addr" checked={s.addressType === "sub"} onChange={() => set("addressType", "sub")} />
-                On watchmy.film
+                On watchmyfilm.online
               </label>
               <label>
                 <input type="radio" name="addr" checked={s.addressType === "own"} onChange={() => set("addressType", "own")} />
@@ -405,7 +405,7 @@ function Account() {
                       value={s.subdomain}
                       onChange={(e) => set("subdomain", e.target.value.toLowerCase())}
                     />
-                    <span>.watchmy.film</span>
+                    <span>.watchmyfilm.online</span>
                   </span>
                 )}
               </Field>
@@ -438,7 +438,7 @@ function Account() {
                     </div>
                     <div>
                       <dt>Value</dt>
-                      <dd>pages.watchmy.film</dd>
+                      <dd>pages.watchmyfilm.online</dd>
                     </div>
                   </dl>
                   <p className="dns-status">Status: waiting for the record. Checks run every few minutes.</p>

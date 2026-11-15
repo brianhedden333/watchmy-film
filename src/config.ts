@@ -1,11 +1,14 @@
 // Business settings for the landing page. Edit these, not the components.
 
 export const site = {
-  name: "watchmy.film", // working title
+  name: "watchmyfilm.online",
   // Where the contact form at the bottom of the home page posts (e.g. a Formspree endpoint like
   // "https://formspree.io/f/xxxxxxx"). Leave empty until one is set up — the form
   // will say it isn't connected yet instead of pretending to send.
   formEndpoint: "https://formspree.io/f/xbgodbay",
+  // Real accounts (sign-in, dashboard, payments) need the API server. Until launch, sign-ups just email us.
+  // Build with VITE_ACCOUNTS=open to switch them on.
+  accountsOpen: import.meta.env.VITE_ACCOUNTS === "open",
 };
 
 export const pricing = {

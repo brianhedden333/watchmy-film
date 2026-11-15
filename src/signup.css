@@ -186,3 +186,34 @@
     max-width: none;
   }
 }
+
+.signup-card [role="status"] h2,
+.signup-card [role="alert"] h2 {
+  margin-top: 0;
+}
+
+.signup-card [role="alert"] p {
+  margin: 0 0 24px;
+  line-height: 1.55;
+}
+
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--gold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.switch {
+  margin: 20px 0 0;
+  text-align: center;
+  font-size: 15px;
+  color: var(--text-soft);
+}
+
+.switch a {
+  color: var(--gold);
+}
