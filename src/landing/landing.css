@@ -7,6 +7,9 @@
   --projector: #ede8df;
   --aisle: #a39e95;
   --seam: #3a3734;
+  --gold: #fceb7e;
+  --burgundy: #8c1c3a; /* step lines in "From finished film to first sale" */
+  --burgundy-bright: #b8405c; /* step numbers: the same red lifted enough to read on --house (3.1:1, large text) */ /* only for what the filmmaker keeps in the pricing calculator */
 
   --font: "Archivo", "Arial Narrow", Arial, sans-serif;
   --wrap: 1240px;
@@ -201,6 +204,49 @@ p {
   opacity: 1;
 }
 
+/* Menu items drop in one after another on load; links get an underline that draws in on hover. */
+.nav nav > * {
+  animation: nav-in 0.9s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+.nav nav > :nth-child(1) {
+  animation-delay: 0.2s;
+}
+
+.nav nav > :nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.nav nav > :nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.nav nav > :nth-child(4) {
+  animation-delay: 0.5s;
+}
+
+.nav nav > :nth-child(5) {
+  animation-delay: 0.6s;
+}
+
+@keyframes nav-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+
+.nav nav a:not(.btn) {
+  background: linear-gradient(currentColor, currentColor) left bottom / 0 1px no-repeat;
+  padding-bottom: 3px;
+  transition: opacity 0.15s, background-size 0.25s var(--ease);
+}
+
+.nav nav a:not(.btn):hover,
+.nav nav a:not(.btn):focus-visible {
+  background-size: 100% 1px;
+}
+
 @media (max-width: 860px) {
   .nav nav a:not(.btn) {
     display: none;
@@ -312,64 +358,6 @@ p {
 .wbtn-buy {
   border: 1px solid rgba(237, 232, 223, 0.7);
   background: rgba(0, 0, 0, 0.35);
-}
-
-/* Letterbox bars: hidden normally; on the first visit they cover the frame and pull back. */
-.bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 0;
-  background: var(--screen);
-  z-index: 2;
-}
-
-.bar-top {
-  top: 0;
-}
-
-.bar-bottom {
-  bottom: 0;
-}
-
-.frame.intro .bar {
-  animation: letterbox 0.72s var(--ease) both;
-}
-
-.frame.intro .film-title {
-  animation: title-card 0.5s var(--ease) 0.62s both;
-}
-
-.frame.intro .watch-buttons {
-  animation: fade 0.3s var(--ease) 0.9s both;
-}
-
-@keyframes letterbox {
-  from {
-    height: 50%;
-  }
-  to {
-    height: 0;
-  }
-}
-
-@keyframes title-card {
-  from {
-    opacity: 0;
-    letter-spacing: 0.08em;
-    filter: blur(6px);
-  }
-  to {
-    opacity: 1;
-    letter-spacing: -0.02em;
-    filter: blur(0);
-  }
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
 }
 
 .hero-copy {
@@ -486,6 +474,10 @@ textarea:focus-visible {
 
 .samples {
   padding-top: 0;
+}
+
+.samples h2 {
+  margin-bottom: 40px;
 }
 
 .sample-row {
@@ -735,7 +727,7 @@ textarea:focus-visible {
 
 .strip li {
   padding-top: 20px;
-  border-top: 1px solid var(--seam);
+  border-top: 2px solid var(--burgundy);
 }
 
 .strip-num {
@@ -744,7 +736,7 @@ textarea:focus-visible {
   font-weight: 760;
   font-size: 56px;
   line-height: 1;
-  color: var(--aisle);
+  color: var(--burgundy-bright);
   margin-bottom: 16px;
   font-variant-numeric: tabular-nums;
 }
@@ -849,7 +841,7 @@ textarea:focus-visible {
 }
 
 .s-you {
-  background: var(--projector);
+  background: var(--gold);
 }
 
 .s-us {
@@ -886,6 +878,7 @@ textarea:focus-visible {
 
 .split .you .num {
   font-size: clamp(64px, 8vw, 104px);
+  color: var(--gold);
 }
 
 .split small {
@@ -1085,7 +1078,7 @@ textarea:focus-visible {
 }
 
 .compare tr.us > * {
-  background: var(--house);
+  background: #5a1a2e; /* deep burgundy; off-white text on it is 12:1 */
   color: var(--projector);
   border-bottom-color: transparent;
 }
@@ -1247,6 +1240,46 @@ textarea:focus-visible {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+/* ---------- Fade in and up as things come into view ---------- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* The hero arrives slower and in stages: headline, then the watch buttons, then the copy below. */
+.hero .reveal {
+  transform: translateY(36px);
+  transition-duration: 1.8s, 1.8s;
+  transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1); /* softer than the page default, so the rise is visible */
+}
+
+.hero .reveal.in {
+  transform: none;
+}
+
+.hero .film-title.reveal {
+  transition-delay: 0s;
+}
+
+.hero .watch-buttons.reveal {
+  transition-delay: 0.55s;
+}
+
+.hero .hero-copy > .reveal:first-child {
+  transition-delay: 0.8s;
+}
+
+.hero .hero-copy > .reveal:last-child {
+  transition-delay: 0.9s;
 }
 
 /* ---------- Reduced motion: no reveal, no easing ---------- */

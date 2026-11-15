@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { money, pricing, site, splitSale, type TierKey } from "../config";
 
 /* Landing page. The interface stays neutral, like a screening room; color comes only from the films. */
@@ -21,6 +21,8 @@ export default function App() {
     io.observe(el);
     return () => io.disconnect();
   }, []);
+
+  useReveal();
 
   return (
     <>
@@ -49,6 +51,56 @@ export default function App() {
   );
 }
 
+// Text and elements fade in and drift up as they come into view (or on load if already visible).
+// Skipped entirely with reduced motion.
+const REVEAL = [
+  ".film-title",
+  ".watch-buttons",
+  ".hero-copy > *",
+  "main section:not(.hero) h2:not(.visually-hidden)",
+  ".section-lede",
+  ".sample-row li",
+  ".strip li",
+  ".two-col > div",
+  ".calc",
+  ".tiers > div",
+  ".fine",
+  ".story-still",
+  ".story-body > p",
+  ".story-points > div",
+  ".table-scroll",
+  ".fine-note",
+  ".faq-item",
+  ".contact-grid > :last-child",
+].join(", ");
+
+function useReveal() {
+  // Layout effect: hide the elements before the first paint, so nothing flashes in and then disappears.
+  useLayoutEffect(() => {
+    if (prefersReducedMotion() || !("IntersectionObserver" in window)) return;
+    const els = [...document.querySelectorAll<HTMLElement>(REVEAL)];
+    els.forEach((el) => el.classList.add("reveal"));
+    const io = new IntersectionObserver(
+      (entries) => {
+        // Stagger items that arrive together, top to bottom.
+        entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left)
+          .forEach((e, i) => {
+            const el = e.target as HTMLElement;
+            // Hero items have their own slower, staged timing in the CSS.
+            if (!el.closest(".hero")) el.style.transitionDelay = `${Math.min(i, 6) * 70}ms`;
+            el.classList.add("in");
+            io.unobserve(el);
+          });
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.08 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+}
+
 function Nav({ solid }: { solid: boolean }) {
   return (
     <header className={solid ? "nav solid" : "nav"}>
@@ -73,29 +125,17 @@ function Nav({ solid }: { solid: boolean }) {
 /* ---------- Hero: the film's watch page, playing ---------- */
 
 function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
-  const [intro] = useState(() => {
-    // The opening reveal plays once per visit, never with reduced motion.
-    if (prefersReducedMotion()) return false;
-    try {
-      if (sessionStorage.getItem("wmf-intro")) return false;
-      sessionStorage.setItem("wmf-intro", "1");
-    } catch {
-      /* storage blocked: just play it */
-    }
-    return true;
-  });
   const [video, setVideo] = useState<"off" | "loading" | "on">("off");
 
   useEffect(() => {
     if (prefersReducedMotion() || saveData()) return; // the still is the fallback
-    const t = setTimeout(() => setVideo("loading"), intro ? 1200 : 0);
-    return () => clearTimeout(t);
-  }, [intro]);
+    setVideo("loading");
+  }, []);
 
 
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <div className={intro ? "frame intro" : "frame"} ref={frameRef}>
+      <div className="frame" ref={frameRef}>
         <img className="frame-still" src={`${base}landing/hero-poster.jpg`} alt="" width={1920} height={1080} fetchPriority="high" />
         {video !== "off" && (
           <iframe
@@ -122,8 +162,6 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
             </span>
           </div>
         </div>
-        <span className="bar bar-top" aria-hidden="true" />
-        <span className="bar bar-bottom" aria-hidden="true" />
       </div>
 
       <div className="wrap hero-copy">
@@ -211,7 +249,6 @@ function Samples() {
     <section className="samples" aria-labelledby="samples-title">
       <div className="wrap">
         <h2 id="samples-title">Three films, three watch pages</h2>
-        <p className="section-lede">Each page takes its color from the film's poster. Open one to try it.</p>
       </div>
       <ul className="sample-row">
         {samples.map((f) => (

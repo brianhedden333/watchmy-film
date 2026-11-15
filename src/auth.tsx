@@ -109,9 +109,9 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   if (sentTo && !site.accountsOpen && mode === "signup") {
     return (
       <div role="status">
-        <h2>Thanks! We'll be in touch soon.</h2>
+        <h2>Thanks!</h2>
         <p>
-          We'll email you at <strong>{sentTo}</strong> to get your film set up.
+          We've received your email (<strong>{sentTo}</strong>) and will be in touch soon.
         </p>
         <a className="btn" href={home}>
           Back to {site.name}
