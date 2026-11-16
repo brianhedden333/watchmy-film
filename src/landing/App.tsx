@@ -479,7 +479,7 @@ function Pricing() {
   return (
     <section id="pricing" className="screen pricing" aria-labelledby="pricing-title">
       <div className="wrap">
-        <h2 id="pricing-title">No monthly fee. {money(pricing.setupFee).replace(".00", "")} one-time setup fee.</h2>
+        <h2 id="pricing-title">No monthly fee. {money(pricing.setupFee).replace(".00", "")} one-time setup cost.</h2>
 
         <div className="calc">
           <div className="calc-controls">
