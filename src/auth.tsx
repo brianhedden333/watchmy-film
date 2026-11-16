@@ -139,7 +139,8 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
       <label htmlFor={emailId}>Email</label>
       <input id={emailId} name="email" type="email" required autoComplete="email" />
 
-      {mode === "signup" && (
+      {/* Hidden until accounts open (and the Terms/Privacy pages exist) */}
+      {mode === "signup" && site.accountsOpen && (
         <div className="terms">
           <input id={termsId} name="terms" type="checkbox" required />
           <label htmlFor={termsId}>I agree to the Terms of Service and Privacy Policy</label>
