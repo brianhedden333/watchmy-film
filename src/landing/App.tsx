@@ -105,8 +105,14 @@ function Nav({ solid }: { solid: boolean }) {
   return (
     <header className={solid ? "nav solid" : "nav"}>
       <div className="wrap nav-inner">
-        <a href="#main" className="wordmark" aria-label={`${site.name} home`}>
-          {site.name}
+        <a href="#main" className="wordmark logo-link" aria-label={`${site.name} home`}>
+          <img
+            src={`${import.meta.env.BASE_URL}brand/watchmyfilm-logo-white.png`}
+            alt=""
+            width={600}
+            height={163}
+            className="nav-logo"
+          />
         </a>
         <nav aria-label="Main">
           <a href="#how">How it works</a>

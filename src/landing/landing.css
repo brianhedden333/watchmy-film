@@ -186,6 +186,24 @@ p {
   color: var(--projector);
 }
 
+.logo-link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.nav-logo {
+  height: 42px;
+  width: auto;
+  display: block;
+}
+
+@media (max-width: 420px) {
+  .nav-logo {
+    height: 32px;
+  }
+}
+
 .nav nav {
   display: flex;
   align-items: center;
