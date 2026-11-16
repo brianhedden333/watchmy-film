@@ -14,6 +14,7 @@ export type Film = {
   languages: string | null;
   credits: Credit[];
   poster_url: string | null;
+  still_url: string | null;
   trailer_url: string | null;
   vimeo_url: string | null;
   rent_price_cents: number | null;

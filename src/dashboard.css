@@ -403,6 +403,18 @@
   font-size: 15px;
 }
 
+.admin-images {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.admin-images img {
+  height: 90px;
+  width: auto;
+  border-radius: 4px;
+}
+
 .swatches {
   display: flex;
   gap: 6px;
@@ -639,7 +651,19 @@
   background: var(--surface);
 }
 
+.poster-frame.still {
+  width: 213px;
+  aspect-ratio: 16 / 9;
+}
+
+.poster-frame {
+  position: relative;
+}
+
+/* Fill the frame exactly; a percentage height doesn't resolve inside an auto-height grid row. */
 .poster-frame img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;

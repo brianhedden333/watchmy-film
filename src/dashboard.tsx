@@ -328,8 +328,10 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
           </fieldset>
 
           <fieldset>
-            <legend>Poster</legend>
-            <PosterUpload film={film} onChange={onChange} disabled={locked} />
+            <legend>Poster and wide image</legend>
+            <p className="fieldset-hint">Both are required. The poster shows on desktop; the wide image shows on phones and when your link is shared.</p>
+            <ImageUpload kind="poster" film={film} onChange={onChange} disabled={locked} />
+            <ImageUpload kind="still" film={film} onChange={onChange} disabled={locked} />
           </fieldset>
 
           <fieldset>
@@ -701,7 +703,14 @@ function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: Fi
   );
 }
 
-function PosterUpload({ film, onChange, disabled }: { film: Film; onChange: (f: Film) => void; disabled: boolean }) {
+const IMAGE_KINDS = {
+  poster: { label: "poster", empty: "No poster yet", hint: "Tall, 2:3. JPG, PNG or WebP, up to 10 MB.", url: (f: Film) => f.poster_url },
+  still: { label: "wide image", empty: "No wide image yet", hint: "Wide, 16:9, ideally 1920 × 1080: a still or key art. JPG, PNG or WebP, up to 10 MB.", url: (f: Film) => f.still_url },
+};
+
+function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IMAGE_KINDS; film: Film; onChange: (f: Film) => void; disabled: boolean }) {
+  const k = IMAGE_KINDS[kind];
+  const src = k.url(film);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const id = useId();
@@ -711,9 +720,9 @@ function PosterUpload({ film, onChange, disabled }: { film: Film; onChange: (f: 
     setBusy(true);
     setError("");
     const body = new FormData();
-    body.set("poster", file);
+    body.set("image", file);
     try {
-      const r = await api<{ film: Film }>(`/films/${film.id}/poster`, { body });
+      const r = await api<{ film: Film }>(`/films/${film.id}/${kind}`, { body });
       onChange(r.film);
     } catch (e) {
       setError((e as Error).message);
@@ -724,13 +733,13 @@ function PosterUpload({ film, onChange, disabled }: { film: Film; onChange: (f: 
 
   return (
     <div className="poster-up">
-      <div className="poster-frame">{film.poster_url ? <img src={film.poster_url} alt={`${film.title} poster`} /> : <span>No poster yet</span>}</div>
+      <div className={`poster-frame ${kind}`}>{src ? <img src={src} alt={`${film.title} ${k.label}`} /> : <span>{k.empty}</span>}</div>
       <div>
         <label htmlFor={id} className={`btn btn-red btn-small${disabled ? " is-disabled" : ""}`}>
-          {busy ? "Uploading…" : film.poster_url ? "Replace poster" : "Upload poster"}
+          {busy ? "Uploading…" : src ? `Replace ${k.label}` : `Upload ${k.label}`}
         </label>
         <input id={id} type="file" accept="image/jpeg,image/png,image/webp" className="visually-hidden" disabled={disabled || busy} onChange={(e) => onFile(e.target.files?.[0])} />
-        <p className="small-print">JPG, PNG or WebP, up to 10 MB. A tall 2:3 image works best.</p>
+        <p className="small-print">{k.hint}</p>
         {error && <p className="field-err" role="alert">{error}</p>}
       </div>
     </div>

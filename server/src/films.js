@@ -1,4 +1,4 @@
-// Filmmakers' own films: create, edit, poster upload, and the setup step (pay $249 or use a waiver code).
+// Filmmakers' own films: create, edit, image uploads, and the setup step (pay $249 or use a waiver code).
 
 import { Router } from "express";
 import multer from "multer";
@@ -108,6 +108,7 @@ const LABELS = {
   title: "Title",
   synopsis: "Synopsis",
   poster_path: "Poster",
+  still_path: "Wide image",
   vimeo_url: "Vimeo link",
   price: "A rent or buy price",
 };
@@ -117,7 +118,7 @@ const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
 // What still needs filling in before the film can go to review.
 export function missingFields(f) {
   const missing = [];
-  for (const k of ["title", "synopsis", "poster_path", "vimeo_url"]) if (!f[k]) missing.push(LABELS[k]);
+  for (const k of ["title", "synopsis", "poster_path", "still_path", "vimeo_url"]) if (!f[k]) missing.push(LABELS[k]);
   if (!f.rent_price_cents && !f.buy_price_cents) missing.push(LABELS.price);
   return missing;
 }
@@ -129,6 +130,7 @@ export const publicFilm = (f) => ({
   ...f,
   credits: f.credits ? JSON.parse(f.credits) : [],
   poster_url: f.poster_path ? `/uploads/${f.poster_path}` : null,
+  still_url: f.still_path ? `/uploads/${f.still_path}` : null,
   missing: missingFields(f),
   editable: EDITABLE.has(f.status),
 });
@@ -151,16 +153,28 @@ function clean(body, { requireTitle }) {
   return { out, errors };
 }
 
-mkdirSync(join(config.uploadDir, "posters"), { recursive: true });
-const POSTER_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: join(config.uploadDir, "posters"),
-    filename: (_req, file, cb) => cb(null, `${randomBytes(12).toString("hex")}.${POSTER_TYPES[file.mimetype]}`),
-  }),
-  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
-  fileFilter: (_req, file, cb) => cb(null, !!POSTER_TYPES[file.mimetype]),
-});
+// The two required images. Each kind has its own folder and column.
+const IMAGES = {
+  poster: { column: "poster_path", folder: "posters", name: "poster" },
+  still: { column: "still_path", folder: "stills", name: "wide image" },
+};
+const IMAGE_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const uploaders = Object.fromEntries(
+  Object.entries(IMAGES).map(([kind, { folder }]) => {
+    mkdirSync(join(config.uploadDir, folder), { recursive: true });
+    return [
+      kind,
+      multer({
+        storage: multer.diskStorage({
+          destination: join(config.uploadDir, folder),
+          filename: (_req, file, cb) => cb(null, `${randomBytes(12).toString("hex")}.${IMAGE_TYPES[file.mimetype]}`),
+        }),
+        limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+        fileFilter: (_req, file, cb) => cb(null, !!IMAGE_TYPES[file.mimetype]),
+      }).single("image"),
+    ];
+  })
+);
 
 export const filmsRouter = Router();
 filmsRouter.use(requireUser);
@@ -213,14 +227,16 @@ filmsRouter.patch("/:id", (req, res) => {
   res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
 });
 
-filmsRouter.post("/:id/poster", (req, res) => {
+filmsRouter.post("/:id/:kind", (req, res, next) => {
+  const image = IMAGES[req.params.kind];
+  if (!image) return next(); // checkout, redeem, etc.
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
-  if (!EDITABLE.has(film.status)) return res.status(409).json({ error: "This film is approved. Email us to change its poster." });
-  upload.single("poster")(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.code === "LIMIT_FILE_SIZE" ? "Posters can be up to 10 MB." : "Upload failed." });
+  if (!EDITABLE.has(film.status)) return res.status(409).json({ error: `This film is approved. Email us to change its ${image.name}.` });
+  uploaders[req.params.kind](req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.code === "LIMIT_FILE_SIZE" ? "Images can be up to 10 MB." : "Upload failed." });
     if (!req.file) return res.status(400).json({ error: "Choose a JPG, PNG or WebP image." });
-    db.prepare("UPDATE films SET poster_path = ?, updated_at = ? WHERE id = ?").run(`posters/${req.file.filename}`, now(), film.id);
+    db.prepare(`UPDATE films SET ${image.column} = ?, updated_at = ? WHERE id = ?`).run(`${image.folder}/${req.file.filename}`, now(), film.id);
     res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
   });
 });

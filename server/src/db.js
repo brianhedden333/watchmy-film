@@ -128,6 +128,10 @@ const MIGRATIONS = [
   ALTER TABLE films ADD COLUMN color_secondary TEXT;
   ALTER TABLE films ADD COLUMN color_button TEXT;
   `,
+  `
+  -- Wide 16:9 image (still or key art) for phones, the page background and link previews. Required, like the poster.
+  ALTER TABLE films ADD COLUMN still_path TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

@@ -127,10 +127,35 @@ function Nav({ solid }: { solid: boolean }) {
 function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
   const [video, setVideo] = useState<"off" | "loading" | "on">("off");
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
   useEffect(() => {
     if (prefersReducedMotion() || saveData()) return; // the still is the fallback
     setVideo("loading");
   }, []);
+
+  // Keep the still showing until Vimeo says the clip is actually playing, so a slow load never shows an empty player.
+  useEffect(() => {
+    if (video !== "loading") return;
+    const player = () => iframeRef.current?.contentWindow;
+    const post = (msg: object) => player()?.postMessage(JSON.stringify(msg), "https://player.vimeo.com");
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== "https://player.vimeo.com" || e.source !== player()) return;
+      let data: { event?: string; data?: { seconds?: number } };
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      if (data.event === "ready") {
+        post({ method: "addEventListener", value: "playProgress" });
+        post({ method: "addEventListener", value: "play" });
+      }
+      if (data.event === "play" || (data.event === "playProgress" && (data.data?.seconds ?? 0) > 0.1)) setVideo("on");
+    };
+    addEventListener("message", onMessage);
+    return () => removeEventListener("message", onMessage);
+  }, [video]);
 
 
   return (
@@ -139,13 +164,13 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
         <img className="frame-still" src={`${base}landing/hero-poster.jpg`} alt="" width={1920} height={1080} fetchPriority="high" />
         {video !== "off" && (
           <iframe
+            ref={iframeRef}
             className={video === "on" ? "frame-video on" : "frame-video"}
             src={HERO_VIDEO}
             title="Background clip of a cinema, muted"
             allow="autoplay; picture-in-picture"
             tabIndex={-1}
             aria-hidden="true"
-            onLoad={() => setTimeout(() => setVideo("on"), 700)}
           />
         )}
         <div className="scrim" aria-hidden="true" />
@@ -193,6 +218,8 @@ type SampleFilm = {
   title: string;
   placeholder?: boolean;
   poster: string;
+  still: string; // wide 16:9 image, shown instead of the poster on phones
+  link?: string; // a real watch page: Rent and Buy go there instead of closing the sample
   accent: string;
   logline: string;
   meta: string;
@@ -205,6 +232,8 @@ const samples: SampleFilm[] = [
     id: "fts",
     title: "Fracking the System",
     poster: `${base}sample/fts-poster.jpg`,
+    still: `${base}landing/fts-still.jpg`,
+    link: "https://www.frackingthesystem.com/watch-now",
     accent: "#f63052",
     logline:
       "An investigative documentary about climate justice activism in Colorado and the oil and gas industry's tactics to undermine democracy.",
@@ -217,6 +246,7 @@ const samples: SampleFilm[] = [
     title: "Your feature here",
     placeholder: true,
     poster: `${base}landing/placeholder-feature.svg`,
+    still: `${base}landing/placeholder-feature-wide.svg`,
     accent: "#3fb8ac",
     logline: "Placeholder film. This is where your logline goes, set in the colors pulled from your poster.",
     meta: "Feature, placeholder",
@@ -228,6 +258,7 @@ const samples: SampleFilm[] = [
     title: "Your short here",
     placeholder: true,
     poster: `${base}landing/placeholder-short.svg`,
+    still: `${base}landing/placeholder-short-wide.svg`,
     accent: "#e9a23b",
     logline: "Placeholder film. A short can sell on its own page too, with its own prices and rental window.",
     meta: "Short, placeholder",
@@ -291,7 +322,10 @@ function SampleDialog({ film, onClose }: { film: SampleFilm; onClose: () => void
       onClick={(e) => e.target === ref.current && ref.current.close()}
     >
       <div className="sd-inner">
-        <img src={film.poster} alt="" className="sd-poster" />
+        <picture className="sd-poster">
+          <source media="(max-width: 640px)" srcSet={film.still} />
+          <img src={film.poster} alt="" />
+        </picture>
         <div className="sd-body">
           <p className="sd-flag">{film.placeholder ? "Placeholder sample" : "Sample watch page"}</p>
           <h3 id={titleId}>{film.title}</h3>
@@ -307,10 +341,21 @@ function SampleDialog({ film, onClose }: { film: SampleFilm; onClose: () => void
           <p className="sd-price" aria-live="polite">
             <b>{offer.price}</b> {offer.terms}
           </p>
-          <button type="button" className="sd-cta" onClick={() => ref.current?.close()}>
-            {mode === "rent" ? `Rent for ${offer.price}` : `Buy for ${offer.price}`}
-          </button>
-          <p className="sd-note">This is a sample. Nothing is charged.</p>
+          {film.link ? (
+            <>
+              <a className="sd-cta" href={film.link} target="_blank" rel="noopener">
+                {mode === "rent" ? `Rent for ${offer.price}` : `Buy for ${offer.price}`}
+              </a>
+              <p className="sd-note">Opens the film's real watch page in a new tab.</p>
+            </>
+          ) : (
+            <>
+              <button type="button" className="sd-cta" onClick={() => ref.current?.close()}>
+                {mode === "rent" ? `Rent for ${offer.price}` : `Buy for ${offer.price}`}
+              </button>
+              <p className="sd-note">This is a sample. Nothing is charged.</p>
+            </>
+          )}
         </div>
         <button type="button" className="sd-close" onClick={() => ref.current?.close()} aria-label="Close sample">
           ×

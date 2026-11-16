@@ -133,6 +133,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Submitted</dt><dd>{day(film.submitted_at) || "Not yet"}</dd></div>
             <div><dt>Missing</dt><dd>{film.missing.length ? film.missing.join(", ") : "Nothing"}</dd></div>
             <div><dt>Prices</dt><dd>{price || "None"}{film.rental_days ? ` · ${film.rental_days} days to start, ${film.rental_hours ?? "?"} h to finish` : ""}</dd></div>
+            <div><dt>Images</dt><dd className="admin-images">{film.poster_url ? <a href={film.poster_url} target="_blank" rel="noreferrer"><img src={film.poster_url} alt="Poster" /></a> : "No poster"}{film.still_url ? <a href={film.still_url} target="_blank" rel="noreferrer"><img src={film.still_url} alt="Wide image" /></a> : "No wide image"}</dd></div>
             <div><dt>Colors</dt><dd className="swatches">{(["color_background", "color_primary", "color_secondary", "color_button"] as const).map((k) => film[k] ? <span key={k} title={`${k.replace("color_", "")}: ${film[k]}`} style={{ background: film[k]! }} /> : null)}{!film.color_background && !film.color_primary && !film.color_secondary && !film.color_button && "Defaults"}</dd></div>
             <div><dt>Plan</dt><dd>{film.tier === "secure" ? "Secure (10%)" : "Standard (8%)"}</dd></div>
             <div><dt>Address</dt><dd>{address}</dd></div>
