@@ -99,6 +99,7 @@ function Sample() {
         </div>
 
         <div className="s-narrow">
+          <h2>Watch the trailer</h2>
           <div className="s-video">
             <iframe
               src="https://www.youtube-nocookie.com/embed/T-azhfhG0H0"

@@ -656,6 +656,13 @@
   aspect-ratio: 16 / 9;
 }
 
+.poster-frame.banner {
+  width: 240px;
+  aspect-ratio: 3 / 1;
+  text-align: center;
+  padding: 0 8px;
+}
+
 .poster-frame {
   position: relative;
 }

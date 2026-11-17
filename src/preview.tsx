@@ -138,6 +138,7 @@ function WatchPage({ film: f }: { film: Film }) {
   const days = f.rental_days ?? 30;
   const hours = f.rental_hours ?? 72;
   const trailer = embedUrl(f.trailer_url);
+  const hero = f.banner_url || f.still_url; // banner across the top; the wide image if there's no banner
   const credits = f.credits.filter((c) => c.names.length);
   const paragraphs = (f.synopsis || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 
@@ -186,8 +187,8 @@ function WatchPage({ film: f }: { film: Film }) {
   return (
     <>
       <section
-        className={`s-hero ${f.still_url ? "" : "preview-no-still"}`}
-        style={f.still_url ? { backgroundImage: `url(${f.still_url})` } : undefined}
+        className={`s-hero ${hero ? "" : "preview-no-still"}`}
+        style={hero ? { backgroundImage: `url(${hero})` } : undefined}
       >
         <div className="s-wrap">
           <h1>{f.title}</h1>
@@ -235,6 +236,7 @@ function WatchPage({ film: f }: { film: Film }) {
         </div>
 
         <div className="s-narrow">
+          {trailer && <h2>Watch the trailer</h2>}
           {trailer && (
             <div className="s-video">
               <iframe src={trailer} title={`${f.title} trailer`} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />

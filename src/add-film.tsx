@@ -327,10 +327,14 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
           </fieldset>
 
           <fieldset>
-            <legend>Poster and wide image</legend>
-            <p className="fieldset-hint">Both are required. The poster shows on desktop; the wide image shows on phones and when your link is shared.</p>
+            <legend>Images</legend>
+            <p className="fieldset-hint">
+              The poster and wide image are required. The poster shows on desktop; the wide image shows on phones and when your
+              link is shared. The banner is optional and runs across the top of your page.
+            </p>
             <ImageUpload kind="poster" film={film} onChange={onChange} disabled={locked} />
             <ImageUpload kind="still" film={film} onChange={onChange} disabled={locked} />
+            <ImageUpload kind="banner" film={film} onChange={onChange} disabled={locked} />
           </fieldset>
 
           <fieldset>
@@ -693,6 +697,12 @@ function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: Fi
 const IMAGE_KINDS = {
   poster: { label: "poster", empty: "No poster yet", hint: "Tall, 2:3. JPG, PNG or WebP, up to 10 MB.", url: (f: Film) => f.poster_url },
   still: { label: "wide image", empty: "No wide image yet", hint: "Wide, 16:9, ideally 1920 × 1080: a still or key art. JPG, PNG or WebP, up to 10 MB.", url: (f: Film) => f.still_url },
+  banner: {
+    label: "banner",
+    empty: "No banner (optional)",
+    hint: "Optional. Extra wide, 3:1, ideally 2400 × 800 px. It sits behind your title at the top of the page, so keep the important part in the middle and avoid text: the edges are trimmed on phones. Without one, we use your wide image. JPG, PNG or WebP, up to 10 MB.",
+    url: (f: Film) => f.banner_url,
+  },
 };
 
 function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IMAGE_KINDS; film: Film; onChange: (f: Film) => void; disabled: boolean }) {

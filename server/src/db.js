@@ -139,6 +139,10 @@ const MIGRATIONS = [
   ALTER TABLE users ADD COLUMN password_hash TEXT;
   UPDATE users SET email_verified_at = last_login_at WHERE last_login_at IS NOT NULL;
   `,
+  `
+  -- Optional wide banner (3:1) across the top of the watch page. Without one, the 16:9 wide image is used.
+  ALTER TABLE films ADD COLUMN banner_path TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

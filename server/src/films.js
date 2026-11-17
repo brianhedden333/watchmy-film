@@ -131,6 +131,7 @@ export const publicFilm = (f) => ({
   credits: f.credits ? JSON.parse(f.credits) : [],
   poster_url: f.poster_path ? `/uploads/${f.poster_path}` : null,
   still_url: f.still_path ? `/uploads/${f.still_path}` : null,
+  banner_url: f.banner_path ? `/uploads/${f.banner_path}` : null,
   missing: missingFields(f),
   editable: EDITABLE.has(f.status),
 });
@@ -153,10 +154,11 @@ function clean(body, { requireTitle }) {
   return { out, errors };
 }
 
-// The two required images. Each kind has its own folder and column.
+// Poster and wide image are required; the banner is optional. Each kind has its own folder and column.
 const IMAGES = {
   poster: { column: "poster_path", folder: "posters", name: "poster" },
   still: { column: "still_path", folder: "stills", name: "wide image" },
+  banner: { column: "banner_path", folder: "banners", name: "banner" },
 };
 const IMAGE_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const uploaders = Object.fromEntries(
