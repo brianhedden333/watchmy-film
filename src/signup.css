@@ -295,3 +295,13 @@
 .signup-card form > h2 {
   font-size: clamp(26px, 3vw, 32px);
 }
+
+.signup-card [role="status"] .small-note {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
+.signup-card [role="status"] .small-note .link-btn {
+  font-size: 14px;
+}

@@ -145,6 +145,47 @@ function SetPassword({ next, justVerified }: { next: string; justVerified: boole
   );
 }
 
+// After a link is sent: where it went, what to do, and a way to send it again.
+function CheckEmail({ email, mode, onChange }: { email: string; mode: "signup" | "signin"; onChange: () => void }) {
+  const [resend, setResend] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [error, setError] = useState("");
+
+  async function sendAgain() {
+    setResend("sending");
+    try {
+      await api("/auth/request", { body: { email, mode, terms: true, _gotcha: "", elapsed: 60_000 } });
+      setResend("sent");
+    } catch (e) {
+      setError((e as Error).message);
+      setResend("error");
+    }
+  }
+
+  return (
+    <div role="status">
+      <h2>Check your email.</h2>
+      <p>
+        We sent an email to <strong>{email}</strong>.{" "}
+        {mode === "signup"
+          ? "Click the link in it to confirm your email address and finish creating your account."
+          : "Click the link in it to sign in."}
+      </p>
+      <p className="small-note">The link works once and expires in 30 minutes. It comes from hello@watchmyfilm.online.</p>
+      <p className="small-note">
+        Not there after a minute? Check your spam folder, or{" "}
+        <button type="button" className="link-btn" onClick={sendAgain} disabled={resend === "sending" || resend === "sent"}>
+          {resend === "sending" ? "sending…" : resend === "sent" ? "sent again" : "send it again"}
+        </button>
+        .
+      </p>
+      {resend === "error" && <p className="signup-err">{error}</p>}
+      <button type="button" className="link-btn" onClick={onChange}>
+        Use a different email
+      </button>
+    </div>
+  );
+}
+
 function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   const [sentTo, setSentTo] = useState("");
   const [status, setStatus] = useState<"idle" | "password" | "link">("idle");
@@ -225,19 +266,7 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   }
 
   if (sentTo) {
-    return (
-      <div role="status">
-        <h2>Check your email.</h2>
-        <p>
-          We sent a link to <strong>{sentTo}</strong>.{" "}
-          {mode === "signup" ? "Open it to confirm your email and finish creating your account." : "Open it to sign in."} It
-          works once and expires in 30 minutes.
-        </p>
-        <button type="button" className="link-btn" onClick={() => setSentTo("")}>
-          Use a different email
-        </button>
-      </div>
-    );
+    return <CheckEmail email={sentTo} mode={mode} onChange={() => setSentTo("")} />;
   }
 
   return (

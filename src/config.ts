@@ -8,7 +8,9 @@ export const site = {
   formEndpoint: "https://formspree.io/f/xbgodbay",
   // Real accounts (sign-in, dashboard, payments) need the API server. Until launch, sign-ups just email us.
   // Build with VITE_ACCOUNTS=open to switch them on.
-  accountsOpen: import.meta.env.VITE_ACCOUNTS === "open",
+  // The dev server has them on unless started with VITE_ACCOUNTS=closed.
+  accountsOpen:
+    import.meta.env.VITE_ACCOUNTS === "open" || (import.meta.env.DEV && import.meta.env.VITE_ACCOUNTS !== "closed"),
 };
 
 export const pricing = {
