@@ -30,7 +30,8 @@ adminRouter.get("/overview", (_req, res) => {
     .map(publicFilm);
   const users = db
     .prepare(
-      `SELECT u.id, u.email, u.name, u.created_at, u.last_login_at,
+      `SELECT u.id, u.email, u.name, u.created_at, u.last_login_at, u.email_verified_at,
+         u.password_hash IS NOT NULL AS has_password,
          u.stripe_has_account, u.stripe_email, u.stripe_account_id, u.stripe_country, (SELECT count(*) FROM films f WHERE f.user_id = u.id) AS films
        FROM users u ORDER BY u.created_at DESC`
     )

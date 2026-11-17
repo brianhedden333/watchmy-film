@@ -14,7 +14,7 @@ const home = import.meta.env.BASE_URL;
 type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; sales_cents: number; sales_count: number; submitted_at: string | null; updated_at: string };
 type Code = { id: number; code: string; max_uses: number | null; uses: number; expires_at: string | null; active: number; note: string | null; used_by: string | null; created_at: string };
 type StripeCols = { stripe_has_account: number | null; stripe_email: string | null; stripe_account_id: string | null; stripe_country: string | null };
-type AdminUser = StripeCols & { id: number; email: string; name: string | null; created_at: string; last_login_at: string | null; films: number };
+type AdminUser = StripeCols & { id: number; email: string; name: string | null; created_at: string; last_login_at: string | null; email_verified_at: string | null; has_password: number; films: number };
 const stripeText = (u: StripeCols) =>
   u.stripe_has_account == null ? "Not given" : u.stripe_has_account ? [u.stripe_email, u.stripe_account_id, u.stripe_country].filter(Boolean).join(" · ") : `No account yet (${u.stripe_country})`;
 type Overview = { films: AdminFilm[]; users: AdminUser[]; codes: Code[]; revenue: { cents: number; n: number }; statuses: Film["status"][]; setupFeeCents: number };
@@ -257,17 +257,54 @@ function Codes({ codes, fee, reload }: { codes: Code[]; fee: number; reload: () 
   );
 }
 
+// Hours (or days) since a date, for "signed up 3 hours ago, not confirmed".
+const ago = (iso: string) => {
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
+  if (h < 1) return "under an hour ago";
+  if (h < 48) return `${h} hour${h === 1 ? "" : "s"} ago`;
+  return `${Math.floor(h / 24)} days ago`;
+};
+
 function Users({ users }: { users: AdminUser[] }) {
+  const [show, setShow] = useState<"all" | "confirmed" | "unconfirmed">("all");
+  const confirmed = users.filter((u) => u.email_verified_at).length;
+  const unconfirmed = users.length - confirmed;
+  const list = users.filter((u) => (show === "all" ? true : show === "confirmed" ? !!u.email_verified_at : !u.email_verified_at));
+  const rate = users.length ? Math.round((confirmed / users.length) * 100) : 0;
+
   return (
+    <>
+      <div className="acct-summary" role="group" aria-label="Filter accounts">
+        {([
+          ["all", "Emails entered", users.length],
+          ["confirmed", "Confirmed", confirmed],
+          ["unconfirmed", "Not confirmed", unconfirmed],
+        ] as const).map(([k, label, n]) => (
+          <button key={k} type="button" className="acct-chip" aria-pressed={show === k} onClick={() => setShow(k)}>
+            <strong>{n}</strong> {label}
+          </button>
+        ))}
+        <span className="acct-rate">{rate}% confirmed</span>
+      </div>
     <div className="table-wrap">
-      <table className="admin-table">
+      <table className="admin-table accounts-table">
         <thead>
-          <tr><th>Email</th><th>Name</th><th>Films</th><th>Joined</th><th>Last sign-in</th><th>Stripe</th></tr>
+          <tr><th>Email</th><th>Confirmed</th><th>Name</th><th>Films</th><th>Joined</th><th>Last sign-in</th><th>Stripe</th></tr>
         </thead>
         <tbody>
-          {users.map((u) => (
+          {list.length === 0 && (
+            <tr><td colSpan={7}>No accounts here.</td></tr>
+          )}
+          {list.map((u) => (
             <tr key={u.id}>
               <td>{u.email}</td>
+              <td>
+                {u.email_verified_at ? (
+                  <span className="acct-yes">✓ {day(u.email_verified_at)}{u.has_password ? " · password" : ""}</span>
+                ) : (
+                  <span className="acct-no">Not yet · signed up {ago(u.created_at)}</span>
+                )}
+              </td>
               <td>{u.name || ""}</td>
               <td>{u.films}</td>
               <td>{day(u.created_at)}</td>
@@ -278,6 +315,7 @@ function Users({ users }: { users: AdminUser[] }) {
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 

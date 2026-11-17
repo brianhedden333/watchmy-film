@@ -1709,3 +1709,54 @@ a.library-poster:focus-visible {
   font-size: 15px;
   color: var(--text-soft);
 }
+
+/* ---------- Admin accounts: confirmation summary ---------- */
+
+.acct-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.acct-chip {
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: 400 15px/1.2 var(--body);
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.acct-chip strong {
+  color: var(--screen);
+  font-variant-numeric: tabular-nums;
+}
+
+.acct-chip[aria-pressed="true"] {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.acct-rate {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
+.acct-yes {
+  color: var(--exit);
+  white-space: nowrap;
+}
+
+.acct-no {
+  color: var(--section);
+  white-space: nowrap;
+}
+
+.accounts-table td:nth-child(5),
+.accounts-table td:nth-child(6) {
+  white-space: nowrap;
+}
