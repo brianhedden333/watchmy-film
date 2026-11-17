@@ -108,7 +108,24 @@ export function requireAdmin(req, res, next) {
 export const authRouter = Router();
 
 // Step 1: ask for a link. Same response whether or not the account exists, so this can't be used to probe emails.
+// Bot checks for /request: our form sends a hidden honeypot (_gotcha, empty for people) and how long the form was open.
+// Anything that fills the honeypot, skips the timing, or submits faster than a person gets a normal-looking reply
+// and nothing else: no account, no email, no notice.
+const MIN_FILL_MS = 2500;
+function looksLikeBot(body) {
+  if (String(body._gotcha ?? "").trim()) return "honeypot";
+  const elapsed = Number(body.elapsed);
+  if (!Number.isFinite(elapsed)) return "no timing";
+  if (elapsed < MIN_FILL_MS) return "too fast";
+  return null;
+}
+
 authRouter.post("/request", rateLimit({ windowMs: 15 * 60_000, max: 8 }), async (req, res) => {
+  const bot = looksLikeBot(req.body);
+  if (bot) {
+    console.warn(`Ignored sign-in request (${bot}) from ${req.ip}`);
+    return res.json({ ok: true });
+  }
   const email = String(req.body.email || "").trim().toLowerCase();
   const signup = req.body.mode === "signup";
   if (!EMAIL_RE.test(email) || email.length > 254) return res.status(400).json({ error: "Enter a valid email address." });

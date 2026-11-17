@@ -8,6 +8,9 @@ import { api, getMe } from "./api";
 
 const home = import.meta.env.BASE_URL;
 // The server says where to land (films list, or add-a-film until a film is published); paths start with "/".
+// Sign-up and sign-in forms submitted sooner than this after appearing are treated as bots.
+const MIN_FILL_MS = 2500;
+
 const go = (next: string) => location.replace(`${home}${next.replace(/^\//, "")}`);
 
 export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
@@ -149,6 +152,8 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   const emailId = useId();
   const termsId = useId();
   const pwId = useId();
+  // Spam checks: when the form appeared (people take a few seconds; bots submit instantly) and a hidden honeypot field.
+  const shownAt = useRef(Date.now());
 
   // Already signed in? Skip the form.
   useEffect(() => {
@@ -158,8 +163,19 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    if (form.get("_gotcha")) return; // honeypot
     const email = String(form.get("email")).trim();
+    const gotcha = String(form.get("_gotcha") || "");
+    const elapsed = Date.now() - shownAt.current;
+    // Honeypot filled in: act as if it worked, so a bot learns nothing.
+    if (gotcha) {
+      setSentTo(email);
+      return;
+    }
+    // Faster than a person can type: ask them to try again rather than silently dropping it.
+    if (elapsed < MIN_FILL_MS) {
+      setError("One moment, then try again.");
+      return;
+    }
     const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const how = mode === "signin" && submitter?.value === "password" ? "password" : "link";
     const password = String(form.get("password") || "");
@@ -176,12 +192,13 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
         return;
       }
       if (site.accountsOpen || mode === "signin") {
-        await api("/auth/request", { body: { email, mode, terms: form.get("terms") === "on" } });
+        await api("/auth/request", { body: { email, mode, terms: form.get("terms") === "on", _gotcha: gotcha, elapsed } });
       } else {
         // Before launch: email us the sign-up instead of creating an account.
         const body = new FormData();
         body.set("email", email);
         body.set("_subject", `New ${site.name} sign-up`);
+        body.set("_gotcha", gotcha); // Formspree drops submissions with this filled in
         const res = await fetch(site.formEndpoint, { method: "POST", headers: { Accept: "application/json" }, body });
         if (!res.ok) throw new Error("That didn't go through. Check your connection and try again.");
       }
