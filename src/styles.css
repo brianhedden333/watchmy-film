@@ -18,6 +18,7 @@
   --gold: #ede8df; /* primary: the projector's light */
   --brass: #5c5853;
   --exit: #3dbe7e;
+  --section: #d8c08a; /* muted brass for form section headings */
   --ink: #000000; /* text on primary buttons */
 
   /* Older names, kept so every page shares one palette */
