@@ -157,6 +157,14 @@ const MIGRATIONS = [
   -- Up to 10 videos each. Rentals get the rent set; purchases get the buy set.
   ALTER TABLE films ADD COLUMN bonus TEXT;
   `,
+  `
+  -- A live film can be hidden by its owner: its address shows a holding page instead.
+  ALTER TABLE films ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
+  -- Every film's address on our domain is unique (it's also the DNS target for films on their own domain),
+  -- and so is each custom domain. Both are stored lowercase.
+  CREATE UNIQUE INDEX films_subdomain_unique ON films(subdomain) WHERE subdomain IS NOT NULL;
+  CREATE UNIQUE INDEX films_own_domain_unique ON films(own_domain) WHERE own_domain IS NOT NULL;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

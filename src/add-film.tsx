@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode 
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, ApiError, dollars, getMe, type StripeInfo, type User } from "./api";
-import { BONUS_MAX, COLOR_DEFAULTS, pageTheme, STATUS_LABEL, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
+import { BONUS_MAX, COLOR_DEFAULTS, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { StripeDetails } from "./StripeDetails";
 import "./styles.css";
@@ -144,7 +144,7 @@ function FilmTabs({ films, selected, startAdding, onPick, onAdded }: { films: Fi
         {films.map((f) => (
           <button key={f.id} type="button" role="tab" aria-selected={f.id === selected} className="film-tab" onClick={() => onPick(f.id)}>
             <span>{f.title}</span>
-            <span className={`pill pill-${f.status}`}>{STATUS_LABEL[f.status]}</span>
+            <span className={pillClass(f)}>{statusLabel(f)}</span>
           </button>
         ))}
         {!adding && (
@@ -290,7 +290,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
           <button type="button" className="btn btn-small btn-red" onClick={openPreview} disabled={saveState === "saving"}>
             Preview page
           </button>
-          <span className={`pill pill-${film.status} pill-big`}>{STATUS_LABEL[film.status]}</span>
+          <span className={`${pillClass(film)} pill-big`}>{statusLabel(film)}</span>
         </div>
       </div>
 
@@ -424,9 +424,17 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                 ["own", "My own domain"],
               ]}
             />
-            {form.address_type === "own"
-              ? field("own_domain", "Your domain", { placeholder: "yourfilm.com", hint: "We'll put the page at watch.yourfilm.com and send you the DNS record to add." })
-              : field("subdomain", "Address", { placeholder: "yourfilm", suffix: `.${site.name}` })}
+            <AddressFields
+              filmId={film.id}
+              title={form.title}
+              sub={form.subdomain}
+              own={form.own_domain}
+              ownMode={form.address_type === "own"}
+              onSub={set("subdomain")}
+              onOwn={set("own_domain")}
+              disabled={locked}
+              errors={errors}
+            />
           </fieldset>
 
           <fieldset>
@@ -469,6 +477,95 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
         <SetupCard film={film} meta={meta} dirty={dirty} save={save} onChange={onChange} stripe={stripe} onStripe={onStripe} />
       </div>
     </div>
+  );
+}
+
+type Check = { available: boolean; reason?: string; suggestion?: string | null; name?: string };
+
+// Asks the server whether an address is free, a moment after typing stops.
+function useAddressCheck(param: "subdomain" | "domain", value: string, filmId: number, skip: boolean) {
+  const [check, setCheck] = useState<Check | null>(null);
+  useEffect(() => {
+    if (skip) return setCheck(null);
+    const t = setTimeout(() => {
+      api<Check>(`/films/address-check?${param}=${encodeURIComponent(value.trim())}&film=${filmId}`)
+        .then(setCheck)
+        .catch(() => setCheck(null));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [param, value, filmId, skip]);
+  return check;
+}
+
+// Every film gets a unique address on our domain. With their own domain, that address is what their DNS points at.
+function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disabled, errors }: {
+  filmId: number; title: string; sub: string; own: string; ownMode: boolean;
+  onSub: (v: string) => void; onOwn: (v: string) => void; disabled: boolean; errors: Record<string, string>;
+}) {
+  const subId = useId();
+  const ownId = useId();
+  const subCheck = useAddressCheck("subdomain", sub, filmId, disabled);
+  const ownCheck = useAddressCheck("domain", own, filmId, disabled || !ownMode || !own.trim());
+  const full = `${sub.trim().toLowerCase() || "yourfilm"}.${site.name}`;
+  const ownHost = own.trim() ? `watch.${own.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "")}` : "watch.yourfilm.com";
+
+  let status: ReactNode = null;
+  if (errors.subdomain) status = <p className="field-err">Address {errors.subdomain}.</p>;
+  else if (subCheck?.available) status = <p className="addr-ok">✓ {subCheck.name}.{site.name} is yours if you save it.</p>;
+  else if (subCheck && (subCheck.reason || subCheck.suggestion))
+    status = (
+      <p className={subCheck.reason ? "field-err" : "hint"}>
+        {subCheck.reason || "Pick an address for your film."}{" "}
+        {subCheck.suggestion && !disabled && (
+          <button type="button" className="link-btn" onClick={() => onSub(subCheck.suggestion!)}>
+            Use {subCheck.suggestion}.{site.name}
+          </button>
+        )}
+      </p>
+    );
+
+  return (
+    <>
+      <div className={`field${errors.subdomain || (subCheck && !subCheck.available && subCheck.reason) ? " has-err" : ""}`}>
+        <label htmlFor={subId}>{ownMode ? `Your film's address on ${site.name}` : "Address"}</label>
+        <div className="affix">
+          <input
+            id={subId}
+            value={sub}
+            placeholder={title ? title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "yourfilm"}
+            disabled={disabled}
+            maxLength={42}
+            spellCheck={false}
+            autoCapitalize="none"
+            onChange={(e) => onSub(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+          />
+          <span>.{site.name}</span>
+        </div>
+        <div aria-live="polite">{status}</div>
+        <p className="hint">
+          Each film needs its own. Letters, numbers and dashes.
+          {ownMode && " Your domain points here, so it's needed even with your own domain."}
+        </p>
+      </div>
+
+      {ownMode && (
+        <div className={`field${errors.own_domain || (ownCheck && !ownCheck.available && ownCheck.reason) ? " has-err" : ""}`}>
+          <label htmlFor={ownId}>Your domain</label>
+          <input id={ownId} value={own} placeholder="yourfilm.com" disabled={disabled} spellCheck={false} autoCapitalize="none" onChange={(e) => onOwn(e.target.value)} />
+          <div aria-live="polite">
+            {errors.own_domain ? (
+              <p className="field-err">Your domain {errors.own_domain}.</p>
+            ) : ownCheck && !ownCheck.available && ownCheck.reason ? (
+              <p className="field-err">{ownCheck.reason}</p>
+            ) : null}
+          </div>
+          <p className="hint">
+            Your page will be at <strong>{ownHost}</strong>. At your domain's DNS settings, add a CNAME record for{" "}
+            <strong>watch</strong> pointing to <strong>{full}</strong>. We'll check it during setup.
+          </p>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -726,13 +823,13 @@ function Steps({ film, stripe }: { film: Film; stripe: StripeInfo | null }) {
 }
 
 function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; dirty: boolean; save: () => Promise<boolean>; onChange: (f: Film) => void; stripe: StripeInfo | null; onStripe: (s: StripeInfo) => void }) {
-  const [busy, setBusy] = useState<"" | "pay" | "code" | "resubmit" | "live" | "offline">("");
+  const [busy, setBusy] = useState<"" | "pay" | "code" | "resubmit" | "live" | "visibility">("");
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
   const codeId = useId();
   const fee = dollars(meta.setupFeeCents).replace(".00", "");
 
-  async function run(kind: "pay" | "code" | "resubmit" | "live" | "offline", fn: () => Promise<void>) {
+  async function run(kind: "pay" | "code" | "resubmit" | "live" | "visibility", fn: () => Promise<void>) {
     setError("");
     setBusy(kind);
     try {
@@ -760,10 +857,16 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
     });
   };
 
-  const setLive = (live: boolean) =>
-    run(live ? "live" : "offline", async () => {
-      if (!live && !confirm("Take your watch page offline? Viewers won't be able to rent or buy until you put it back live.")) return;
-      const r = await api<{ film: Film }>(`/films/${film.id}/${live ? "go-live" : "go-offline"}`, { body: {} });
+  const goLive = () =>
+    run("live", async () => {
+      const r = await api<{ film: Film }>(`/films/${film.id}/go-live`, { body: {} });
+      onChange(r.film);
+    });
+
+  const setHidden = (hidden: boolean) =>
+    run("visibility", async () => {
+      if (hidden && !confirm("Hide your watch page? Visitors will see a holding page, and nobody can rent, buy or watch until you show it again.")) return;
+      const r = await api<{ film: Film }>(`/films/${film.id}/visibility`, { body: { hidden } });
       onChange(r.film);
     });
 
@@ -794,7 +897,9 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
           ? "Your film passed review. Your page goes public when you say so: check the preview, then go live."
           : "Your film passed review. Add your Stripe details below, then you can go live whenever you're ready.",
       ],
-      live: ["Live", "Your watch page is live. Share it!"],
+      live: film.hidden
+        ? ["Hidden", "Visitors to your address see a holding page. Nobody can rent, buy or watch until you show it again."]
+        : ["Live", "Your watch page is live. Share it!"],
     };
     const [h, p] = msgs[film.status] || msgs.in_review;
     body = (
@@ -805,7 +910,7 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
         {film.admin_note && <blockquote className="admin-note">{film.admin_note}</blockquote>}
         {film.status === "approved" && (
           <div id="go-live" tabIndex={-1} className="go-live">
-            <button type="button" className="btn setup-pay" onClick={() => setLive(true)} disabled={!!busy || !stripe?.hasAccount}>
+            <button type="button" className="btn setup-pay" onClick={goLive} disabled={!!busy || !stripe?.hasAccount}>
               {busy === "live" ? "Going live…" : "Go live"}
             </button>
             <p className="small-print">
@@ -813,11 +918,16 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
             </p>
           </div>
         )}
-        {film.status === "live" && (
-          <button type="button" className="link-btn go-offline" onClick={() => setLive(false)} disabled={!!busy}>
-            {busy === "offline" ? "Taking it offline…" : "Take my page offline"}
-          </button>
-        )}
+        {film.status === "live" &&
+          (film.hidden ? (
+            <button type="button" className="btn setup-pay" onClick={() => setHidden(false)} disabled={!!busy}>
+              {busy === "visibility" ? "Showing…" : "Show my page"}
+            </button>
+          ) : (
+            <button type="button" className="link-btn go-offline" onClick={() => setHidden(true)} disabled={!!busy}>
+              {busy === "visibility" ? "Hiding…" : "Hide my page (show a holding page)"}
+            </button>
+          ))}
       </>
     );
   } else {

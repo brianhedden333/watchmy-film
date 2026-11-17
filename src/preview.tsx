@@ -45,6 +45,7 @@ function Preview() {
   const [film, setFilm] = useState<Film | null>(null);
   const [mine, setMine] = useState(true);
   const [admin, setAdmin] = useState(false);
+  const [showFull, setShowFull] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -73,7 +74,11 @@ function Preview() {
   return (
     <div className="sample" style={pageTheme(film)}>
       {mine && !admin ? <PreviewBanner film={film} /> : <AdminBanner film={film} mine={mine} />}
-      <WatchPage film={film} canWatch={admin} />
+      {film.hidden && !showFull ? (
+        <HoldingPage film={film} onShowFull={() => setShowFull(true)} />
+      ) : (
+        <WatchPage film={film} canWatch={admin} />
+      )}
     </div>
   );
 }
@@ -111,6 +116,34 @@ function AdminBanner({ film, mine }: { film: Film; mine: boolean }) {
         {mine ? "Back to editing" : "Back to admin"}
       </a>
     </div>
+  );
+}
+
+// What a hidden film's address shows: its look and title, and a short note. No prices, player or trailer.
+function HoldingPage({ film: f, onShowFull }: { film: Film; onShowFull: () => void }) {
+  const hero = f.banner_url || f.still_url;
+  return (
+    <>
+      <div className="holding-note">
+        <span>Your page is hidden, so this holding page is what visitors see.</span>
+        <button type="button" className="link-btn" onClick={onShowFull}>
+          See the full page
+        </button>
+      </div>
+      <section className={`s-hero holding ${hero ? "" : "preview-no-still"}`} style={hero ? { backgroundImage: `url(${hero})` } : undefined}>
+        <div className="s-wrap">
+          <h1>{f.title}</h1>
+          <p>Not available right now. Check back soon.</p>
+        </div>
+      </section>
+      <main className="s-wrap s-main holding-main">
+        {f.poster_url && <img src={f.poster_url} alt={`${f.title} poster`} className="s-poster holding-poster" />}
+        <p>
+          Already rented or bought it? You'll be able to watch again as soon as the page is back. Your purchase is saved to
+          your email.
+        </p>
+      </main>
+    </>
   );
 }
 

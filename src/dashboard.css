@@ -458,6 +458,12 @@
   color: #ffb4a8;
 }
 
+.pill-hidden {
+  border-color: var(--text-soft);
+  color: var(--text-soft);
+  border-style: dashed;
+}
+
 .pill-approved,
 .pill-live {
   border-color: var(--exit);
@@ -1631,4 +1637,16 @@ a.library-poster:focus-visible {
 .setup-card .go-offline {
   font-size: 14px;
   color: var(--text-soft);
+}
+
+.addr-ok {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--exit);
+}
+
+.field .field-err .link-btn,
+.field .hint .link-btn {
+  margin-left: 4px;
+  font-size: 14px;
 }

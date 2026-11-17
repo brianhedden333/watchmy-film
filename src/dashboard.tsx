@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, getMe, type User } from "./api";
-import { STATUS_LABEL, type Film, type FilmsResponse } from "./films";
+import { pillClass, statusLabel, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
@@ -29,9 +29,9 @@ function nextStep(f: Film) {
     case "changes_requested":
       return "Make the changes we asked for, then send it back";
     case "approved":
-      return "Connect Stripe and go live";
+      return "Approved: go live when you're ready";
     case "live":
-      return null;
+      return f.hidden ? "Hidden: visitors see a holding page" : null;
   }
 }
 
@@ -76,7 +76,7 @@ function Dashboard() {
             ) : (
               <ul className="film-list">
                 {films.map((f) => {
-                  const addr = f.status === "live" ? liveAddress(f) : null;
+                  const addr = f.status === "live" && !f.hidden ? liveAddress(f) : null;
                   const step = nextStep(f);
                   return (
                     <li key={f.id} className="film-row">
@@ -89,7 +89,7 @@ function Dashboard() {
                           {f.year && <span className="film-row-year"> ({f.year})</span>}
                         </h2>
                         <p className="film-row-status">
-                          <span className={`pill pill-${f.status}`}>{STATUS_LABEL[f.status]}</span>
+                          <span className={pillClass(f)}>{statusLabel(f)}</span>
                           {step && <span>{step}</span>}
                         </p>
                         {addr && (

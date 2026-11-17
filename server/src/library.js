@@ -15,7 +15,7 @@ libraryRouter.get("/", (req, res) => {
   const rows = db
     .prepare(
       `SELECT p.purpose, p.created_at AS paid_at, f.id, f.title, f.year, f.poster_path, f.rental_days, f.rental_hours,
-              f.status, f.address_type, f.subdomain, f.own_domain
+              f.status, f.hidden, f.address_type, f.subdomain, f.own_domain
        FROM payments p JOIN films f ON f.id = p.film_id
        WHERE p.user_id = ? AND p.purpose IN ('rent', 'buy')
        ORDER BY p.created_at DESC`
@@ -30,7 +30,7 @@ libraryRouter.get("/", (req, res) => {
 
   const films = [...byFilm.values()].map((r) => {
     const address =
-      r.status !== "live" ? null : r.address_type === "own" && r.own_domain ? `watch.${r.own_domain}` : r.subdomain ? `${r.subdomain}.${config.siteName}` : null;
+      r.status !== "live" || r.hidden ? null : r.address_type === "own" && r.own_domain ? `watch.${r.own_domain}` : r.subdomain ? `${r.subdomain}.${config.siteName}` : null;
     const base = { id: r.id, title: r.title, year: r.year, poster_url: r.poster_path ? `/uploads/${r.poster_path}` : null, address, paid_at: r.paid_at };
     if (r.purpose === "buy") return { ...base, access: "owned" };
     const startBy = new Date(new Date(r.paid_at).getTime() + (r.rental_days ?? 30) * DAY).toISOString();

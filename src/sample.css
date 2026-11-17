@@ -503,3 +503,50 @@
   color: var(--s-red);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Holding page (a hidden film's address) ---------- */
+
+.holding-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 10px var(--gutter);
+  background: var(--s-card);
+  border-bottom: 1px solid var(--s-line);
+  font-size: 14px;
+  color: var(--s-soft);
+}
+
+.holding-note .link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--s-head);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.s-hero.holding {
+  min-height: 46vh;
+}
+
+.holding-main {
+  display: grid;
+  justify-items: center;
+  gap: 28px;
+  text-align: center;
+}
+
+.holding-main p {
+  max-width: 46ch;
+  margin: 0;
+  line-height: 1.6;
+  color: var(--s-soft);
+}
+
+.holding-poster {
+  width: min(260px, 70vw);
+  height: auto;
+}

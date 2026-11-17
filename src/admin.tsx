@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, dollars, getMe, type User } from "./api";
-import { STATUS_LABEL, type Film } from "./films";
+import { pillClass, STATUS_LABEL, statusLabel, type Film } from "./films";
 import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
@@ -123,7 +123,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             earned · {film.sales_count} {film.sales_count === 1 ? "sale" : "sales"}
           </span>
         </span>
-        <span className={`pill pill-${film.status}`}>{STATUS_LABEL[film.status]}</span>
+        <span className={pillClass(film)}>{statusLabel(film)}</span>
         <svg className="admin-caret" width="14" height="14" viewBox="0 0 12 12" aria-hidden="true">
           <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" />
         </svg>

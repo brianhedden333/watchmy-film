@@ -47,10 +47,15 @@ export type Film = {
   setup_status: "unpaid" | "paid" | "waived";
   admin_note: string | null;
   missing: string[];
+  hidden: boolean;
   editable: boolean;
 };
 
 export type FilmsResponse = { films: Film[]; setupFeeCents: number; checkoutEnabled: boolean };
+
+// Label and pill style, counting a hidden live film as "Hidden".
+export const statusLabel = (f: Pick<Film, "status" | "hidden">) => (f.status === "live" && f.hidden ? "Hidden" : STATUS_LABEL[f.status]);
+export const pillClass = (f: Pick<Film, "status" | "hidden">) => `pill pill-${f.status === "live" && f.hidden ? "hidden" : f.status}`;
 
 export const STATUS_LABEL: Record<Film["status"], string> = {
   draft: "Draft",

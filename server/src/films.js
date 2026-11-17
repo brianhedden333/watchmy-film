@@ -47,12 +47,44 @@ const domain = (v) => {
   if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s) || s.length > 253) throw new Error("must be a domain like yourfilm.com");
   return s;
 };
+// Names we keep for ourselves on watchmyfilm.online.
+const RESERVED = new Set(
+  "www api app admin mail email smtp ftp ns ns1 ns2 dns cdn static assets uploads media img images files help support docs blog status dashboard account accounts signin signup login logout auth billing pay payments checkout stripe webhook webhooks library preview sample workflow watch test dev staging beta demo shop store about contact terms privacy legal security root system".split(" ")
+);
+const SUB_RE = /^[a-z0-9](?:[a-z0-9-]{0,40}[a-z0-9])?$/;
+
 const subdomain = (v) => {
   const s = String(v ?? "").trim().toLowerCase();
   if (!s) return null;
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,40}[a-z0-9])?$/.test(s)) throw new Error("can use only letters, numbers and dashes");
+  if (!SUB_RE.test(s)) throw new Error("can use only letters, numbers and dashes, and must start and end with a letter or number");
+  if (RESERVED.has(s)) throw new Error("is reserved. Try another");
   return s;
 };
+
+// Turn a title into an address: "The Mountain Goat!" -> "the-mountain-goat".
+export const slugify = (t) =>
+  String(t || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 42)
+    .replace(/-+$/, "");
+
+const subTaken = (name, filmId) =>
+  !!db.prepare("SELECT 1 FROM films WHERE subdomain = ? AND id != ?").get(name, filmId ?? 0);
+const domainTaken = (name, filmId) =>
+  !!db.prepare("SELECT 1 FROM films WHERE own_domain = ? AND id != ?").get(name, filmId ?? 0);
+
+// A free address close to the one asked for: name-film, name-<year>, name-2, name-3…
+function suggestSub(base, film) {
+  const b = slugify(base).slice(0, 36) || "film";
+  const tries = [b, `${b}-film`, ...(film?.year ? [`${b}-${film.year}`] : []), `${b}-movie`, `watch-${b}`];
+  for (let i = 2; i < 50; i++) tries.push(`${b}-${i}`);
+  return tries.find((t) => SUB_RE.test(t) && !RESERVED.has(t) && !subTaken(t, film?.id)) || null;
+}
 
 // Credits: a list of roles, each with a list of names. Empty names and unnamed roles are dropped.
 const credits = (v) => {
@@ -142,6 +174,7 @@ const FIELDS = {
 };
 
 const LABELS = {
+  subdomain: "Web address",
   title: "Title",
   synopsis: "Synopsis",
   poster_path: "Poster",
@@ -157,6 +190,7 @@ export function missingFields(f) {
   const missing = [];
   for (const k of ["title", "synopsis", "poster_path", "still_path", "vimeo_url"]) if (!f[k]) missing.push(LABELS[k]);
   if (!f.rent_price_cents && !f.buy_price_cents) missing.push(LABELS.price);
+  if (!f.subdomain) missing.push(LABELS.subdomain);
   return missing;
 }
 
@@ -171,10 +205,12 @@ export const publicFilm = (f) => ({
   still_url: f.still_path ? `/uploads/${f.still_path}` : null,
   banner_url: f.banner_path ? `/uploads/${f.banner_path}` : null,
   missing: missingFields(f),
+  hidden: !!f.hidden,
   editable: EDITABLE.has(f.status),
 });
 
-const getOwnFilm = (req) => db.prepare("SELECT * FROM films WHERE id = ? AND user_id = ?").get(Number(req.params.id), req.user.id);
+const getOwnFilmById = (id, userId) => db.prepare("SELECT * FROM films WHERE id = ? AND user_id = ?").get(id, userId);
+const getOwnFilm = (req) => getOwnFilmById(Number(req.params.id), req.user.id);
 
 function clean(body, { requireTitle }) {
   const out = {};
@@ -245,6 +281,32 @@ filmsRouter.post("/", (req, res) => {
 });
 
 // Admins can read any film too, so they can open its preview while reviewing it.
+// Is this address free? Used as the filmmaker types. ?subdomain=…&film=<id> (their own film doesn't count).
+filmsRouter.get("/address-check", rateLimit({ windowMs: 60_000, max: 120 }), (req, res) => {
+  const filmId = Number(req.query.film) || 0;
+  const film = filmId ? getOwnFilmById(filmId, req.user.id) : null;
+  if (req.query.domain != null) {
+    let d;
+    try {
+      d = domain(req.query.domain);
+    } catch (e) {
+      return res.json({ available: false, reason: `Your domain ${e.message}.` });
+    }
+    if (!d) return res.json({ available: false, reason: "" });
+    return res.json(domainTaken(d, filmId) ? { available: false, reason: `${d} is already used by another film.` } : { available: true, name: d });
+  }
+  const raw = String(req.query.subdomain ?? "");
+  let s;
+  try {
+    s = subdomain(raw);
+  } catch (e) {
+    return res.json({ available: false, reason: `That address ${e.message}.`, suggestion: suggestSub(raw || film?.title, film) });
+  }
+  if (!s) return res.json({ available: false, reason: "", suggestion: suggestSub(film?.title, film) });
+  if (subTaken(s, filmId)) return res.json({ available: false, reason: `${s}.${config.siteName} is taken.`, suggestion: suggestSub(s, film) });
+  res.json({ available: true, name: s });
+});
+
 filmsRouter.get("/:id", (req, res) => {
   const film = isAdmin(req.user) ? db.prepare("SELECT * FROM films WHERE id = ?").get(Number(req.params.id)) : getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
@@ -256,6 +318,11 @@ filmsRouter.patch("/:id", (req, res) => {
   if (!film) return res.status(404).json({ error: "Film not found." });
   if (!EDITABLE.has(film.status)) return res.status(409).json({ error: "This film is approved. Email us to change its details." });
   const { out, errors } = clean(req.body, { requireTitle: false });
+  if (out.subdomain && subTaken(out.subdomain, film.id)) {
+    const alt = suggestSub(out.subdomain, film);
+    errors.subdomain = `is taken${alt ? `. Try ${alt}` : ""}`;
+  }
+  if (out.own_domain && domainTaken(out.own_domain, film.id)) errors.own_domain = "is already used by another film";
   if (Object.keys(errors).length) return res.status(400).json({ error: "Check the highlighted fields.", errors });
   const cols = Object.keys(out);
   if (cols.length) {
@@ -343,12 +410,14 @@ filmsRouter.post("/:id/go-live", (req, res) => {
   res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
 });
 
-filmsRouter.post("/:id/go-offline", (req, res) => {
+// Hide or show a live film. Hidden: the address shows a holding page instead of the film.
+filmsRouter.post("/:id/visibility", (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
-  if (film.status !== "live") return res.status(409).json({ error: "This film isn't live." });
-  db.prepare("UPDATE films SET status = 'approved', updated_at = ? WHERE id = ?").run(now(), film.id);
-  notifyAdmin("Film taken offline", `${req.user.email} took "${film.title}" offline.\n\n${config.appUrl}/admin/`);
+  if (film.status !== "live") return res.status(409).json({ error: "Only a live film can be hidden or shown." });
+  const hidden = req.body.hidden === true;
+  db.prepare("UPDATE films SET hidden = ?, updated_at = ? WHERE id = ?").run(hidden ? 1 : 0, now(), film.id);
+  notifyAdmin(hidden ? "Film hidden" : "Film shown again", `${req.user.email} ${hidden ? "hid" : "unhid"} "${film.title}".\n\n${config.appUrl}/admin/`);
   res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
 });
 
