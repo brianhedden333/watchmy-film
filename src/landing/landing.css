@@ -266,9 +266,17 @@ p {
 }
 
 @media (max-width: 860px) {
-  .nav nav a:not(.btn) {
+  .nav nav a:not(.btn):not(.nav-login) {
     display: none;
   }
+
+  .nav nav {
+    gap: 18px;
+  }
+}
+
+.nav nav > :nth-child(6) {
+  animation-delay: 0.7s;
 }
 
 /* ---------- Hero ---------- */

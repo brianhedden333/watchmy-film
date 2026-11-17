@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { money, pricing, site, splitSale, type TierKey } from "../config";
+import { getMe, type User } from "../api";
 
 /* Landing page. The interface stays neutral, like a screening room; color comes only from the films. */
 
@@ -101,7 +102,16 @@ function useReveal() {
   }, []);
 }
 
+// Log in shows wherever sign-in exists: builds with accounts open, and the dev server.
+const loginOn = site.accountsOpen || import.meta.env.DEV;
+
 function Nav({ solid }: { solid: boolean }) {
+  // Already signed in? Offer a way back in instead of Log in / Get started.
+  const [me, setMe] = useState<User | null>(null);
+  useEffect(() => {
+    if (loginOn) getMe().then(setMe).catch(() => {});
+  }, []);
+
   return (
     <header className={solid ? "nav solid" : "nav"}>
       <div className="wrap nav-inner">
@@ -119,9 +129,22 @@ function Nav({ solid }: { solid: boolean }) {
           <a href="#pricing">Pricing</a>
           <a href="#about">About us</a>
           <a href="#faq">Questions</a>
-          <a href={signupUrl} className="btn btn-small">
-            Get started
-          </a>
+          {me ? (
+            <a href={`${base}${me.home.replace(/^\//, "")}`} className="btn btn-small">
+              {me.isAdmin ? "Admin" : "Your films"}
+            </a>
+          ) : (
+            <>
+              {loginOn && (
+                <a href={`${base}signin/`} className="nav-login">
+                  Log in
+                </a>
+              )}
+              <a href={signupUrl} className="btn btn-small">
+                Get started
+              </a>
+            </>
+          )}
         </nav>
       </div>
     </header>
