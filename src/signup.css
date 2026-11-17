@@ -16,7 +16,7 @@
 }
 
 .signup-head {
-  padding: 22px 0;
+  padding: 14px 0;
   border-bottom: 1px solid var(--red);
 }
 
@@ -312,4 +312,23 @@
 
 .signup-card [role="status"] .small-note .link-btn {
   font-size: 14px;
+}
+
+/* Same logo and size as the home page nav */
+.signup-head .logo-link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.auth-logo {
+  height: 42px;
+  width: auto;
+  display: block;
+}
+
+@media (max-width: 420px) {
+  .auth-logo {
+    height: 32px;
+  }
 }

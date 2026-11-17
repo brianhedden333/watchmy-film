@@ -19,8 +19,8 @@ export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
     <div className="signup">
       <header className="signup-head">
         <div className="wrap">
-          <a href={home} className="wordmark">
-            {site.name}
+          <a href={home} className="logo-link" aria-label={`${site.name} home`}>
+            <img src={`${home}brand/watchmyfilm-logo-white.png`} alt="" width={600} height={163} className="auth-logo" />
           </a>
         </div>
       </header>
