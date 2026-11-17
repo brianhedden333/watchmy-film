@@ -5,7 +5,13 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  /* Soft-focus diagonal gray: warm gray light falling from the top left into black, with two blurred glows. */
+  background:
+    radial-gradient(55% 45% at 12% 8%, rgba(237, 232, 223, 0.11), transparent 70%),
+    radial-gradient(45% 55% at 92% 96%, rgba(237, 232, 223, 0.05), transparent 70%),
+    linear-gradient(135deg, #2d2b28 0%, #1a1917 38%, #0d0d0c 72%, #050505 100%);
+  background-color: var(--bg);
+  background-attachment: fixed;
   color: var(--text);
 }
 
@@ -42,7 +48,9 @@
 }
 
 .signup-card {
-  background: rgba(17, 17, 17, 0.85);
+  background: rgba(17, 17, 17, 0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--line);
   border-top: 2px solid var(--gold);
   border-radius: 8px;
