@@ -1137,7 +1137,7 @@
   .film-row-poster {
     width: 48px;
   }
-  .film-row-open {
+  .film-row-actions {
     grid-column: 2;
     justify-self: start;
   }
@@ -1297,4 +1297,19 @@
   align-items: center;
   gap: 14px;
   font-size: 15px;
+}
+
+.film-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 15px;
+}
+
+.film-head-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
 }

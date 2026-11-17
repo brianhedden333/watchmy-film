@@ -4,6 +4,7 @@ export type Credit = { role: string; names: string[] };
 
 export type Film = {
   id: number;
+  user_id: number;
   title: string;
   logline: string | null;
   synopsis: string | null;
@@ -47,4 +48,20 @@ export const STATUS_LABEL: Record<Film["status"], string> = {
   changes_requested: "Changes requested",
   approved: "Approved",
   live: "Live",
+};
+
+// Watch page colors: what each one falls back to when the filmmaker leaves it empty.
+export type ColorKey = "color_background" | "color_primary" | "color_secondary" | "color_button";
+export const COLOR_DEFAULTS: Record<ColorKey, string> = {
+  color_background: "#111111",
+  color_primary: "#ffffff",
+  color_secondary: "#b3b3b3",
+  color_button: "#4a1424",
+};
+
+// Black or white text, whichever reads better on the given #rrggbb color.
+export const textOn = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.6 ? "#111111" : "#ffffff";
 };

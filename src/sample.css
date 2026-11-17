@@ -10,6 +10,8 @@
   --s-faint: #78716c;
   --s-red: #dc2626;
   --s-red-hover: #b91c1c;
+  --s-head: #fff; /* title and headings */
+  --s-btn-text: #fff;
   min-height: 100vh;
   background: var(--s-bg);
   color: var(--s-text);
@@ -65,13 +67,13 @@
   font-weight: 700;
   font-size: clamp(30px, 4vw, 48px);
   line-height: 1.1;
-  color: #fff;
+  color: #fff; /* always on the dark scrim over the image */
   margin: 0 0 20px;
 }
 
 .s-hero p {
   font-size: clamp(22px, 2.6vw, 30px);
-  color: var(--s-text);
+  color: #d6d3d1;
   margin: 0;
 }
 
@@ -106,7 +108,7 @@
   font-family: var(--body);
   font-size: 30px;
   font-weight: 700;
-  color: #fff;
+  color: var(--s-head);
   margin: 0 0 12px;
 }
 
@@ -128,7 +130,7 @@
 }
 
 .s-box-title {
-  color: #fff;
+  color: var(--s-head);
   font-weight: 600;
   margin-bottom: 4px !important;
 }
@@ -160,7 +162,7 @@
   text-align: center;
   text-decoration: none;
   background: var(--s-red);
-  color: #fff;
+  color: var(--s-btn-text);
   font-weight: 700;
   font-size: 18px;
   padding: 18px;
@@ -187,7 +189,7 @@
 }
 
 .s-included h4 {
-  color: #fff;
+  color: var(--s-head);
   font-family: var(--body);
   font-size: 16px;
   margin: 0 0 12px;
@@ -224,7 +226,7 @@
 .s-narrow > h3 {
   font-family: var(--body);
   font-weight: 700;
-  color: #fff;
+  color: var(--s-head);
 }
 
 .s-narrow h2 {
@@ -283,5 +285,91 @@
 
   .sample-bar span {
     font-size: 13px;
+  }
+}
+
+/* ---------- Preview of a filmmaker's own watch page (/preview/) ---------- */
+
+.preview-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding: 14px var(--gutter);
+  background: var(--bg);
+  border-bottom: 2px solid var(--gold);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+.preview-bar p {
+  margin: 0;
+}
+
+.preview-bar .preview-bar-title {
+  color: var(--screen);
+  font-weight: 600;
+}
+
+.preview-bar .btn {
+  flex: none;
+}
+
+.s-btn {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--body);
+}
+
+.preview-note {
+  color: var(--s-head);
+}
+
+.preview-no-still {
+  background: linear-gradient(160deg, var(--s-card), var(--s-bg));
+}
+
+.preview-missing {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+  padding: 24px;
+  text-align: center;
+  border: 2px dashed var(--s-line);
+  background: none;
+  box-shadow: none;
+  color: var(--s-faint);
+}
+
+.preview-missing-text {
+  color: var(--s-faint);
+  font-style: italic;
+}
+
+/* One offer: poster plus a single wide card */
+.s-buy.offers-1 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
+@media (max-width: 1000px) {
+  .s-buy.offers-1 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .preview-bar {
+    flex-direction: column;
+    align-items: stretch;
+    font-size: 14px;
+  }
+  .preview-bar .btn {
+    text-align: center;
   }
 }

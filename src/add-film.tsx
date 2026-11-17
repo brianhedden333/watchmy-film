@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode 
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, ApiError, dollars, getMe, type User } from "./api";
-import { STATUS_LABEL, type Credit, type Film, type FilmsResponse } from "./films";
+import { COLOR_DEFAULTS, STATUS_LABEL, textOn, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
@@ -249,6 +249,12 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
     }
   }
 
+  // The preview shows saved details, so save any changes first.
+  async function openPreview() {
+    if (dirty && !locked && !(await save())) return;
+    location.assign(`${home}preview/?film=${film.id}`);
+  }
+
   const field = (k: keyof FormState, label: string, opts: { type?: string; hint?: ReactNode; placeholder?: string; multiline?: number; prefix?: string; suffix?: string; inputMode?: "decimal" | "numeric" } = {}) => (
     <Field
       label={label}
@@ -268,7 +274,12 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
           <p className="eyebrow">Your film</p>
           <h1>{film.title}</h1>
         </div>
-        <span className={`pill pill-${film.status} pill-big`}>{STATUS_LABEL[film.status]}</span>
+        <div className="film-head-actions">
+          <button type="button" className="btn btn-small btn-red" onClick={openPreview} disabled={saveState === "saving"}>
+            Preview page
+          </button>
+          <span className={`pill pill-${film.status} pill-big`}>{STATUS_LABEL[film.status]}</span>
+        </div>
       </div>
 
       <Steps film={film} />
@@ -491,15 +502,8 @@ function CreditsEditor({ credits, onChange, disabled, error }: { credits: Credit
   );
 }
 
-type ColorKey = "color_background" | "color_primary" | "color_secondary" | "color_button";
 
 // What the watch page uses when a color is left blank.
-const COLOR_DEFAULTS: Record<ColorKey, string> = {
-  color_background: "#111111",
-  color_primary: "#ffffff",
-  color_secondary: "#b3b3b3",
-  color_button: "#4a1424",
-};
 
 const COLORS: [ColorKey, string, string][] = [
   ["color_background", "Background", "Behind everything on the page"],
@@ -534,11 +538,6 @@ function ColorField({ label, hint, value, fallback, onChange, disabled, error }:
   );
 }
 
-const textOn = (hex: string) => {
-  const n = parseInt(hex.slice(1), 16);
-  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-  return lum > 0.6 ? "#111111" : "#ffffff";
-};
 
 function DesignPreview({ form }: { form: FormState }) {
   const valid = (v: string) => (/^#[0-9a-fA-F]{6}$/.test(v) ? v : "");

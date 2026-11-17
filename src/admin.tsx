@@ -134,6 +134,11 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Credits</dt><dd>{film.credits.filter((c) => c.names.length).map((c) => <span key={c.role} className="credit-line"><strong>{c.role}:</strong> {c.names.join(", ")}</span>)}{!film.credits.some((c) => c.names.length) && "None"}</dd></div>
             <div><dt>Contact</dt><dd>{[film.contact_name || film.owner_name, film.owner_email, film.contact_phone].filter(Boolean).join(" · ")}</dd></div>
           </dl>
+          <p>
+            <a href={`${home}preview/?film=${film.id}`} target="_blank" rel="noopener">
+              Open their watch page preview
+            </a>
+          </p>
           {film.logline && <p><em>{film.logline}</em></p>}
           {film.synopsis && <p className="admin-synopsis">{film.synopsis}</p>}
           {film.notes && <p className="admin-synopsis"><strong>Their notes:</strong> {film.notes}</p>}

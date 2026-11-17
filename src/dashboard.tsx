@@ -100,9 +100,14 @@ function Dashboard() {
                           </p>
                         )}
                       </div>
-                      <a className="btn btn-small btn-red film-row-open" href={editUrl(f)}>
-                        {f.editable ? "Edit" : "View"}
-                      </a>
+                      <div className="film-row-actions">
+                        <a className="link-btn" href={`${home}preview/?film=${f.id}`}>
+                          Preview
+                        </a>
+                        <a className="btn btn-small btn-red" href={editUrl(f)}>
+                          {f.editable ? "Edit" : "View"}
+                        </a>
+                      </div>
                     </li>
                   );
                 })}

@@ -7,7 +7,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config.js";
 import { db, now } from "./db.js";
-import { requireUser } from "./auth.js";
+import { isAdmin, requireUser } from "./auth.js";
 import { rateLimit } from "./limits.js";
 import { redeemSetupWaiver } from "./codes.js";
 import { filmSubmittedEmail, notifyAdmin } from "./email.js";
@@ -204,8 +204,9 @@ filmsRouter.post("/", (req, res) => {
   res.status(201).json({ film: publicFilm(film) });
 });
 
+// Admins can read any film too, so they can open its preview while reviewing it.
 filmsRouter.get("/:id", (req, res) => {
-  const film = getOwnFilm(req);
+  const film = isAdmin(req.user) ? db.prepare("SELECT * FROM films WHERE id = ?").get(Number(req.params.id)) : getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
   res.json({ film: publicFilm(film) });
 });
