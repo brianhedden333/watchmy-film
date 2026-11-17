@@ -21,7 +21,7 @@ export const config = {
   uploadDir: resolve(root, env.UPLOAD_DIR || "uploads"),
   stripeSecretKey: env.STRIPE_SECRET_KEY || "",
   stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || "",
-  setupFeeCents: Number(env.SETUP_FEE_CENTS || 24900),
+  setupFeeCents: Number(env.SETUP_FEE_CENTS || 9900),
   sendgridKey: env.SENDGRID_API_KEY || "",
   fromEmail: env.FROM_EMAIL || "hello@watchmyfilm.online",
   fromName: env.FROM_NAME || "watchmyfilm.online",

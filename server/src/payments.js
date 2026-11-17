@@ -1,4 +1,4 @@
-// $249 setup fee through Stripe Checkout, on the FTS Stripe account.
+// Setup fee (SETUP_FEE_CENTS, $99) through Stripe Checkout, on the FTS Stripe account.
 // That account also takes Fracking the System sales, so every session we create is tagged app=watchmyfilm
 // and anything without that tag is ignored here.
 

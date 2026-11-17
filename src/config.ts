@@ -14,7 +14,7 @@ export const site = {
 export const pricing = {
   stripePercent: 0.029,
   stripeFixed: 0.3,
-  setupFee: 249,
+  setupFee: 99,
   foundingFilms: 5, // number of films that get the setup fee waived
   licensePercent: 0.05,
   tiers: {

@@ -615,7 +615,7 @@ function Story() {
 type Rival = { name: string; plan?: string; builtFor: string; fees: string[]; rental: string; setup: string; us?: boolean };
 
 const rivals: Rival[] = [
-  { name: site.name, builtFor: "Selling your film from its own website", fees: ["$249 one-time setup", "No monthly fee", "8%–10% platform fee per sale"], rental: "$0.50–$0.75", setup: "Done for you", us: true },
+  { name: site.name, builtFor: "Selling your film from its own website", fees: [`$${pricing.setupFee} one-time setup`, "No monthly fee", "8%–10% platform fee per sale"], rental: "$0.50–$0.75", setup: "Done for you", us: true },
   { name: "Eventive", plan: "Virtual Single Film", builtFor: "Festival-style virtual screenings", fees: ["$299 one-time", "2.1% + 69¢–99¢ ticketing fee per sale", "99¢ streaming fee per viewer after the first 100"], rental: "$0.82–$1.81", setup: "Self-serve" },
   { name: "MediaZilla", plan: "Growth", builtFor: "Video storefronts", fees: ["$37 monthly, billed annually ($444 a year)", "0% per sale"], rental: "$0", setup: "Self-serve" },
   { name: "Uscreen", plan: "Starter", builtFor: "Video memberships", fees: ["$49 monthly", "10% per sale"], rental: "$0.60", setup: "Self-serve" },

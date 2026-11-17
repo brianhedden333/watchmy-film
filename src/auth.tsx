@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { site } from "./config";
+import { pricing, site } from "./config";
 import { api, getMe } from "./api";
 
 /* Sign-up and sign-in share one screen.
@@ -276,7 +276,7 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
                 <strong>Add your film.</strong> Enter its title, poster, trailer and prices.
               </li>
               <li>
-                <strong>Pay the setup fee.</strong> $249 once, or enter a code if we gave you one.
+                <strong>Pay the setup fee.</strong> ${pricing.setupFee} once, or enter a code if we gave you one.
               </li>
               <li>
                 <strong>We review your film.</strong> We check the film and its content before anything goes public.

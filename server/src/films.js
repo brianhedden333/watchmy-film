@@ -1,4 +1,4 @@
-// Filmmakers' own films: create, edit, image uploads, and the setup step (pay $249 or use a waiver code).
+// Filmmakers' own films: create, edit, image uploads, and the setup step (pay the setup fee or use a waiver code).
 
 import { Router } from "express";
 import multer from "multer";
