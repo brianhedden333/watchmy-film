@@ -47,9 +47,11 @@ function passwordError(pw) {
   return null;
 }
 
-// Where to land after signing in: the films list once one is published, otherwise the add-a-film onboarding.
-export function homeFor(userId) {
-  const live = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND status = 'live' LIMIT 1").get(userId);
+// Where to land after signing in: admins go to /admin/; filmmakers to the films list once one is published,
+// otherwise the add-a-film onboarding.
+export function homeFor(user) {
+  if (isAdmin(user)) return "/admin/";
+  const live = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND status = 'live' LIMIT 1").get(user.id);
   return live ? "/dashboard/" : "/add-a-film/";
 }
 
@@ -156,7 +158,7 @@ authRouter.post("/verify", rateLimit({ windowMs: 15 * 60_000, max: 30 }), (req, 
     if (justVerified) db.prepare("UPDATE users SET email_verified_at = ? WHERE id = ?").run(now(), user.id);
     startSession(res, user.id);
   })();
-  res.json({ ok: true, justVerified, hasPassword: !!user.password_hash, next: homeFor(user.id) });
+  res.json({ ok: true, justVerified, hasPassword: !!user.password_hash, next: homeFor(user) });
 });
 
 // Password sign-in, for confirmed accounts that have set one. One vague error for every failure.
@@ -169,7 +171,7 @@ authRouter.post("/login", rateLimit({ windowMs: 15 * 60_000, max: 10 }), async (
     return res.status(401).json({ error: "That email and password don't match. Try again, or email yourself a sign-in link." });
   }
   startSession(res, user.id);
-  res.json({ ok: true, next: homeFor(user.id) });
+  res.json({ ok: true, next: homeFor(user) });
 });
 
 // Set or change the password while signed in (offered right after the email is confirmed).
@@ -197,7 +199,7 @@ authRouter.get("/me", (req, res) => {
   if (!req.user) return res.json({ user: null });
   const { id, email, name } = req.user;
   res.json({
-    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(id), stripe: stripeInfo(req.user) },
+    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user), stripe: stripeInfo(req.user) },
   });
 });
 

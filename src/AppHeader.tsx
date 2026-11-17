@@ -10,7 +10,11 @@ export function AppHeader({ user }: { user: User | null | undefined }) {
   return (
     <header className="dash-head">
       <div className="wrap dash-head-inner">
-        <a href={user ? `${home}dashboard/` : home} className="logo-link" aria-label={user ? "Dashboard" : `${site.name} home`}>
+        <a
+          href={user ? `${home}${user.isAdmin ? "admin/" : "dashboard/"}` : home}
+          className="logo-link"
+          aria-label={user ? (user.isAdmin ? "Admin" : "Dashboard") : `${site.name} home`}
+        >
           <img src={`${home}brand/watchmyfilm-logo-white.png`} alt="" width={600} height={163} className="app-logo" />
         </a>
         {user && <UserMenu user={user} />}
@@ -72,9 +76,9 @@ function UserMenu({ user }: { user: User }) {
       {open && (
         <ul id={menuId} className="user-menu-list">
           {user.name && <li className="user-menu-email">{user.email}</li>}
+          {user.isAdmin && item("admin/", "Admin")}
           {item("dashboard/", "Dashboard")}
           {item("account/", "Account")}
-          {user.isAdmin && item("admin/", "Admin")}
           <li>
             <button type="button" onClick={() => signOut().finally(() => location.assign(home))}>
               Sign out
