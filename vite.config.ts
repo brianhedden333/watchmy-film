@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
-const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/admin"];
+const SLASH_PAGES = ["/workflow", "/account", "/account-mockup", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/admin"];
 
 export default defineConfig({
   // Sub-path the site is served from. GitHub Pages project sites need
@@ -36,7 +36,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         workflow: resolve(__dirname, "workflow/index.html"), // internal, not linked
-        account: resolve(__dirname, "account/index.html"), // mockup, not linked
+        accountMockup: resolve(__dirname, "account-mockup/index.html"), // film settings mockup, not linked
         signup: resolve(__dirname, "signup/index.html"),
         // Account pages need the API server, so they're only built with VITE_ACCOUNTS=open
         ...(process.env.VITE_ACCOUNTS === "open" && {
@@ -44,6 +44,7 @@ export default defineConfig({
           dashboard: resolve(__dirname, "dashboard/index.html"), // list of the filmmaker's films
           addfilm: resolve(__dirname, "add-a-film/index.html"), // onboarding; also where each film is edited
           admin: resolve(__dirname, "admin/index.html"),
+          account: resolve(__dirname, "account/index.html"), // name, email, password
         }),
         sample: resolve(__dirname, "sample/index.html"), // sample watch page (Fracking the System)
       },

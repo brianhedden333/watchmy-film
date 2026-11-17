@@ -1,8 +1,9 @@
 import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
-import { api, ApiError, dollars, getMe, signOut, type User } from "./api";
+import { api, ApiError, dollars, getMe, type User } from "./api";
 import { STATUS_LABEL, type Credit, type Film, type FilmsResponse } from "./films";
+import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
 
@@ -108,23 +109,7 @@ function AddFilm() {
 
   return (
     <div className="dash">
-      <header className="dash-head">
-        <div className="wrap dash-head-inner">
-          <a href={home} className="wordmark">
-            {site.name}
-          </a>
-          {user && (
-            <div className="dash-user">
-              <a href={`${home}dashboard/`}>Your films</a>
-              {user.isAdmin && <a href={`${home}admin/`}>Admin</a>}
-              <span className="dash-email">{user.email}</span>
-              <button type="button" className="link-btn" onClick={() => signOut().finally(() => location.assign(home))}>
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+      <AppHeader user={user} />
 
       <main className="wrap dash-main">
         {loadError && <p className="dash-alert" role="alert">{loadError}</p>}

@@ -1,8 +1,9 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
-import { api, getMe, signOut, type User } from "./api";
+import { api, getMe, type User } from "./api";
 import { STATUS_LABEL, type Film, type FilmsResponse } from "./films";
+import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
 
@@ -51,22 +52,7 @@ function Dashboard() {
 
   return (
     <div className="dash">
-      <header className="dash-head">
-        <div className="wrap dash-head-inner">
-          <a href={home} className="wordmark">
-            {site.name}
-          </a>
-          {user && (
-            <div className="dash-user">
-              {user.isAdmin && <a href={`${home}admin/`}>Admin</a>}
-              <span className="dash-email">{user.email}</span>
-              <button type="button" className="link-btn" onClick={() => signOut().finally(() => location.assign(home))}>
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+      <AppHeader user={user} />
 
       <main className="wrap dash-main">
         {error && <p className="dash-alert" role="alert">{error}</p>}

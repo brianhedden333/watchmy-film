@@ -1,8 +1,9 @@
 import { StrictMode, useEffect, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
-import { api, dollars, getMe, signOut } from "./api";
+import { api, dollars, getMe, type User } from "./api";
 import { STATUS_LABEL, type Film } from "./films";
+import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
 
@@ -21,12 +22,14 @@ function Admin() {
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"films" | "codes" | "users">("films");
+  const [user, setUser] = useState<User | null>(null);
 
   const load = () => api<Overview>("/admin/overview").then(setData).catch((e) => setError(e.message));
 
   useEffect(() => {
     getMe().then((u) => {
       if (!u) return location.replace(`${home}signin/`);
+      setUser(u);
       if (!u.isAdmin) return setError("This page is for admins.");
       load();
     });
@@ -36,19 +39,7 @@ function Admin() {
 
   return (
     <div className="dash">
-      <header className="dash-head">
-        <div className="wrap dash-head-inner">
-          <a href={home} className="wordmark">
-            {site.name}
-          </a>
-          <div className="dash-user">
-            <a href={`${home}dashboard/`}>Your films</a>
-            <button type="button" className="link-btn" onClick={() => signOut().finally(() => location.assign(home))}>
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader user={user} />
 
       <main className="wrap dash-main">
         <h1>Admin</h1>
