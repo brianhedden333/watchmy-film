@@ -36,19 +36,27 @@ export function notifyAdmin(subject, text) {
   );
 }
 
+// Logo for emails: always the public site's copy, so it loads in inboxes even when links point at a dev server.
+const LOGO = "https://watchmyfilm.online/brand/watchmyfilm-logo-white.png";
+
+// The site's screening-room palette: black, warm house gray, projector cream.
 function layout(title, bodyHtml) {
-  return `<!doctype html><html><body style="margin:0;background:#0b0b0b;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;color:#d9d9d9">
-<div style="max-width:520px;margin:0 auto;background:#141414;border-top:3px solid #ffe7a3;border-radius:8px;padding:32px">
-<p style="margin:0 0 24px;font-weight:700;color:#ffe7a3;letter-spacing:.02em">${esc(config.siteName)}</p>
-<h1 style="margin:0 0 16px;font-size:22px;color:#fff">${esc(title)}</h1>
+  return `<!doctype html><html><head><meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"></head>
+<body style="margin:0;background:#000000;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;color:#ede8df">
+<div style="max-width:520px;margin:0 auto">
+<p style="margin:0 0 20px"><img src="${LOGO}" alt="${esc(config.siteName)}" width="150" height="41" style="display:block;border:0;width:150px;height:auto"></p>
+<div style="background:#1f1d1b;border:1px solid #3a3734;border-top:2px solid #ede8df;border-radius:8px;padding:32px">
+<h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;color:#ede8df">${esc(title)}</h1>
 ${bodyHtml}
+</div>
+<p style="margin:20px 4px 0;font-size:12px;line-height:1.5;color:#a39e95">${esc(config.siteName)} · Independent films, sold direct by their filmmakers.</p>
 </div></body></html>`;
 }
 
 const button = (href, label) =>
-  `<p style="margin:28px 0"><a href="${esc(href)}" style="background:#4a1424;color:#fff;text-decoration:none;padding:14px 24px;border-radius:6px;border:1px solid #ffe7a3;display:inline-block;font-weight:700">${esc(label)}</a></p>`;
+  `<p style="margin:28px 0"><a href="${esc(href)}" style="background:#ede8df;color:#000000;text-decoration:none;padding:14px 26px;border-radius:4px;display:inline-block;font-weight:700;font-size:16px">${esc(label)}</a></p>`;
 
-const para = (s) => `<p style="margin:0 0 14px;line-height:1.55">${esc(s)}</p>`;
+const para = (s) => `<p style="margin:0 0 14px;line-height:1.55;color:#ede8df">${esc(s)}</p>`;
 
 export function signInEmail(to, link, isNew) {
   const title = isNew ? "Confirm your email" : "Your sign-in link";
@@ -63,7 +71,7 @@ export function signInEmail(to, link, isNew) {
       title,
       para(lead) +
         button(link, isNew ? "Confirm my email" : "Sign in") +
-        `<p style="margin:0;font-size:13px;color:#8a8a8a;line-height:1.5">If you didn't ask for this, you can ignore this email.</p>`
+        `<p style="margin:0;font-size:13px;color:#a39e95;line-height:1.5">If you didn't ask for this, you can ignore this email.</p>`
     ),
   });
 }
