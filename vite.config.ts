@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
-const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/preview", "/library", "/admin"];
+const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/preview", "/library", "/admin", "/terms", "/privacy"];
 
 export default defineConfig({
   // Sub-path the site is served from. GitHub Pages project sites need
@@ -37,6 +37,8 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         workflow: resolve(__dirname, "workflow/index.html"), // internal, not linked
         signup: resolve(__dirname, "signup/index.html"),
+        terms: resolve(__dirname, "terms/index.html"),
+        privacy: resolve(__dirname, "privacy/index.html"),
         // Account pages need the API server, so they're only built with VITE_ACCOUNTS=open
         ...(process.env.VITE_ACCOUNTS === "open" && {
           signin: resolve(__dirname, "signin/index.html"), // also where emailed sign-in links land

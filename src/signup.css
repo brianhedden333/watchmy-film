@@ -332,3 +332,8 @@
     height: 32px;
   }
 }
+
+.signup-card .terms label a {
+  color: var(--screen);
+  text-decoration: underline;
+}

@@ -272,7 +272,16 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
       {mode === "signup" && (
         <div className="terms">
           <input id={termsId} name="terms" type="checkbox" required />
-          <label htmlFor={termsId}>I agree to the Terms of Service and Privacy Policy</label>
+          <label htmlFor={termsId}>
+            I agree to the{" "}
+            <a href={`${home}terms/`} target="_blank" rel="noopener">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href={`${home}privacy/`} target="_blank" rel="noopener">
+              Privacy Policy
+            </a>
+          </label>
         </div>
       )}
 

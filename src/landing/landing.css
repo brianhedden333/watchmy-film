@@ -1330,3 +1330,17 @@ textarea:focus-visible {
     transition: none !important;
   }
 }
+
+.footer-links {
+  display: flex;
+  gap: 18px;
+}
+
+.footer-links a {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.footer-links a:hover {
+  opacity: 1;
+}

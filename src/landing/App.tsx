@@ -46,6 +46,10 @@ export default function App() {
         <div className="wrap footer-inner">
           <span className="wordmark">{site.name}</span>
           <span>Fully customizable paywall for independent films</span>
+          <nav className="footer-links" aria-label="Legal">
+            <a href={`${base}terms/`}>Terms</a>
+            <a href={`${base}privacy/`}>Privacy</a>
+          </nav>
         </div>
       </footer>
     </>
