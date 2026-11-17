@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useId, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, dollars, getMe } from "./api";
@@ -141,6 +141,88 @@ function HoldingPage({ film: f, onShowFull }: { film: Film; onShowFull: () => vo
   );
 }
 
+// Pay what you want: Stripe checkout for any amount from the filmmaker's minimum. Unlocks the film.
+function PayWhatYouWant({ film: f, days, hours, onWatch, tried }: { film: Film; days: number; hours: number; onWatch: () => void; tried: boolean }) {
+  const min = f.pwyw_min_cents / 100;
+  const [amount, setAmount] = useState(((f.pwyw_suggested_cents ?? f.pwyw_min_cents) / 100).toFixed(2));
+  const [error, setError] = useState("");
+  const id = useId();
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    const n = Number(amount.replace(/[$,\s]/g, ""));
+    if (!Number.isFinite(n) || n < min) return setError(`The minimum is ${dollars(f.pwyw_min_cents)}.`);
+    setError("");
+    onWatch();
+  }
+
+  return (
+    <form className="s-card s-pwyw" onSubmit={submit}>
+      <div className="s-pwyw-text">
+        <h3>Pay what you want</h3>
+        <p className="s-sub">
+          {f.pwyw_access === "buy" ? "Yours to keep, any amount" : `Rent for ${days} days (${hours} hours once started)`} · from{" "}
+          {dollars(f.pwyw_min_cents)}
+        </p>
+      </div>
+      <div className="s-pwyw-row">
+        <label htmlFor={id} className="visually-hidden">
+          Amount in dollars
+        </label>
+        <span className="s-pwyw-amount">
+          <span aria-hidden="true">$</span>
+          <input id={id} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-describedby={`${id}-n`} />
+        </span>
+        <button className="s-btn">▶ Watch now</button>
+      </div>
+      <p id={`${id}-n`} className={error ? "s-fine s-pwyw-err" : "s-fine"} role={error ? "alert" : undefined}>
+        {error || (tried ? "Preview only: on your live page this opens checkout." : "Secure payment powered by Stripe")}
+      </p>
+    </form>
+  );
+}
+
+// Tips straight to the filmmaker (Venmo, PayPal, Zelle). Outside our checkout; unlocks nothing.
+function TipJar({ film: f }: { film: Film }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const panel = useId();
+  return (
+    <div className="s-tips">
+      <button type="button" className="s-tips-btn" aria-expanded={open} aria-controls={panel} onClick={() => setOpen((v) => !v)}>
+        <span aria-hidden="true">♥</span> Support the filmmaker
+      </button>
+      {open && (
+        <div id={panel} className="s-tips-panel">
+          <div className="s-tips-links">
+            {f.tip_venmo && (
+              <a href={`https://venmo.com/u/${encodeURIComponent(f.tip_venmo)}`} target="_blank" rel="noopener">
+                Venmo <span>@{f.tip_venmo}</span>
+              </a>
+            )}
+            {f.tip_paypal && (
+              <a href={`https://paypal.me/${encodeURIComponent(f.tip_paypal)}`} target="_blank" rel="noopener">
+                PayPal <span>paypal.me/{f.tip_paypal}</span>
+              </a>
+            )}
+            {f.tip_zelle && (
+              <button
+                type="button"
+                onClick={() => navigator.clipboard?.writeText(f.tip_zelle!).then(() => setCopied(true), () => {})}
+              >
+                Zelle <span>{copied ? "Copied" : f.tip_zelle}</span>
+              </button>
+            )}
+          </div>
+          <p className="s-fine">
+            Tips go straight to the filmmaker and don't unlock the film.{f.tip_zelle ? " For Zelle, send from your bank's app." : ""}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WatchPage({ film: f, canWatch }: { film: Film; canWatch: boolean }) {
   const [tried, setTried] = useState("");
   // Admins skip checkout: Rent/Buy opens the screening room a renter or buyer would get.
@@ -175,6 +257,8 @@ function WatchPage({ film: f, canWatch }: { film: Film; canWatch: boolean }) {
   ).filter(([, v]) => v);
 
   const offers = (rent ? 1 : 0) + (buy ? 1 : 0);
+  const hasTips = !!(f.tip_venmo || f.tip_paypal || f.tip_zelle);
+  const extras = f.pwyw_enabled || hasTips;
   // The filmmaker's own line for each box; if they left it blank but added videos, list the titles.
   const bonusLine = (k: "rent" | "buy") => {
     const b = f.bonus[k];
@@ -224,7 +308,7 @@ function WatchPage({ film: f, canWatch }: { film: Film; canWatch: boolean }) {
         {watching ? (
           <ScreeningRoom film={f} kind={watching} days={days} hours={hours} onSwitch={setWatching} onClose={() => setWatching(null)} />
         ) : (
-        <div className={`s-buy offers-${offers}`}>
+        <div className={`s-buy offers-${offers}${extras ? " has-extras" : ""}`}>
           {f.poster_url ? (
             <img src={f.poster_url} alt={`${f.title} poster`} className="s-poster" />
           ) : (
@@ -265,8 +349,23 @@ function WatchPage({ film: f, canWatch }: { film: Film; canWatch: boolean }) {
             </div>
           )}
 
-          {offers === 0 && (
+          {offers === 0 && !f.pwyw_enabled && (
             <div className="s-card preview-missing">Add a rent or buy price and your offers appear here.</div>
+          )}
+
+          {extras && (
+            <div className="s-extras">
+              {f.pwyw_enabled && (
+                <PayWhatYouWant
+                  film={f}
+                  days={days}
+                  hours={hours}
+                  onWatch={() => (canWatch ? open(f.pwyw_access) : setTried("pwyw"))}
+                  tried={tried === "pwyw"}
+                />
+              )}
+              {hasTips && <TipJar film={f} />}
+            </div>
           )}
         </div>
         )}

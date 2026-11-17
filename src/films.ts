@@ -30,6 +30,13 @@ export type Film = {
   vimeo_url: string | null;
   rent_price_cents: number | null;
   buy_price_cents: number | null;
+  pwyw_enabled: boolean;
+  pwyw_min_cents: number;
+  pwyw_suggested_cents: number | null;
+  pwyw_access: "rent" | "buy";
+  tip_venmo: string | null;
+  tip_paypal: string | null;
+  tip_zelle: string | null;
   rental_days: number | null;
   rental_hours: number | null;
   tier: "standard" | "secure";

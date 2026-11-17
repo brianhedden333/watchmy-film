@@ -165,6 +165,19 @@ const MIGRATIONS = [
   CREATE UNIQUE INDEX films_subdomain_unique ON films(subdomain) WHERE subdomain IS NOT NULL;
   CREATE UNIQUE INDEX films_own_domain_unique ON films(own_domain) WHERE own_domain IS NOT NULL;
   `,
+  `
+  -- Pay what you want through Stripe (unlocks the film). Minimum is at least 99 cents.
+  -- pwyw_access: 'rent' (rental terms apply) or 'buy' (theirs to keep). When checkout records one, its
+  -- payments row uses that purpose, so earnings and libraries treat it like a rental or purchase.
+  ALTER TABLE films ADD COLUMN pwyw_enabled INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE films ADD COLUMN pwyw_min_cents INTEGER NOT NULL DEFAULT 99;
+  ALTER TABLE films ADD COLUMN pwyw_suggested_cents INTEGER;
+  ALTER TABLE films ADD COLUMN pwyw_access TEXT NOT NULL DEFAULT 'rent';
+  -- Tip jar: paid outside our checkout, straight to the filmmaker. Nothing is unlocked by a tip.
+  ALTER TABLE films ADD COLUMN tip_venmo TEXT;
+  ALTER TABLE films ADD COLUMN tip_paypal TEXT;
+  ALTER TABLE films ADD COLUMN tip_zelle TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

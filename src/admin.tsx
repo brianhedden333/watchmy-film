@@ -150,6 +150,8 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
               if (!b.description && !b.videos.length) return null;
               return <span key={k} className="credit-line"><strong>{k === "rent" ? "Rentals" : "Purchases"}:</strong> {b.description}{b.videos.length ? ` (${b.videos.length} ${b.videos.length === 1 ? "video" : "videos"}: ${b.videos.map((v) => v.title).join(", ")})` : ""}</span>;
             })}{!film.bonus.rent.description && !film.bonus.rent.videos.length && !film.bonus.buy.description && !film.bonus.buy.videos.length && "None"}</dd></div>
+            <div><dt>Pay what you want</dt><dd>{film.pwyw_enabled ? `From ${dollars(film.pwyw_min_cents)}${film.pwyw_suggested_cents ? `, suggested ${dollars(film.pwyw_suggested_cents)}` : ""} · unlocks ${film.pwyw_access === "buy" ? "for keeps" : "a rental"}` : "Off"}</dd></div>
+            <div><dt>Tip jar</dt><dd>{[film.tip_venmo && `Venmo @${film.tip_venmo}`, film.tip_paypal && `paypal.me/${film.tip_paypal}`, film.tip_zelle && `Zelle ${film.tip_zelle}`].filter(Boolean).join(" · ") || "None"}</dd></div>
             <div><dt>Stripe</dt><dd>{stripeText(film)}</dd></div>
             <div><dt>Contact</dt><dd>{[film.contact_name || film.owner_name, film.owner_email, film.contact_phone].filter(Boolean).join(" · ")}</dd></div>
           </dl>

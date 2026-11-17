@@ -1650,3 +1650,49 @@ a.library-poster:focus-visible {
   margin-left: 4px;
   font-size: 14px;
 }
+
+/* ---------- Pay what you want (Prices) ---------- */
+
+.pwyw {
+  margin-top: 6px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.dash label.pwyw-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.pwyw-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  flex: none;
+  accent-color: var(--gold);
+}
+
+.pwyw-toggle > span {
+  display: grid;
+  gap: 4px;
+}
+
+.pwyw-toggle strong {
+  color: var(--screen);
+  font-weight: 600;
+}
+
+.pwyw .row-2 {
+  margin-top: 16px;
+}
+
+.pwyw-label {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--text-soft);
+}

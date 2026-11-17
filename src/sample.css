@@ -550,3 +550,169 @@
   width: min(260px, 70vw);
   height: auto;
 }
+
+/* ---------- Pay what you want and tip jar (under Rent and Buy) ---------- */
+
+/* With extras, the poster spans both rows and the extras sit under the price boxes. */
+.s-buy.has-extras .s-poster {
+  grid-row: span 2;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  align-self: start;
+}
+
+.s-extras {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.s-pwyw {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 24px 32px;
+}
+
+.s-pwyw .s-sub {
+  margin: 0;
+}
+
+.s-card.s-pwyw h3 {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.s-pwyw-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.s-pwyw-amount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px;
+  background: var(--s-bg);
+  border: 1px solid var(--s-line);
+  border-radius: 6px;
+  color: var(--s-soft);
+  font-size: 18px;
+}
+
+.s-pwyw-amount:focus-within {
+  outline: 2px solid var(--s-red);
+  outline-offset: 1px;
+}
+
+.s-pwyw-amount input {
+  width: 5.5ch;
+  border: 0;
+  background: none;
+  font: 700 20px/1 var(--body);
+  color: var(--s-head);
+  outline: none;
+}
+
+.s-pwyw .s-btn {
+  margin: 0;
+  padding: 14px 22px;
+  white-space: nowrap;
+}
+
+.s-pwyw .s-fine {
+  grid-column: 1 / -1;
+  text-align: left;
+  margin: 4px 0 0;
+}
+
+.s-pwyw-err {
+  color: var(--s-head) !important;
+}
+
+.s-tips {
+  text-align: center;
+}
+
+.s-tips-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: none;
+  border: 1px solid var(--s-line);
+  border-radius: 999px;
+  font: 600 15px/1 var(--body);
+  color: var(--s-text);
+  cursor: pointer;
+}
+
+.s-tips-btn span {
+  color: var(--s-red);
+}
+
+.s-tips-btn:hover,
+.s-tips-btn[aria-expanded="true"] {
+  border-color: var(--s-soft);
+  color: var(--s-head);
+}
+
+.s-tips-panel {
+  margin-top: 14px;
+}
+
+.s-tips-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.s-tips-links a,
+.s-tips-links button {
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  padding: 10px 16px;
+  background: var(--s-card);
+  border: 1px solid var(--s-line);
+  border-radius: 8px;
+  font: 700 15px/1.2 var(--body);
+  color: var(--s-head);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.s-tips-links span {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--s-soft);
+}
+
+.s-tips-links a:hover,
+.s-tips-links button:hover {
+  border-color: var(--s-soft);
+}
+
+@media (max-width: 1000px) {
+  .s-buy.has-extras .s-poster {
+    grid-row: auto;
+  }
+  .s-extras {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .s-pwyw {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+  .s-pwyw-row .s-btn {
+    flex: 1;
+  }
+}

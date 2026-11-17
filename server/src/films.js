@@ -136,6 +136,34 @@ const bonus = (v) => {
 
 const emptyBonus = () => ({ rent: { description: "", videos: [] }, buy: { description: "", videos: [] } });
 
+const flag = (v) => (v === true || v === 1 || v === "1" || v === "on" ? 1 : 0);
+
+// Venmo username (with or without @, or a venmo.com link).
+const venmo = (v) => {
+  let s = String(v ?? "").trim();
+  if (!s) return null;
+  s = s.replace(/^https?:\/\/(account\.)?venmo\.com\/(u\/)?/i, "").replace(/^@/, "").replace(/[/?#].*$/, "");
+  if (!/^[A-Za-z0-9_-]{5,30}$/.test(s)) throw new Error("must be a Venmo username like @Jane-Filmmaker");
+  return s;
+};
+// PayPal.Me name (or a paypal.me link).
+const paypal = (v) => {
+  let s = String(v ?? "").trim();
+  if (!s) return null;
+  s = s.replace(/^https?:\/\/(www\.)?paypal\.(me|com\/paypalme)\//i, "").replace(/[/?#].*$/, "");
+  if (!/^[A-Za-z0-9]{1,20}$/.test(s)) throw new Error("must be your PayPal.Me name, like paypal.me/janefilms");
+  return s;
+};
+// Zelle: the email or US phone number registered with Zelle.
+const zelle = (v) => {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 254) return s.toLowerCase();
+  const digits = s.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  throw new Error("must be the email or US phone number you use with Zelle");
+};
+
 const color = (v) => {
   const s = String(v ?? "").trim().toLowerCase();
   if (!s) return null;
@@ -158,6 +186,13 @@ const FIELDS = {
   vimeo_url: url,
   rent_price_cents: int(99, 100000),
   buy_price_cents: int(99, 100000),
+  pwyw_enabled: flag,
+  pwyw_min_cents: (v) => int(99, 100000)(v) ?? 99, // blank means the 99¢ floor
+  pwyw_suggested_cents: int(99, 100000),
+  pwyw_access: oneOf("rent", "buy"),
+  tip_venmo: venmo,
+  tip_paypal: paypal,
+  tip_zelle: zelle,
   rental_days: int(1, 365),
   rental_hours: int(1, 720),
   tier: oneOf("standard", "secure"),
@@ -180,7 +215,7 @@ const LABELS = {
   poster_path: "Poster",
   still_path: "Wide image",
   vimeo_url: "Vimeo link",
-  price: "A rent or buy price",
+  price: "A rent, buy or pay-what-you-want price",
 };
 
 const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
@@ -189,7 +224,7 @@ const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
 export function missingFields(f) {
   const missing = [];
   for (const k of ["title", "synopsis", "poster_path", "still_path", "vimeo_url"]) if (!f[k]) missing.push(LABELS[k]);
-  if (!f.rent_price_cents && !f.buy_price_cents) missing.push(LABELS.price);
+  if (!f.rent_price_cents && !f.buy_price_cents && !f.pwyw_enabled) missing.push(LABELS.price);
   if (!f.subdomain) missing.push(LABELS.subdomain);
   return missing;
 }
@@ -206,6 +241,7 @@ export const publicFilm = (f) => ({
   banner_url: f.banner_path ? `/uploads/${f.banner_path}` : null,
   missing: missingFields(f),
   hidden: !!f.hidden,
+  pwyw_enabled: !!f.pwyw_enabled,
   editable: EDITABLE.has(f.status),
 });
 
@@ -318,6 +354,9 @@ filmsRouter.patch("/:id", (req, res) => {
   if (!film) return res.status(404).json({ error: "Film not found." });
   if (!EDITABLE.has(film.status)) return res.status(409).json({ error: "This film is approved. Email us to change its details." });
   const { out, errors } = clean(req.body, { requireTitle: false });
+  const minC = out.pwyw_min_cents ?? film.pwyw_min_cents;
+  const sugC = "pwyw_suggested_cents" in out ? out.pwyw_suggested_cents : film.pwyw_suggested_cents;
+  if (sugC != null && minC != null && sugC < minC) errors.pwyw_suggested_cents = "must be at least the minimum";
   if (out.subdomain && subTaken(out.subdomain, film.id)) {
     const alt = suggestSub(out.subdomain, film);
     errors.subdomain = `is taken${alt ? `. Try ${alt}` : ""}`;

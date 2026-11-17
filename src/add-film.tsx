@@ -20,14 +20,18 @@ const TEXT_FIELDS = [
   "title", "logline", "synopsis", "year", "runtime_minutes", "languages", "genre", "trailer_url", "vimeo_url",
   "rental_days", "rental_hours", "tier", "address_type", "subdomain", "own_domain", "contact_name", "contact_phone", "notes",
   "color_background", "color_primary", "color_secondary", "color_button",
+  "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle",
 ] as const;
-type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_price" | "buy_price", string>;
+type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_price" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested", string>;
 
 function toForm(f: Film): FormState {
   const out = {} as FormState;
   for (const k of TEXT_FIELDS) out[k] = f[k] == null ? "" : String(f[k]);
   out.rent_price = f.rent_price_cents == null ? "" : (f.rent_price_cents / 100).toFixed(2);
   out.buy_price = f.buy_price_cents == null ? "" : (f.buy_price_cents / 100).toFixed(2);
+  out.pwyw_enabled = f.pwyw_enabled ? "1" : "";
+  out.pwyw_min = (f.pwyw_min_cents / 100).toFixed(2);
+  out.pwyw_suggested = f.pwyw_suggested_cents == null ? "" : (f.pwyw_suggested_cents / 100).toFixed(2);
   return out;
 }
 
@@ -55,6 +59,9 @@ function toBody(s: FormState, credits: Credit[], bonus: Bonus) {
   const cents = (v: string) => (v.trim() === "" ? null : Math.round(Number(v.replace(/[$,\s]/g, "")) * 100));
   body.rent_price_cents = cents(s.rent_price);
   body.buy_price_cents = cents(s.buy_price);
+  body.pwyw_enabled = s.pwyw_enabled ? 1 : 0;
+  body.pwyw_min_cents = cents(s.pwyw_min);
+  body.pwyw_suggested_cents = cents(s.pwyw_suggested);
   return body;
 }
 
@@ -254,6 +261,8 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
       const fieldErrs = { ...(err.errors || {}) };
       if (fieldErrs.rent_price_cents) fieldErrs.rent_price = "must be a price from $0.99 to $1,000";
       if (fieldErrs.buy_price_cents) fieldErrs.buy_price = "must be a price from $0.99 to $1,000";
+      if (fieldErrs.pwyw_min_cents) fieldErrs.pwyw_min = "must be from $0.99 to $1,000";
+      if (fieldErrs.pwyw_suggested_cents) fieldErrs.pwyw_suggested = fieldErrs.pwyw_suggested_cents;
       setErrors(fieldErrs);
       setSaveError(err.message);
       setSaveState("error");
@@ -374,7 +383,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
 
           <fieldset>
             <legend>Prices</legend>
-            <p className="fieldset-hint">Set a rent price, a buy price, or both.</p>
+            <p className="fieldset-hint">Set a rent price, a buy price, or both. You can also let viewers pay what they want.</p>
             <div className="row-2">
               {field("rent_price", "Rent price", { prefix: "$", inputMode: "decimal", placeholder: "4.99" })}
               {field("buy_price", "Buy price", { prefix: "$", inputMode: "decimal", placeholder: "14.99" })}
@@ -383,6 +392,52 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               {field("rental_days", "Rental: days to start watching", { inputMode: "numeric", placeholder: "30" })}
               {field("rental_hours", "Rental: hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
             </div>
+
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.pwyw_enabled}
+                  disabled={locked}
+                  onChange={(e) => set("pwyw_enabled")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Also offer pay what you want</strong>
+                  <span className="hint">Viewers choose the amount, from your minimum up. It goes through Stripe like any sale and unlocks the film.</span>
+                </span>
+              </label>
+              {form.pwyw_enabled && (
+                <>
+                  <div className="row-2">
+                    {field("pwyw_min", "Minimum", { prefix: "$", inputMode: "decimal", placeholder: "0.99", hint: "At least $0.99." })}
+                    {field("pwyw_suggested", "Suggested amount (optional)", { prefix: "$", inputMode: "decimal", placeholder: "5.00", hint: "Filled in for viewers to start from." })}
+                  </div>
+                  <p className="pwyw-label">What it unlocks</p>
+                  <Choice
+                    name="pwyw_access"
+                    value={form.pwyw_access}
+                    onChange={set("pwyw_access")}
+                    disabled={locked}
+                    options={[
+                      ["rent", `A rental (${form.rental_days || "30"} days to start, ${form.rental_hours || "72"} hours to finish)`],
+                      ["buy", "Theirs to keep, like a purchase"],
+                    ]}
+                  />
+                </>
+              )}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Tip jar</legend>
+            <p className="fieldset-hint">
+              Optional. Adds a "Support the filmmaker" button under your prices. Tips go straight to you outside our checkout, so
+              we take no fee, and a tip doesn't unlock the film. Use accounts that can take payments from the public (for Venmo,
+              a business profile).
+            </p>
+            {field("tip_venmo", "Venmo username", { prefix: "@", placeholder: "Jane-Filmmaker" })}
+            {field("tip_paypal", "PayPal.Me name", { prefix: "paypal.me/", placeholder: "janefilms" })}
+            {field("tip_zelle", "Zelle email or phone", { placeholder: "jane@example.com", hint: "Zelle has no payment links, so viewers see this and send from their bank's app." })}
           </fieldset>
 
           <fieldset>
