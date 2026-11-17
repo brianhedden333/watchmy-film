@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
-import { api, ApiError, dollars, getMe, type User } from "./api";
+import { api, ApiError, dollars, getMe, type StripeInfo, type User } from "./api";
 import { BONUS_MAX, COLOR_DEFAULTS, pageTheme, STATUS_LABEL, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { StripeDetails } from "./StripeDetails";
@@ -127,7 +127,7 @@ function AddFilm() {
             {data.films.length === 0 ? (
               <NewFilm onCreated={(f) => { setData({ ...data, films: [f] }); pick(f.id); }} />
             ) : (
-              film && <FilmView key={film.id} film={film} meta={data} onChange={replaceFilm} />
+              film && <FilmView key={film.id} film={film} meta={data} onChange={replaceFilm} stripe={user?.stripe ?? null} onStripe={(st) => setUser((u) => (u ? { ...u, stripe: st } : u))} />
             )}
           </>
         )}
@@ -204,7 +204,7 @@ function NewFilm({ onCreated, compact, onCancel }: { onCreated: (f: Film) => voi
   );
 }
 
-function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; onChange: (f: Film) => void }) {
+function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; onChange: (f: Film) => void; stripe: StripeInfo | null; onStripe: (s: StripeInfo) => void }) {
   const [form, setForm] = useState<FormState>(() => toForm(film));
   const [saved, setSaved] = useState<FormState>(() => toForm(film));
   const [credits, setCredits] = useState<Credit[]>(() => toCredits(film));
@@ -294,11 +294,13 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
         </div>
       </div>
 
-      <Steps film={film} />
+      <Steps film={film} stripe={stripe} />
 
       <div className="film-grid">
         <form
           className="film-form"
+          id="film-form"
+          tabIndex={-1}
           onSubmit={(e) => {
             e.preventDefault();
             save();
@@ -464,7 +466,7 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
           )}
         </form>
 
-        <SetupCard film={film} meta={meta} dirty={dirty} save={save} onChange={onChange} />
+        <SetupCard film={film} meta={meta} dirty={dirty} save={save} onChange={onChange} stripe={stripe} onStripe={onStripe} />
       </div>
     </div>
   );
@@ -686,37 +688,51 @@ function DesignPreview({ form }: { form: FormState }) {
   );
 }
 
-function Steps({ film }: { film: Film }) {
+// Progress across the top. A step with something to do (or read) scrolls to it when clicked.
+function Steps({ film, stripe }: { film: Film; stripe: StripeInfo | null }) {
   const detailsDone = film.missing.length === 0;
   const feeDone = film.setup_status !== "unpaid";
   const reviewDone = film.status === "approved" || film.status === "live";
-  const steps: [string, boolean][] = [
-    ["Film details", detailsDone],
-    ["Setup fee", feeDone],
-    ["Review", reviewDone],
-    ["Connect Stripe and go live", film.status === "live"],
+  const live = film.status === "live";
+  const stripeNote = !reviewDone || live ? "" : stripe?.hasAccount ? "Ready: go live whenever you want" : "Add your Stripe details, then go live";
+  const steps: { label: string; done: boolean; note?: string; target: string }[] = [
+    { label: "Film details", done: detailsDone, note: detailsDone ? "" : `${film.missing.length} left`, target: "film-form" },
+    { label: "Setup fee", done: feeDone, target: "setup-card" },
+    { label: "Review", done: reviewDone, note: film.status === "changes_requested" ? "Changes requested" : "", target: "setup-card" },
+    { label: "Connect Stripe and go live", done: live, note: stripeNote, target: film.status === "approved" ? (stripe?.hasAccount ? "go-live" : "get-paid") : feeDone && !live ? "get-paid" : "setup-card" },
   ];
-  const current = steps.findIndex(([, done]) => !done);
+  const current = steps.findIndex((st) => !st.done);
+  const go = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    el.focus({ preventScroll: true });
+  };
   return (
     <ol className="progress">
-      {steps.map(([label, done], i) => (
-        <li key={label} className={done ? "done" : i === current ? "current" : ""}>
-          <span className="progress-num">{done ? "✓" : i + 1}</span>
-          {label}
+      {steps.map((st, i) => (
+        <li key={st.label} className={st.done ? "done" : i === current ? "current" : ""}>
+          <button type="button" className="progress-btn" onClick={() => go(st.target)} aria-current={i === current ? "step" : undefined}>
+            <span className="progress-num">{st.done ? "✓" : i + 1}</span>
+            <span className="progress-text">
+              {st.label}
+              {st.note && <span className="progress-note">{st.note}</span>}
+            </span>
+          </button>
         </li>
       ))}
     </ol>
   );
 }
 
-function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: FilmsResponse; dirty: boolean; save: () => Promise<boolean>; onChange: (f: Film) => void }) {
-  const [busy, setBusy] = useState<"" | "pay" | "code" | "resubmit">("");
+function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; dirty: boolean; save: () => Promise<boolean>; onChange: (f: Film) => void; stripe: StripeInfo | null; onStripe: (s: StripeInfo) => void }) {
+  const [busy, setBusy] = useState<"" | "pay" | "code" | "resubmit" | "live" | "offline">("");
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
   const codeId = useId();
   const fee = dollars(meta.setupFeeCents).replace(".00", "");
 
-  async function run(kind: "pay" | "code" | "resubmit", fn: () => Promise<void>) {
+  async function run(kind: "pay" | "code" | "resubmit" | "live" | "offline", fn: () => Promise<void>) {
     setError("");
     setBusy(kind);
     try {
@@ -744,6 +760,13 @@ function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: Fi
     });
   };
 
+  const setLive = (live: boolean) =>
+    run(live ? "live" : "offline", async () => {
+      if (!live && !confirm("Take your watch page offline? Viewers won't be able to rent or buy until you put it back live.")) return;
+      const r = await api<{ film: Film }>(`/films/${film.id}/${live ? "go-live" : "go-offline"}`, { body: {} });
+      onChange(r.film);
+    });
+
   const resubmit = () =>
     run("resubmit", async () => {
       const r = await api<{ film: Film }>(`/films/${film.id}/resubmit`, { body: {} });
@@ -765,7 +788,12 @@ function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: Fi
   } else if (film.setup_status !== "unpaid") {
     const msgs: Record<string, [string, string]> = {
       in_review: ["In review", "We're checking your film and its details. We'll email you when it's approved, usually within two business days."],
-      approved: ["Approved", "Your film passed review. Next we'll email you to connect your Stripe account and set up your address."],
+      approved: [
+        "Approved",
+        stripe?.hasAccount
+          ? "Your film passed review. Your page goes public when you say so: check the preview, then go live."
+          : "Your film passed review. Add your Stripe details below, then you can go live whenever you're ready.",
+      ],
       live: ["Live", "Your watch page is live. Share it!"],
     };
     const [h, p] = msgs[film.status] || msgs.in_review;
@@ -775,6 +803,21 @@ function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: Fi
         <h2>{h}</h2>
         <p>{p}</p>
         {film.admin_note && <blockquote className="admin-note">{film.admin_note}</blockquote>}
+        {film.status === "approved" && (
+          <div id="go-live" tabIndex={-1} className="go-live">
+            <button type="button" className="btn setup-pay" onClick={() => setLive(true)} disabled={!!busy || !stripe?.hasAccount}>
+              {busy === "live" ? "Going live…" : "Go live"}
+            </button>
+            <p className="small-print">
+              {stripe?.hasAccount ? "Your page becomes public and viewers can rent or buy." : "Add your Stripe details below first."}
+            </p>
+          </div>
+        )}
+        {film.status === "live" && (
+          <button type="button" className="link-btn go-offline" onClick={() => setLive(false)} disabled={!!busy}>
+            {busy === "offline" ? "Taking it offline…" : "Take my page offline"}
+          </button>
+        )}
       </>
     );
   } else {
@@ -819,14 +862,17 @@ function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: Fi
   const askStripe = film.setup_status !== "unpaid" && (film.status === "in_review" || film.status === "approved" || film.status === "changes_requested");
 
   return (
-    <aside className="setup-card" aria-label="Setup">
+    <aside className="setup-card" id="setup-card" tabIndex={-1} aria-label="Setup">
       {body}
       {error && <p className="field-err" role="alert">{error}</p>}
       {askStripe && (
-        <section className="setup-stripe" aria-label="Get paid">
+        <section className="setup-stripe" id="get-paid" tabIndex={-1} aria-label="Get paid">
           <h2>Get paid</h2>
-          <p>Every sale goes straight to your own Stripe account. Tell us which one while we review your film, so your page can go live sooner.</p>
-          <StripeDetails compact />
+          <p>
+            Every sale goes straight to your own Stripe account.{" "}
+            {film.status === "approved" ? "Add it here before you go live." : "Tell us which one while we review your film, so you can go live as soon as it's approved."}
+          </p>
+          <StripeDetails compact onSaved={onStripe} />
         </section>
       )}
     </aside>

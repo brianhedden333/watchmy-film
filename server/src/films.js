@@ -329,6 +329,29 @@ filmsRouter.post("/:id/redeem", rateLimit({ windowMs: 15 * 60_000, max: 10 }), a
 });
 
 // After we ask for changes, the filmmaker sends it back to review (fee already handled).
+// After approval the owner decides when the page goes public, and can take it down again.
+// Going live needs their Stripe details, since sales are paid into their account.
+filmsRouter.post("/:id/go-live", (req, res) => {
+  const film = getOwnFilm(req);
+  if (!film) return res.status(404).json({ error: "Film not found." });
+  if (film.status !== "approved") return res.status(409).json({ error: "Your film can go live once it's approved." });
+  if (!req.user.stripe_has_account || !req.user.stripe_email) {
+    return res.status(400).json({ error: "Add your Stripe details first, so sales can be paid to you." });
+  }
+  db.prepare("UPDATE films SET status = 'live', updated_at = ? WHERE id = ?").run(now(), film.id);
+  notifyAdmin("Film went live", `${req.user.email} set "${film.title}" live.\n\n${config.appUrl}/admin/`);
+  res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
+});
+
+filmsRouter.post("/:id/go-offline", (req, res) => {
+  const film = getOwnFilm(req);
+  if (!film) return res.status(404).json({ error: "Film not found." });
+  if (film.status !== "live") return res.status(409).json({ error: "This film isn't live." });
+  db.prepare("UPDATE films SET status = 'approved', updated_at = ? WHERE id = ?").run(now(), film.id);
+  notifyAdmin("Film taken offline", `${req.user.email} took "${film.title}" offline.\n\n${config.appUrl}/admin/`);
+  res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
+});
+
 filmsRouter.post("/:id/resubmit", (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });

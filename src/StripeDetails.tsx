@@ -12,7 +12,7 @@ const COUNTRIES = [
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
-export function StripeDetails({ compact }: { compact?: boolean }) {
+export function StripeDetails({ compact, onSaved }: { compact?: boolean; onSaved?: (s: StripeInfo) => void }) {
   const [saved, setSaved] = useState<StripeInfo | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
 
@@ -58,6 +58,7 @@ export function StripeDetails({ compact }: { compact?: boolean }) {
       compact={compact}
       onSaved={(s) => {
         setSaved(s);
+        onSaved?.(s);
         setEditing(false);
       }}
       onCancel={saved ? () => setEditing(false) : undefined}

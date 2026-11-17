@@ -550,13 +550,46 @@
 }
 
 .progress li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
   border-top: 2px solid var(--line);
   font-size: 15px;
   color: var(--text-soft);
+}
+
+.progress-btn {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.progress-btn:hover {
+  background: var(--surface);
+}
+
+.progress-text {
+  display: grid;
+  gap: 3px;
+  padding-top: 3px;
+}
+
+.progress-note {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-soft);
+}
+
+#film-form:focus,
+#setup-card:focus,
+#get-paid:focus {
+  outline: none;
 }
 
 .progress li.done {
@@ -1585,4 +1618,17 @@ a.library-poster:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px 14px;
   }
+}
+
+.go-live {
+  margin-top: 6px;
+}
+
+.go-live:focus {
+  outline: none;
+}
+
+.setup-card .go-offline {
+  font-size: 14px;
+  color: var(--text-soft);
 }
