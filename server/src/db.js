@@ -152,6 +152,11 @@ const MIGRATIONS = [
   ALTER TABLE users ADD COLUMN stripe_country TEXT;
   ALTER TABLE users ADD COLUMN stripe_updated_at TEXT;
   `,
+  `
+  -- Bonus features, JSON: { "rent": { "description": "…", "videos": [{ "title": "…", "url": "…" }] }, "buy": { … } }
+  -- Up to 10 videos each. Rentals get the rent set; purchases get the buy set.
+  ALTER TABLE films ADD COLUMN bonus TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

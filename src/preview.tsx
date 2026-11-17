@@ -159,6 +159,14 @@ function WatchPage({ film: f }: { film: Film }) {
   ).filter(([, v]) => v);
 
   const offers = (rent ? 1 : 0) + (buy ? 1 : 0);
+  // The filmmaker's own line for each box; if they left it blank but added videos, list the titles.
+  const bonusLine = (k: "rent" | "buy") => {
+    const b = f.bonus[k];
+    if (b.description.trim()) return b.description.trim();
+    return b.videos.length ? `Bonus features: ${b.videos.map((v) => v.title).join(", ")}` : "";
+  };
+  const rentBonus = bonusLine("rent");
+  const buyBonus = bonusLine("buy");
   const buyBtn = (label: string) => (
     <>
       <button type="button" className="s-btn" onClick={() => setTried(label)}>
@@ -213,6 +221,13 @@ function WatchPage({ film: f }: { film: Film }) {
                 <p>Start watching within {days} days</p>
                 <p>{hours} hours to finish once started</p>
               </div>
+              {rentBonus && (
+                <div className="s-box">
+                  <ul className="s-checks">
+                    <li>{rentBonus}</li>
+                  </ul>
+                </div>
+              )}
               {buyBtn("▶ Rent Now")}
             </div>
           )}
@@ -224,6 +239,7 @@ function WatchPage({ film: f }: { film: Film }) {
               <div className="s-box">
                 <ul className="s-checks">
                   <li>Unlimited access to {f.title}</li>
+                  {buyBonus && <li>{buyBonus}</li>}
                 </ul>
               </div>
               {buyBtn("Buy Now")}

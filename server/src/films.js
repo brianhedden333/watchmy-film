@@ -68,6 +68,42 @@ const credits = (v) => {
   return JSON.stringify(out);
 };
 
+// Bonus features for rentals and for purchases: a description for the Rent/Buy box and up to 10 videos.
+// Rows with neither a title nor a link are dropped; a link without a title (or the reverse) is an error.
+const BONUS_MAX = 10;
+const bonus = (v) => {
+  if (v == null || v === "") return null;
+  if (typeof v !== "object" || Array.isArray(v)) throw new Error("isn't in the right format");
+  const out = {};
+  for (const kind of ["rent", "buy"]) {
+    const b = v[kind] || {};
+    const label = kind === "rent" ? "Rental" : "Purchase";
+    const description = String(b.description ?? "").trim();
+    if (description.length > 500) throw new Error(`${label} description must be 500 characters or fewer`);
+    const rows = (Array.isArray(b.videos) ? b.videos : [])
+      .map((x) => ({ title: String(x?.title ?? "").trim(), url: String(x?.url ?? "").trim() }))
+      .filter((x) => x.title || x.url);
+    if (rows.length > BONUS_MAX) throw new Error(`${label} bonus features: up to ${BONUS_MAX} videos`);
+    const videos = rows.map((x, i) => {
+      if (!x.title) throw new Error(`${label} bonus video ${i + 1} needs a title`);
+      if (x.title.length > 200) throw new Error(`${label} bonus video ${i + 1}: title must be 200 characters or fewer`);
+      if (!x.url) throw new Error(`${label} bonus video ${i + 1} needs a link`);
+      let u;
+      try {
+        u = new URL(x.url);
+      } catch {
+        throw new Error(`${label} bonus video ${i + 1}: the link must start with https://`);
+      }
+      if (u.protocol !== "https:" && u.protocol !== "http:") throw new Error(`${label} bonus video ${i + 1}: the link must be a web address`);
+      return { title: x.title, url: u.toString().slice(0, 500) };
+    });
+    out[kind] = { description, videos };
+  }
+  return JSON.stringify(out);
+};
+
+const emptyBonus = () => ({ rent: { description: "", videos: [] }, buy: { description: "", videos: [] } });
+
 const color = (v) => {
   const s = String(v ?? "").trim().toLowerCase();
   if (!s) return null;
@@ -85,6 +121,7 @@ const FIELDS = {
   genre: text(100),
   languages: text(300),
   credits,
+  bonus,
   trailer_url: url,
   vimeo_url: url,
   rent_price_cents: int(99, 100000),
@@ -129,6 +166,7 @@ const directorOf = (creditsJson) =>
 export const publicFilm = (f) => ({
   ...f,
   credits: f.credits ? JSON.parse(f.credits) : [],
+  bonus: f.bonus ? JSON.parse(f.bonus) : emptyBonus(),
   poster_url: f.poster_path ? `/uploads/${f.poster_path}` : null,
   still_url: f.still_path ? `/uploads/${f.still_path}` : null,
   banner_url: f.banner_path ? `/uploads/${f.banner_path}` : null,

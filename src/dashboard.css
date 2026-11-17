@@ -1443,3 +1443,58 @@
 .admin-film-head:hover {
   background: var(--surface-raised);
 }
+
+/* ---------- Bonus features (add-a-film) ---------- */
+
+.bonus-set {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+
+.dash .bonus-set h3 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  color: var(--screen);
+}
+
+.bonus-set .field {
+  margin-bottom: 14px;
+}
+
+.bonus-videos {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.bonus-video {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 2fr) minmax(0, 3fr) 36px;
+  align-items: center;
+  gap: 8px;
+}
+
+.bonus-num {
+  font-size: 14px;
+  color: var(--text-soft);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .bonus-video {
+    grid-template-columns: 22px minmax(0, 1fr) 36px;
+  }
+  .bonus-video input + input {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .bonus-video .remove-btn {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}

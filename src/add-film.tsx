@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode 
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, ApiError, dollars, getMe, type User } from "./api";
-import { COLOR_DEFAULTS, STATUS_LABEL, textOn, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
+import { BONUS_MAX, COLOR_DEFAULTS, STATUS_LABEL, textOn, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { StripeDetails } from "./StripeDetails";
 import "./styles.css";
@@ -46,8 +46,10 @@ function toCredits(f: Film): Credit[] {
   return all.map((c, i) => [c, i] as const).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([c]) => c);
 }
 
-function toBody(s: FormState, credits: Credit[]) {
-  const body: Record<string, string | number | null | Credit[]> = { credits };
+const toBonus = (f: Film): Bonus => JSON.parse(JSON.stringify(f.bonus));
+
+function toBody(s: FormState, credits: Credit[], bonus: Bonus) {
+  const body: Record<string, string | number | null | Credit[] | Bonus> = { credits, bonus };
   for (const k of TEXT_FIELDS) body[k] = s[k];
   const cents = (v: string) => (v.trim() === "" ? null : Math.round(Number(v.replace(/[$,\s]/g, "")) * 100));
   body.rent_price_cents = cents(s.rent_price);
@@ -206,10 +208,15 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
   const [saved, setSaved] = useState<FormState>(() => toForm(film));
   const [credits, setCredits] = useState<Credit[]>(() => toCredits(film));
   const [savedCredits, setSavedCredits] = useState<Credit[]>(() => toCredits(film));
+  const [bonus, setBonus] = useState<Bonus>(() => toBonus(film));
+  const [savedBonus, setSavedBonus] = useState<Bonus>(() => toBonus(film));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
-  const dirty = JSON.stringify(form) !== JSON.stringify(saved) || JSON.stringify(credits) !== JSON.stringify(savedCredits);
+  const dirty =
+    JSON.stringify(form) !== JSON.stringify(saved) ||
+    JSON.stringify(credits) !== JSON.stringify(savedCredits) ||
+    JSON.stringify(bonus) !== JSON.stringify(savedBonus);
   const locked = !film.editable;
 
   useEffect(() => {
@@ -228,7 +235,7 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
     setSaveState("saving");
     setErrors({});
     try {
-      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: toBody(form, credits) });
+      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: toBody(form, credits, bonus) });
       onChange(r.film);
       const f = toForm(r.film);
       setForm(f);
@@ -236,6 +243,9 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
       const c = toCredits(r.film);
       setCredits(c);
       setSavedCredits(c);
+      const b = toBonus(r.film);
+      setBonus(b);
+      setSavedBonus(b);
       setSaveState("saved");
       return true;
     } catch (e) {
@@ -366,6 +376,27 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
           </fieldset>
 
           <fieldset>
+            <legend>Bonus features</legend>
+            <p className="fieldset-hint">
+              Extra videos that come with a rental or a purchase, such as a director Q&amp;A, deleted scenes or a making-of. Add up to{" "}
+              {BONUS_MAX} for each. Use Vimeo links set up like your film, or YouTube. Leave a section empty if it has no extras.
+            </p>
+            {errors.bonus && <p className="field-err" role="alert">{errors.bonus}.</p>}
+            {(["rent", "buy"] as const).map((kind) => (
+              <BonusEditor
+                key={kind}
+                kind={kind}
+                value={bonus[kind]}
+                disabled={locked}
+                onChange={(v) => {
+                  setBonus((b) => ({ ...b, [kind]: v }));
+                  setSaveState("idle");
+                }}
+              />
+            ))}
+          </fieldset>
+
+          <fieldset>
             <legend>Site design</legend>
             <p className="fieldset-hint">Pick your watch page's colors. We'll match the rest of the design to your poster during setup.</p>
             <div className="design">
@@ -435,6 +466,79 @@ function FilmView({ film, meta, onChange }: { film: Film; meta: FilmsResponse; o
         <SetupCard film={film} meta={meta} dirty={dirty} save={save} onChange={onChange} />
       </div>
     </div>
+  );
+}
+
+function BonusEditor({ kind, value, onChange, disabled }: { kind: "rent" | "buy"; value: BonusSet; onChange: (v: BonusSet) => void; disabled: boolean }) {
+  const descId = useId();
+  const noun = kind === "rent" ? "rentals" : "purchases";
+  const box = kind === "rent" ? "Rent" : "Buy";
+  const setVideo = (i: number, patch: Partial<BonusSet["videos"][number]>) =>
+    onChange({ ...value, videos: value.videos.map((v, j) => (j === i ? { ...v, ...patch } : v)) });
+
+  return (
+    <section className="bonus-set" aria-label={`Bonus features for ${noun}`}>
+      <h3>Included with {noun}</h3>
+
+      <div className="field">
+        <label htmlFor={descId}>How it reads on the {box} box</label>
+        <textarea
+          id={descId}
+          rows={2}
+          maxLength={500}
+          value={value.description}
+          disabled={disabled}
+          placeholder={kind === "rent" ? "e.g. Includes a 20-minute director Q&A" : "e.g. Bonus features: live Q&A recordings with the director and cast"}
+          onChange={(e) => onChange({ ...value, description: e.target.value })}
+        />
+        <p className="hint">Shown with a checkmark on the {box} box of your watch page. Keep it to a sentence or two.</p>
+      </div>
+
+      {value.videos.length > 0 && (
+        <ol className="bonus-videos">
+          {value.videos.map((v, i) => (
+            <li key={i} className="bonus-video">
+              <span className="bonus-num" aria-hidden="true">{i + 1}</span>
+              <input
+                aria-label={`Bonus video ${i + 1} title (${noun})`}
+                value={v.title}
+                placeholder="Title, e.g. Director Q&A"
+                maxLength={200}
+                disabled={disabled}
+                onChange={(e) => setVideo(i, { title: e.target.value })}
+              />
+              <input
+                aria-label={`Bonus video ${i + 1} link (${noun})`}
+                value={v.url}
+                placeholder="https://vimeo.com/…"
+                inputMode="url"
+                disabled={disabled}
+                onChange={(e) => setVideo(i, { url: e.target.value })}
+              />
+              {!disabled && (
+                <button
+                  type="button"
+                  className="remove-btn"
+                  aria-label={`Remove bonus video ${i + 1}`}
+                  onClick={() => onChange({ ...value, videos: value.videos.filter((_, j) => j !== i) })}
+                >
+                  ×
+                </button>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {!disabled &&
+        (value.videos.length < BONUS_MAX ? (
+          <button type="button" className="add-btn" onClick={() => onChange({ ...value, videos: [...value.videos, { title: "", url: "" }] })}>
+            + Add a video ({value.videos.length} of {BONUS_MAX})
+          </button>
+        ) : (
+          <p className="hint">That's the maximum of {BONUS_MAX} videos.</p>
+        ))}
+    </section>
   );
 }
 

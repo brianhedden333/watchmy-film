@@ -145,6 +145,11 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Trailer</dt><dd>{film.trailer_url ? <a href={film.trailer_url} target="_blank" rel="noreferrer">{film.trailer_url}</a> : "None"}</dd></div>
             <div><dt>Details</dt><dd>{[film.year, film.runtime_minutes && `${film.runtime_minutes} min`, film.languages, film.genre].filter(Boolean).join(" · ") || "None"}</dd></div>
             <div><dt>Credits</dt><dd>{film.credits.filter((c) => c.names.length).map((c) => <span key={c.role} className="credit-line"><strong>{c.role}:</strong> {c.names.join(", ")}</span>)}{!film.credits.some((c) => c.names.length) && "None"}</dd></div>
+            <div><dt>Bonus features</dt><dd>{(["rent", "buy"] as const).map((k) => {
+              const b = film.bonus[k];
+              if (!b.description && !b.videos.length) return null;
+              return <span key={k} className="credit-line"><strong>{k === "rent" ? "Rentals" : "Purchases"}:</strong> {b.description}{b.videos.length ? ` (${b.videos.length} ${b.videos.length === 1 ? "video" : "videos"}: ${b.videos.map((v) => v.title).join(", ")})` : ""}</span>;
+            })}{!film.bonus.rent.description && !film.bonus.rent.videos.length && !film.bonus.buy.description && !film.bonus.buy.videos.length && "None"}</dd></div>
             <div><dt>Stripe</dt><dd>{stripeText(film)}</dd></div>
             <div><dt>Contact</dt><dd>{[film.contact_name || film.owner_name, film.owner_email, film.contact_phone].filter(Boolean).join(" · ")}</dd></div>
           </dl>

@@ -2,6 +2,12 @@
 
 export type Credit = { role: string; names: string[] };
 
+// Bonus features: rentals get `rent`, purchases get `buy`. Up to 10 videos each.
+export type BonusVideo = { title: string; url: string };
+export type BonusSet = { description: string; videos: BonusVideo[] };
+export type Bonus = { rent: BonusSet; buy: BonusSet };
+export const BONUS_MAX = 10;
+
 export type Film = {
   id: number;
   user_id: number;
@@ -14,6 +20,7 @@ export type Film = {
   genre: string | null;
   languages: string | null;
   credits: Credit[];
+  bonus: Bonus;
   poster_url: string | null;
   still_url: string | null;
   banner_url: string | null;
