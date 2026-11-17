@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { site } from "./config";
 import { signOut, type User } from "./api";
 
-/* Header for the signed-in pages: logo on the left, account menu (Dashboard, Account, Sign out) on the right. */
+/* Header for the signed-in pages: logo on the left, account menu (Dashboard, My Library, Account, Sign out) on the right. */
 
 const home = import.meta.env.BASE_URL;
 
@@ -78,6 +78,7 @@ function UserMenu({ user }: { user: User }) {
           {user.name && <li className="user-menu-email">{user.email}</li>}
           {user.isAdmin && item("admin/", "Admin")}
           {item("dashboard/", "Dashboard")}
+          {item("library/", "My Library")}
           {item("account/", "Account")}
           <li>
             <button type="button" onClick={() => signOut().finally(() => location.assign(home))}>
