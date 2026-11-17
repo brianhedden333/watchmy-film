@@ -5,11 +5,11 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  /* Soft-focus diagonal gray: warm gray light falling from the top left into black, with two blurred glows. */
+  /* Soft-focus diagonal gray: warm gray light falling from the top right into black, with two blurred glows. */
   background:
-    radial-gradient(55% 45% at 12% 8%, rgba(237, 232, 223, 0.11), transparent 70%),
-    radial-gradient(45% 55% at 92% 96%, rgba(237, 232, 223, 0.05), transparent 70%),
-    linear-gradient(135deg, #2d2b28 0%, #1a1917 38%, #0d0d0c 72%, #050505 100%);
+    radial-gradient(55% 45% at 88% 8%, rgba(237, 232, 223, 0.11), transparent 70%),
+    radial-gradient(45% 55% at 8% 96%, rgba(237, 232, 223, 0.05), transparent 70%),
+    linear-gradient(225deg, #2d2b28 0%, #1a1917 38%, #0d0d0c 72%, #050505 100%);
   background-color: var(--bg);
   background-attachment: fixed;
   color: var(--text);
