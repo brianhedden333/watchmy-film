@@ -53,6 +53,13 @@ export type Film = {
 
 export type FilmsResponse = { films: Film[]; setupFeeCents: number; checkoutEnabled: boolean };
 
+// The film's public address (no https://): watch.<their domain>, or <name>.watchmyfilm.online.
+export function liveAddress(f: Pick<Film, "address_type" | "own_domain" | "subdomain">) {
+  if (f.address_type === "own" && f.own_domain) return `watch.${f.own_domain}`;
+  if (f.subdomain) return `${f.subdomain}.watchmyfilm.online`;
+  return null;
+}
+
 // Label and pill style, counting a hidden live film as "Hidden".
 export const statusLabel = (f: Pick<Film, "status" | "hidden">) => (f.status === "live" && f.hidden ? "Hidden" : STATUS_LABEL[f.status]);
 export const pillClass = (f: Pick<Film, "status" | "hidden">) => `pill pill-${f.status === "live" && f.hidden ? "hidden" : f.status}`;

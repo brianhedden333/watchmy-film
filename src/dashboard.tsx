@@ -1,8 +1,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { site } from "./config";
 import { api, getMe, type User } from "./api";
-import { pillClass, statusLabel, type Film, type FilmsResponse } from "./films";
+import { liveAddress, pillClass, statusLabel, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
@@ -13,12 +12,6 @@ const home = import.meta.env.BASE_URL;
 const editUrl = (f: Film) => `${home}add-a-film/?film=${f.id}`;
 
 // The public address once a film is live (own domain → watch.<domain>, otherwise a subdomain of ours).
-function liveAddress(f: Film) {
-  if (f.address_type === "own" && f.own_domain) return `watch.${f.own_domain}`;
-  if (f.subdomain) return `${f.subdomain}.${site.name}`;
-  return null;
-}
-
 function nextStep(f: Film) {
   switch (f.status) {
     case "draft":
@@ -101,11 +94,17 @@ function Dashboard() {
                         )}
                       </div>
                       <div className="film-row-actions">
-                        <a className="link-btn" href={`${home}preview/?film=${f.id}`}>
-                          Preview
-                        </a>
+                        {f.status === "live" && liveAddress(f) ? (
+                          <a className="link-btn" href={`https://${liveAddress(f)}`} target="_blank" rel="noopener">
+                            View page
+                          </a>
+                        ) : (
+                          <a className="link-btn" href={`${home}preview/?film=${f.id}`}>
+                            Preview
+                          </a>
+                        )}
                         <a className="btn btn-small btn-red" href={editUrl(f)}>
-                          {f.editable ? "Edit" : "View"}
+                          {f.editable ? "Edit" : "Details"}
                         </a>
                       </div>
                     </li>

@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode 
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, ApiError, dollars, getMe, type StripeInfo, type User } from "./api";
-import { BONUS_MAX, COLOR_DEFAULTS, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
+import { BONUS_MAX, COLOR_DEFAULTS, liveAddress, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { StripeDetails } from "./StripeDetails";
 import "./styles.css";
@@ -287,9 +287,16 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
           <h1>{film.title}</h1>
         </div>
         <div className="film-head-actions">
-          <button type="button" className="btn btn-small btn-red" onClick={openPreview} disabled={saveState === "saving"}>
-            Preview page
-          </button>
+          {film.status === "live" && liveAddress(film) ? (
+            // Live: open the real page (a hidden film's address shows its holding page).
+            <a className="btn btn-small btn-red" href={`https://${liveAddress(film)}`} target="_blank" rel="noopener">
+              View page
+            </a>
+          ) : (
+            <button type="button" className="btn btn-small btn-red" onClick={openPreview} disabled={saveState === "saving"}>
+              Preview page
+            </button>
+          )}
           <span className={`${pillClass(film)} pill-big`}>{statusLabel(film)}</span>
         </div>
       </div>

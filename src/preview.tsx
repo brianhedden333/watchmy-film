@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, dollars, getMe } from "./api";
-import { pageTheme, type Film } from "./films";
+import { liveAddress, pageTheme, type Film } from "./films";
 import "./styles.css";
 import "./sample.css";
 
@@ -32,12 +32,6 @@ function embedUrl(link: string | null) {
   } catch {
     /* not a link */
   }
-  return null;
-}
-
-function liveAddress(f: Film) {
-  if (f.address_type === "own" && f.own_domain) return `watch.${f.own_domain}`;
-  if (f.subdomain) return `${f.subdomain}.${site.name}`;
   return null;
 }
 
