@@ -61,7 +61,7 @@ const para = (s) => `<p style="margin:0 0 14px;line-height:1.55;color:#ede8df">$
 export function signInEmail(to, link, isNew) {
   const title = isNew ? "Confirm your email" : "Your sign-in link";
   const lead = isNew
-    ? "Click the button to confirm this is your email and finish creating your account. The link works once and expires in 30 minutes."
+    ? "Click the button to confirm this is your email and finish creating your account. The link works once and expires in 24 hours."
     : "Click the button to sign in. The link works once and expires in 30 minutes.";
   return sendEmail({
     to,

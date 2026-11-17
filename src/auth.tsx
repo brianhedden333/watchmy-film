@@ -146,7 +146,7 @@ function SetPassword({ next, justVerified }: { next: string; justVerified: boole
 }
 
 // After a link is sent: where it went, what to do, and a way to send it again.
-function CheckEmail({ email, mode, onChange }: { email: string; mode: "signup" | "signin"; onChange: () => void }) {
+function CheckEmail({ email, mode, expires, onChange }: { email: string; mode: "signup" | "signin"; expires: string; onChange: () => void }) {
   const [resend, setResend] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState("");
 
@@ -170,9 +170,9 @@ function CheckEmail({ email, mode, onChange }: { email: string; mode: "signup" |
           ? "Click the link in it to confirm your email address and finish creating your account."
           : "Click the link in it to sign in."}
       </p>
-      <p className="small-note">The link works once and expires in 30 minutes. It comes from hello@watchmyfilm.online.</p>
+      <p className="small-note">The link works once and expires in {expires}. It comes from hello@watchmyfilm.online.</p>
       <p className="small-note">
-        Not there after a minute? Check your spam folder, or{" "}
+        Not there after a few minutes? Check your spam or junk folder (some inboxes, like iCloud, can take a while), or{" "}
         <button type="button" className="link-btn" onClick={sendAgain} disabled={resend === "sending" || resend === "sent"}>
           {resend === "sending" ? "sending…" : resend === "sent" ? "sent again" : "send it again"}
         </button>
@@ -188,6 +188,7 @@ function CheckEmail({ email, mode, onChange }: { email: string; mode: "signup" |
 
 function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   const [sentTo, setSentTo] = useState("");
+  const [expires, setExpires] = useState("30 minutes");
   const [status, setStatus] = useState<"idle" | "password" | "link">("idle");
   const [error, setError] = useState("");
   const emailId = useId();
@@ -232,7 +233,8 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
         go(r.next);
         return;
       }
-      await api("/auth/request", { body: { email, mode, terms: form.get("terms") === "on", _gotcha: gotcha, elapsed } });
+      const r = await api<{ expires?: string }>("/auth/request", { body: { email, mode, terms: form.get("terms") === "on", _gotcha: gotcha, elapsed } });
+      setExpires(r.expires || (mode === "signup" ? "24 hours" : "30 minutes"));
       setSentTo(email);
     } catch (err) {
       setError((err as Error).message);
@@ -242,7 +244,7 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   }
 
   if (sentTo) {
-    return <CheckEmail email={sentTo} mode={mode} onChange={() => setSentTo("")} />;
+    return <CheckEmail email={sentTo} mode={mode} expires={expires} onChange={() => setSentTo("")} />;
   }
 
   return (

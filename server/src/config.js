@@ -24,7 +24,7 @@ export const config = {
   setupFeeCents: Number(env.SETUP_FEE_CENTS || 9900),
   sendgridKey: env.SENDGRID_API_KEY || "",
   fromEmail: env.FROM_EMAIL || "hello@watchmyfilm.online",
-  fromName: env.FROM_NAME || "watchmyfilm.online",
+  fromName: env.FROM_NAME || "watchmyfilm", // a plain name: domain-looking sender names can trip spam filters
   // Comma-separated. These accounts can open /admin/.
   adminEmails: (env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean),
   // Where sign-up and submission notices go.

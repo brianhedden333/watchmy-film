@@ -9,7 +9,10 @@ import { notifyAdmin, signInEmail } from "./email.js";
 import { rateLimit } from "./limits.js";
 
 const COOKIE = "wmf_session";
+// Sign-in links are short-lived. Confirmation links (account not yet confirmed) last a day, because some inboxes
+// (iCloud especially) can hold a new sender's mail for an hour or more. Both work only once.
 const LINK_MINUTES = 30;
+const CONFIRM_MINUTES = 24 * 60;
 const SESSION_DAYS = 30;
 
 const hash = (s) => createHash("sha256").update(s).digest("hex");
@@ -144,20 +147,22 @@ authRouter.post("/request", rateLimit({ windowMs: 15 * 60_000, max: 8 }), async 
     db.prepare("UPDATE users SET agreed_terms_at = ? WHERE id = ?").run(now(), user.id);
   }
 
+  const confirming = !user.email_verified_at;
+  const minutes = confirming ? CONFIRM_MINUTES : LINK_MINUTES;
   const t = token();
   db.prepare("INSERT INTO login_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)").run(
     hash(t),
     user.id,
-    later(LINK_MINUTES * 60_000)
+    later(minutes * 60_000)
   );
   try {
     // Until the address is confirmed, every link is worded as a confirmation.
-    await signInEmail(email, `${config.appUrl}/signin/?token=${t}`, !user.email_verified_at);
+    await signInEmail(email, `${config.appUrl}/signin/?token=${t}`, confirming);
   } catch (e) {
     console.error("Sign-in email failed:", e.message);
     return res.status(502).json({ error: "We couldn't send the email. Try again in a minute." });
   }
-  res.json({ ok: true });
+  res.json({ ok: true, expires: confirming ? "24 hours" : "30 minutes" });
 });
 
 // Step 2: the page the link opens posts the token here. (A POST, so email scanners that prefetch links don't use it up.)
