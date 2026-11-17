@@ -405,6 +405,7 @@
 
 .admin-images {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: flex-end;
 }
@@ -412,7 +413,13 @@
 .admin-images img {
   height: 90px;
   width: auto;
+  max-width: 100%;
+  object-fit: cover;
   border-radius: 4px;
+}
+
+.admin-images a {
+  max-width: 100%;
 }
 
 .swatches {
@@ -821,7 +828,7 @@
 .admin-film-head {
   width: 100%;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
@@ -857,8 +864,7 @@
   color: var(--screen);
 }
 
-.admin-film-title span,
-.admin-setup {
+.admin-film-title span {
   font-size: 14px;
   color: var(--text-soft);
   overflow: hidden;
@@ -1018,10 +1024,10 @@
   }
 
   .admin-film-head {
-    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
   }
 
-  .admin-setup {
+  .admin-earned {
     display: none;
   }
 }
@@ -1407,4 +1413,33 @@
 
 .stripe-saved .link-btn {
   margin-top: 4px;
+}
+
+/* Admin film bar: earnings and the expand arrow */
+.admin-earned {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.admin-earned strong {
+  font-size: 16px;
+  color: var(--screen);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-caret {
+  color: var(--text-soft);
+  transition: transform 0.15s;
+}
+
+.admin-film-head[aria-expanded="true"] .admin-caret {
+  transform: rotate(180deg);
+}
+
+.admin-film-head:hover {
+  background: var(--surface-raised);
 }

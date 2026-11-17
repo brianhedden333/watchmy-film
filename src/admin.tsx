@@ -11,7 +11,7 @@ import "./dashboard.css";
 
 const home = import.meta.env.BASE_URL;
 
-type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; submitted_at: string | null; updated_at: string };
+type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; sales_cents: number; sales_count: number; submitted_at: string | null; updated_at: string };
 type Code = { id: number; code: string; max_uses: number | null; uses: number; expires_at: string | null; active: number; note: string | null; used_by: string | null; created_at: string };
 type StripeCols = { stripe_has_account: number | null; stripe_email: string | null; stripe_account_id: string | null; stripe_country: string | null };
 type AdminUser = StripeCols & { id: number; email: string; name: string | null; created_at: string; last_login_at: string | null; films: number };
@@ -86,7 +86,7 @@ function Films({ films, statuses, reload }: { films: AdminFilm[]; statuses: Film
 }
 
 function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: Film["status"][]; reload: () => void }) {
-  const [open, setOpen] = useState(film.status === "in_review");
+  const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(film.status);
   const [note, setNote] = useState(film.admin_note || "");
   const [notify, setNotify] = useState(true);
@@ -117,14 +117,24 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
           <strong>{film.title}</strong>
           <span>{film.owner_email}</span>
         </span>
-        <span className="admin-setup">{setup}</span>
+        <span className="admin-earned">
+          <strong>{dollars(film.sales_cents)}</strong>
+          <span>
+            earned · {film.sales_count} {film.sales_count === 1 ? "sale" : "sales"}
+          </span>
+        </span>
         <span className={`pill pill-${film.status}`}>{STATUS_LABEL[film.status]}</span>
+        <svg className="admin-caret" width="14" height="14" viewBox="0 0 12 12" aria-hidden="true">
+          <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
       </button>
 
       {open && (
         <div className="admin-film-body">
           <dl className="admin-details">
             <div><dt>Submitted</dt><dd>{day(film.submitted_at) || "Not yet"}</dd></div>
+            <div><dt>Setup fee</dt><dd>{setup}</dd></div>
+            <div><dt>Earned</dt><dd>{dollars(film.sales_cents)} from {film.sales_count} {film.sales_count === 1 ? "sale" : "sales"}</dd></div>
             <div><dt>Missing</dt><dd>{film.missing.length ? film.missing.join(", ") : "Nothing"}</dd></div>
             <div><dt>Prices</dt><dd>{price || "None"}{film.rental_days ? ` · ${film.rental_days} days to start, ${film.rental_hours ?? "?"} h to finish` : ""}</dd></div>
             <div><dt>Images</dt><dd className="admin-images">{film.poster_url ? <a href={film.poster_url} target="_blank" rel="noreferrer"><img src={film.poster_url} alt="Poster" /></a> : "No poster"}{film.still_url ? <a href={film.still_url} target="_blank" rel="noreferrer"><img src={film.still_url} alt="Wide image" /></a> : "No wide image"}{film.banner_url && <a href={film.banner_url} target="_blank" rel="noreferrer"><img src={film.banner_url} alt="Banner" /></a>}</dd></div>
