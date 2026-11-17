@@ -27,7 +27,7 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
   return data as T;
 }
 
-export type User = { id: number; email: string; name: string | null; isAdmin: boolean };
+export type User = { id: number; email: string; name: string | null; isAdmin: boolean; hasPassword: boolean; home: string };
 
 export const getMe = () => api<{ user: User | null }>("/auth/me").then((r) => r.user);
 export const signOut = () => api("/auth/logout", { method: "POST", body: {} });

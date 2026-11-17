@@ -132,6 +132,13 @@ const MIGRATIONS = [
   -- Wide 16:9 image (still or key art) for phones, the page background and link previews. Required, like the poster.
   ALTER TABLE films ADD COLUMN still_path TEXT;
   `,
+  `
+  -- Set the first time a sign-in link is used: that's what proves the address is theirs.
+  ALTER TABLE users ADD COLUMN email_verified_at TEXT;
+  -- Optional. scrypt$N$r$p$salt$hash (base64url). NULL means the account signs in with emailed links only.
+  ALTER TABLE users ADD COLUMN password_hash TEXT;
+  UPDATE users SET email_verified_at = last_login_at WHERE last_login_at IS NOT NULL;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

@@ -51,22 +51,25 @@ const button = (href, label) =>
 const para = (s) => `<p style="margin:0 0 14px;line-height:1.55">${esc(s)}</p>`;
 
 export function signInEmail(to, link, isNew) {
-  const title = isNew ? "Finish creating your account" : "Your sign-in link";
+  const title = isNew ? "Confirm your email" : "Your sign-in link";
+  const lead = isNew
+    ? "Click the button to confirm this is your email and finish creating your account. The link works once and expires in 30 minutes."
+    : "Click the button to sign in. The link works once and expires in 30 minutes.";
   return sendEmail({
     to,
     subject: isNew ? `Confirm your ${config.siteName} account` : `Sign in to ${config.siteName}`,
-    text: `${title}\n\nOpen this link to sign in. It works once and expires in 30 minutes:\n${link}\n\nIf you didn't ask for this, you can ignore this email.`,
+    text: `${title}\n\n${lead}\n${link}\n\nIf you didn't ask for this, you can ignore this email.`,
     html: layout(
       title,
-      para("Click the button to sign in. The link works once and expires in 30 minutes.") +
-        button(link, isNew ? "Confirm and sign in" : "Sign in") +
+      para(lead) +
+        button(link, isNew ? "Confirm my email" : "Sign in") +
         `<p style="margin:0;font-size:13px;color:#8a8a8a;line-height:1.5">If you didn't ask for this, you can ignore this email.</p>`
     ),
   });
 }
 
 export function filmSubmittedEmail(to, film, how) {
-  const dash = `${config.appUrl}/dashboard/?film=${film.id}`;
+  const dash = `${config.appUrl}/add-a-film/?film=${film.id}`;
   const line = how === "paid" ? "We received your $249 setup fee." : "Your setup fee was waived.";
   return sendEmail({
     to,
@@ -76,13 +79,13 @@ export function filmSubmittedEmail(to, film, how) {
       `${film.title} is in review`,
       para(line) +
         para("We'll email you when it's approved, then help you connect Stripe and go live.") +
-        button(dash, "Open your dashboard")
+        button(dash, "Open your film")
     ),
   });
 }
 
 export function filmStatusEmail(to, film) {
-  const dash = `${config.appUrl}/dashboard/?film=${film.id}`;
+  const dash = `${config.appUrl}/add-a-film/?film=${film.id}`;
   const msgs = {
     approved: [`${film.title} is approved`, "Your film passed review. Next we'll help you connect Stripe and set up your address."],
     live: [`${film.title} is live`, "Your watch page is live and ready to share."],
@@ -95,6 +98,6 @@ export function filmStatusEmail(to, film) {
     to,
     subject: m[0],
     text: `${m[1]}${note}\n\n${dash}`,
-    html: layout(m[0], para(m[1]) + (film.admin_note ? para(`Note from us: ${film.admin_note}`) : "") + button(dash, "Open your dashboard")),
+    html: layout(m[0], para(m[1]) + (film.admin_note ? para(`Note from us: ${film.admin_note}`) : "") + button(dash, "Open your film")),
   });
 }

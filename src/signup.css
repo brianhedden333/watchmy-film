@@ -62,7 +62,9 @@
   margin-bottom: 8px;
 }
 
-.signup-card input[type="email"] {
+.signup-card input[type="email"],
+.signup-card input[type="password"],
+.signup-card .pw-row input {
   width: 100%;
   font: 400 17px/1.4 var(--body);
   color: var(--screen);
@@ -213,4 +215,83 @@
 
 .switch a {
   color: var(--gold);
+}
+
+/* ---------- Sign-in options and password ---------- */
+
+.signin-options {
+  display: grid;
+}
+
+.signin-options input {
+  margin-bottom: 14px !important;
+}
+
+.signup-card .or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
+.signup-card .or::before,
+.signup-card .or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--screen);
+  border: 1px solid var(--line);
+}
+
+.btn-ghost:hover {
+  background: var(--surface);
+}
+
+.signup-card .field-hint {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+.signup-card .card-lede {
+  margin: 0 0 22px;
+  line-height: 1.55;
+}
+
+.pw-row {
+  position: relative;
+}
+
+.signup-card .pw-row input {
+  margin-bottom: 0;
+  padding-right: 64px;
+}
+
+.pw-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+}
+
+.signup-card .pw-row + .field-hint {
+  margin: 8px 0 20px;
+}
+
+.signup-card .skip {
+  justify-self: center;
+  margin-top: 18px;
+  color: var(--text-soft);
+}
+
+.signup-card form > h2 {
+  font-size: clamp(26px, 3vw, 32px);
 }

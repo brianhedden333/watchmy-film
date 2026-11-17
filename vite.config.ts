@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
-const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/admin"];
+const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/admin"];
 
 export default defineConfig({
   // Sub-path the site is served from. GitHub Pages project sites need
@@ -27,9 +27,9 @@ export default defineConfig({
       },
     },
   ],
-  // Dev: the API runs separately (cd server && npm run dev)
+  // Dev: the API runs separately (cd server && npm run dev). API_URL points at another copy, e.g. for testing.
   server: {
-    proxy: { "/api": "http://127.0.0.1:5050", "/uploads": "http://127.0.0.1:5050" },
+    proxy: { "/api": process.env.API_URL || "http://127.0.0.1:5050", "/uploads": process.env.API_URL || "http://127.0.0.1:5050" },
   },
   build: {
     rollupOptions: {
@@ -41,7 +41,8 @@ export default defineConfig({
         // Account pages need the API server, so they're only built with VITE_ACCOUNTS=open
         ...(process.env.VITE_ACCOUNTS === "open" && {
           signin: resolve(__dirname, "signin/index.html"), // also where emailed sign-in links land
-          dashboard: resolve(__dirname, "dashboard/index.html"),
+          dashboard: resolve(__dirname, "dashboard/index.html"), // list of the filmmaker's films
+          addfilm: resolve(__dirname, "add-a-film/index.html"), // onboarding; also where each film is edited
           admin: resolve(__dirname, "admin/index.html"),
         }),
         sample: resolve(__dirname, "sample/index.html"), // sample watch page (Fracking the System)

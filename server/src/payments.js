@@ -13,7 +13,7 @@ const stripe = config.stripeSecretKey ? new Stripe(config.stripeSecretKey) : nul
 export const stripeEnabled = () => !!stripe;
 
 export async function createSetupCheckout(film, user) {
-  const back = `${config.appUrl}/dashboard/?film=${film.id}`;
+  const back = `${config.appUrl}/add-a-film/?film=${film.id}`;
   const meta = { app: APP_TAG, purpose: "setup_fee", film_id: String(film.id), user_id: String(user.id) };
   const session = await stripe.checkout.sessions.create({
     mode: "payment",

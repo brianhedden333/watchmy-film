@@ -1,11 +1,14 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { site } from "./config";
-import { api } from "./api";
+import { api, getMe } from "./api";
 
-/* Sign-up and sign-in share one screen. Both email a one-time link; /signin/?token=… finishes signing in. */
+/* Sign-up and sign-in share one screen.
+   Sign-up emails a one-time link that confirms the address; /signin/?token=… finishes, then offers to set a password.
+   Sign-in takes a password (if the account has one) or emails a new link. */
 
 const home = import.meta.env.BASE_URL;
-const dashboard = `${home}dashboard/`;
+// The server says where to land (films list, or add-a-film until a film is published); paths start with "/".
+const go = (next: string) => location.replace(`${home}${next.replace(/^\//, "")}`);
 
 export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
   const token = mode === "signin" ? new URLSearchParams(location.search).get("token") : null;
@@ -35,10 +38,12 @@ export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
                   <li>Custom domain</li>
                 </ul>
               </>
+            ) : token ? (
+              <h1>Welcome.</h1>
             ) : (
               <>
                 <h1>Welcome back.</h1>
-                <p className="lede">We'll email you a link to sign in. No password needed.</p>
+                <p className="lede">Sign in with your password, or we'll email you a link.</p>
               </>
             )}
           </div>
@@ -52,15 +57,17 @@ export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
 
 function VerifyToken({ token }: { token: string }) {
   const [error, setError] = useState("");
+  const [offer, setOffer] = useState<{ next: string; justVerified: boolean } | null>(null);
   const sent = useRef(false);
   useEffect(() => {
     if (sent.current) return; // links work once; don't post twice
     sent.current = true;
-    api("/auth/verify", { body: { token } })
-      .then(() => location.replace(dashboard))
+    api<{ justVerified: boolean; hasPassword: boolean; next: string }>("/auth/verify", { body: { token } })
+      .then((r) => (r.hasPassword ? go(r.next) : setOffer({ next: r.next, justVerified: r.justVerified })))
       .catch((e) => setError(e.message));
   }, [token]);
 
+  if (offer) return <SetPassword {...offer} />;
   if (!error) return <p role="status">Signing you in…</p>;
   return (
     <div role="alert">
@@ -73,21 +80,101 @@ function VerifyToken({ token }: { token: string }) {
   );
 }
 
+// Shown after a sign-in link while the account has no password. Skipping keeps sign-in by emailed link.
+function SetPassword({ next, justVerified }: { next: string; justVerified: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
+  const [error, setError] = useState("");
+  const pwId = useId();
+  const hintId = useId();
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const password = String(new FormData(e.currentTarget).get("password"));
+    setBusy(true);
+    setError("");
+    try {
+      await api("/auth/password", { body: { password } });
+      go(next);
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit}>
+      <h2>{justVerified ? "Your email is confirmed." : "You're signed in."}</h2>
+      <p className="card-lede">
+        Create a password to sign in without waiting for an email, or skip it and keep using sign-in links.
+      </p>
+      <label htmlFor={pwId}>New password</label>
+      <div className="pw-row">
+        <input
+          id={pwId}
+          name="password"
+          type={show ? "text" : "password"}
+          required
+          minLength={8}
+          maxLength={200}
+          autoComplete="new-password"
+          aria-describedby={hintId}
+        />
+        <button type="button" className="link-btn pw-toggle" onClick={() => setShow((v) => !v)} aria-pressed={show}>
+          {show ? "Hide" : "Show"}
+        </button>
+      </div>
+      <p className="field-hint" id={hintId}>
+        At least 8 characters.
+      </p>
+      <button type="submit" className="btn" disabled={busy}>
+        {busy ? "Saving…" : "Save password and continue"}
+      </button>
+      {error && (
+        <p className="signup-err" role="alert">
+          {error}
+        </p>
+      )}
+      <button type="button" className="link-btn skip" onClick={() => go(next)} disabled={busy}>
+        Skip for now
+      </button>
+    </form>
+  );
+}
+
 function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   const [sentTo, setSentTo] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending">("idle");
+  const [status, setStatus] = useState<"idle" | "password" | "link">("idle");
   const [error, setError] = useState("");
   const emailId = useId();
   const termsId = useId();
+  const pwId = useId();
+
+  // Already signed in? Skip the form.
+  useEffect(() => {
+    if (mode === "signin") getMe().then((u) => u && go(u.home)).catch(() => {});
+  }, [mode]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     if (form.get("_gotcha")) return; // honeypot
     const email = String(form.get("email")).trim();
-    setStatus("sending");
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const how = mode === "signin" && submitter?.value === "password" ? "password" : "link";
+    const password = String(form.get("password") || "");
     setError("");
+    if (how === "password" && !password) {
+      setError("Enter your password, or email yourself a sign-in link.");
+      return;
+    }
+    setStatus(how);
     try {
+      if (how === "password") {
+        const r = await api<{ next: string }>("/auth/login", { body: { email, password } });
+        go(r.next);
+        return;
+      }
       if (site.accountsOpen || mode === "signin") {
         await api("/auth/request", { body: { email, mode, terms: form.get("terms") === "on" } });
       } else {
@@ -125,7 +212,9 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
       <div role="status">
         <h2>Check your email.</h2>
         <p>
-          We sent a sign-in link to <strong>{sentTo}</strong>. It works once and expires in 30 minutes.
+          We sent a link to <strong>{sentTo}</strong>.{" "}
+          {mode === "signup" ? "Open it to confirm your email and finish creating your account." : "Open it to sign in."} It
+          works once and expires in 30 minutes.
         </p>
         <button type="button" className="link-btn" onClick={() => setSentTo("")}>
           Use a different email
@@ -137,7 +226,24 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
   return (
     <form onSubmit={onSubmit}>
       <label htmlFor={emailId}>Email</label>
-      <input id={emailId} name="email" type="email" required autoComplete="email" />
+      <input id={emailId} name="email" type="email" required autoComplete={mode === "signin" ? "username" : "email"} />
+
+      {mode === "signin" && (
+        <div className="signin-options">
+          <label htmlFor={pwId}>Password</label>
+          <input id={pwId} name="password" type="password" autoComplete="current-password" maxLength={200} />
+          <button type="submit" name="how" value="password" className="btn" disabled={status !== "idle"}>
+            {status === "password" ? "Signing in…" : "Sign in"}
+          </button>
+          <p className="or" aria-hidden="true">
+            or
+          </p>
+          <button type="submit" name="how" value="link" className="btn btn-ghost" disabled={status !== "idle"}>
+            {status === "link" ? "Sending…" : "Email me a sign-in link"}
+          </button>
+          <p className="field-hint">No password yet, or forgot it? The link signs you in.</p>
+        </div>
+      )}
 
       {/* Hidden until accounts open (and the Terms/Privacy pages exist) */}
       {mode === "signup" && site.accountsOpen && (
@@ -150,9 +256,11 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
       {/* Honeypot: hidden from people, bots tend to fill it in */}
       <input type="text" name="_gotcha" tabIndex={-1} autoComplete="off" className="hp" aria-hidden="true" />
 
-      <button type="submit" className="btn" disabled={status === "sending"}>
-        {status === "sending" ? "Sending…" : mode === "signup" ? "Create my account" : "Email me a sign-in link"}
-      </button>
+      {mode === "signup" && (
+        <button type="submit" className="btn" disabled={status !== "idle"}>
+          {status !== "idle" ? "Sending…" : "Create my account"}
+        </button>
+      )}
       {error && (
         <p className="signup-err" role="alert">
           {error}

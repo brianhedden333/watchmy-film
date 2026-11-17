@@ -42,7 +42,7 @@ function Admin() {
             {site.name}
           </a>
           <div className="dash-user">
-            <a href={`${home}dashboard/`}>My films</a>
+            <a href={`${home}dashboard/`}>Your films</a>
             <button type="button" className="link-btn" onClick={() => signOut().finally(() => location.assign(home))}>
               Sign out
             </button>
@@ -157,7 +157,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
               </select>
             </label>
             <label>
-              Note to the filmmaker (shown on their dashboard and in the email)
+              Note to the filmmaker (shown on their film page and in the email)
               <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
             </label>
             <label className="check">
