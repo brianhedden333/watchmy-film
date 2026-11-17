@@ -32,7 +32,15 @@ export async function createSetupCheckout(film, user) {
       },
     ],
     metadata: meta,
-    payment_intent_data: { metadata: meta, description: `${config.siteName} setup: ${film.title}`.slice(0, 1000) },
+    // Our own payment method configuration (cards, Apple Pay, Google Pay) instead of the FTS account's defaults,
+    // which include Klarna, Affirm, crypto etc. Set STRIPE_PAYMENT_METHOD_CONFIG to its pmc_… id.
+    ...(config.stripePaymentMethodConfig ? { payment_method_configuration: config.stripePaymentMethodConfig } : {}),
+    payment_intent_data: {
+      metadata: meta,
+      description: `${config.siteName} setup: ${film.title}`.slice(0, 1000),
+      // Card statements read "<FTS prefix>* WATCHMYFILM" so the charge is recognizable.
+      statement_descriptor_suffix: "WATCHMYFILM",
+    },
     success_url: `${back}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${back}&canceled=1`,
   });
