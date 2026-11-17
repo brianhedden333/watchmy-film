@@ -691,6 +691,12 @@
 .setup-card {
   position: sticky;
   top: 88px;
+  /* Stays in view while the form scrolls; if its content is taller than the window, it scrolls on its own. */
+  max-height: calc(100vh - 88px - 24px);
+  max-height: calc(100dvh - 88px - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   background: var(--surface);
   border: 1px solid var(--line);
   border-top: 2px solid var(--gold);
@@ -996,6 +1002,8 @@
   .setup-card {
     position: static;
     order: -1;
+    max-height: none;
+    overflow: visible;
   }
 
   .progress,
