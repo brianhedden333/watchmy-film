@@ -44,6 +44,7 @@ function liveAddress(f: Film) {
 function Preview() {
   const [film, setFilm] = useState<Film | null>(null);
   const [mine, setMine] = useState(true);
+  const [admin, setAdmin] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -53,6 +54,7 @@ function Preview() {
         if (!filmId) throw new Error("No film chosen. Open the preview from your film's page.");
         const r = await api<{ film: Film }>(`/films/${filmId}`);
         setMine(r.film.user_id === u.id); // admins can preview anyone's film
+        setAdmin(u.isAdmin);
         setFilm(r.film);
         document.title = `Preview: ${r.film.title} | ${site.name}`;
       })
@@ -70,8 +72,8 @@ function Preview() {
 
   return (
     <div className="sample" style={pageTheme(film)}>
-      {mine ? <PreviewBanner film={film} /> : <AdminBanner film={film} />}
-      <WatchPage film={film} />
+      {mine && !admin ? <PreviewBanner film={film} /> : <AdminBanner film={film} mine={mine} />}
+      <WatchPage film={film} canWatch={admin} />
     </div>
   );
 }
@@ -98,22 +100,28 @@ function PreviewBanner({ film }: { film: Film | null }) {
   );
 }
 
-function AdminBanner({ film }: { film: Film }) {
+function AdminBanner({ film, mine }: { film: Film; mine: boolean }) {
   return (
     <div className="preview-bar" role="region" aria-label="Preview notice">
       <div className="preview-bar-text">
         <p className="preview-bar-title">Admin preview of {film.title}.</p>
-        <p>This is the filmmaker's saved watch page. Rent and Buy are switched off here.</p>
+        <p>Nobody is charged here. Click Rent Now or Buy Now to see the film the way a renter or buyer does.</p>
       </div>
-      <a href={`${home}admin/`} className="btn btn-small">
-        Back to admin
+      <a href={mine ? `${home}add-a-film/?film=${film.id}` : `${home}admin/`} className="btn btn-small">
+        {mine ? "Back to editing" : "Back to admin"}
       </a>
     </div>
   );
 }
 
-function WatchPage({ film: f }: { film: Film }) {
+function WatchPage({ film: f, canWatch }: { film: Film; canWatch: boolean }) {
   const [tried, setTried] = useState("");
+  // Admins skip checkout: Rent/Buy opens the screening room a renter or buyer would get.
+  const [watching, setWatching] = useState<"rent" | "buy" | null>(null);
+  const open = (kind: "rent" | "buy") => {
+    setWatching(kind);
+    requestAnimationFrame(() => document.querySelector(".s-main")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
   const rent = f.rent_price_cents;
   const buy = f.buy_price_cents;
   const days = f.rental_days ?? 30;
@@ -148,9 +156,9 @@ function WatchPage({ film: f }: { film: Film }) {
   };
   const rentBonus = bonusLine("rent");
   const buyBonus = bonusLine("buy");
-  const buyBtn = (label: string) => (
+  const buyBtn = (label: string, kind: "rent" | "buy") => (
     <>
-      <button type="button" className="s-btn" onClick={() => setTried(label)}>
+      <button type="button" className="s-btn" onClick={() => (canWatch ? open(kind) : setTried(label))}>
         {label}
       </button>
       {tried === label && (
@@ -186,6 +194,9 @@ function WatchPage({ film: f }: { film: Film }) {
       </section>
 
       <main className="s-wrap s-main">
+        {watching ? (
+          <ScreeningRoom film={f} kind={watching} days={days} hours={hours} onSwitch={setWatching} onClose={() => setWatching(null)} />
+        ) : (
         <div className={`s-buy offers-${offers}`}>
           {f.poster_url ? (
             <img src={f.poster_url} alt={`${f.title} poster`} className="s-poster" />
@@ -209,7 +220,7 @@ function WatchPage({ film: f }: { film: Film }) {
                   </ul>
                 </div>
               )}
-              {buyBtn("▶ Rent Now")}
+              {buyBtn("▶ Rent Now", "rent")}
             </div>
           )}
 
@@ -223,7 +234,7 @@ function WatchPage({ film: f }: { film: Film }) {
                   {buyBonus && <li>{buyBonus}</li>}
                 </ul>
               </div>
-              {buyBtn("Buy Now")}
+              {buyBtn("Buy Now", "buy")}
             </div>
           )}
 
@@ -231,6 +242,7 @@ function WatchPage({ film: f }: { film: Film }) {
             <div className="s-card preview-missing">Add a rent or buy price and your offers appear here.</div>
           )}
         </div>
+        )}
 
         <div className="s-narrow">
           {trailer && <h2>Watch the trailer</h2>}
@@ -273,6 +285,75 @@ function WatchPage({ film: f }: { film: Film }) {
         </div>
       </main>
     </>
+  );
+}
+
+// What a viewer gets after paying: the film in a large player where the poster and price boxes were,
+// their access terms, and the bonus features for what they bought, playable in the same player.
+function ScreeningRoom({ film: f, kind, days, hours, onSwitch, onClose }: {
+  film: Film; kind: "rent" | "buy"; days: number; hours: number; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
+}) {
+  const items = [{ title: "The film", url: f.vimeo_url || "" }, ...f.bonus[kind].videos];
+  const [playing, setPlaying] = useState(0);
+  useEffect(() => setPlaying(0), [kind]);
+  const current = items[playing];
+  const src = embedUrl(current.url);
+  const both = f.rent_price_cents != null && f.buy_price_cents != null;
+
+  return (
+    <section className="s-screen" aria-label={`Watching ${f.title}`}>
+      <div className="s-screen-admin">
+        <span>Admin view: what a {kind === "rent" ? "renter" : "buyer"} sees after paying.</span>
+        {both && (
+          <button type="button" className="link-btn" onClick={() => onSwitch(kind === "rent" ? "buy" : "rent")}>
+            Show the {kind === "rent" ? "buyer" : "renter"} view
+          </button>
+        )}
+        <button type="button" className="link-btn" onClick={onClose}>
+          Back to Rent and Buy
+        </button>
+      </div>
+
+      <div className="s-player">
+        {src ? (
+          <iframe key={src} src={src} title={`${f.title}: ${current.title}`} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+        ) : (
+          <p className="s-player-missing">
+            {current.url ? `This link can't be played here: ${current.url}` : "No Vimeo link for the film yet."}
+          </p>
+        )}
+      </div>
+
+      <div className="s-screen-info">
+        <div>
+          <p className="s-now">
+            Now playing: <strong>{playing === 0 ? f.title : current.title}</strong>
+          </p>
+          <p className="s-access">
+            {kind === "rent"
+              ? `Rented. Start within ${days} days, then you have ${hours} hours to finish.`
+              : "Yours to keep. Watch any time on this website."}{" "}
+            On another device? Sign in with the email you paid with.
+          </p>
+        </div>
+      </div>
+
+      {items.length > 1 && (
+        <div className="s-playlist">
+          <h3>{kind === "rent" ? "Included with your rental" : "Bonus features"}</h3>
+          <ol>
+            {items.map((it, i) => (
+              <li key={i}>
+                <button type="button" aria-current={i === playing ? "true" : undefined} onClick={() => setPlaying(i)}>
+                  <span className="s-playlist-num" aria-hidden="true">{i === playing ? "▶" : i + 1}</span>
+                  {it.title}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </section>
   );
 }
 

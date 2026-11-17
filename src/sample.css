@@ -373,3 +373,133 @@
     text-align: center;
   }
 }
+
+/* ---------- Screening room: the film after renting or buying (admin preview for now) ---------- */
+
+.s-screen {
+  margin-bottom: 56px;
+}
+
+.s-screen-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px dashed var(--s-line);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--s-soft);
+}
+
+.s-screen-admin span {
+  flex: 1 1 auto;
+}
+
+.s-screen-admin .link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--s-head);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.s-player {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.s-player iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.s-player-missing {
+  height: 100%;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: #bbb;
+}
+
+.s-screen-info {
+  margin-top: 18px;
+}
+
+.s-now {
+  margin: 0 0 6px;
+  font-size: 18px;
+  color: var(--s-text);
+}
+
+.s-now strong {
+  color: var(--s-head);
+}
+
+.s-access {
+  margin: 0;
+  font-size: 14px;
+  color: var(--s-soft);
+}
+
+.s-playlist {
+  margin-top: 28px;
+}
+
+.s-playlist h3 {
+  font-family: var(--body);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--s-head);
+  margin: 0 0 12px;
+}
+
+.s-playlist ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.s-playlist button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  font: 500 15px/1.3 var(--body);
+  color: var(--s-text);
+  background: var(--s-card);
+  border: 1px solid var(--s-line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.s-playlist button:hover {
+  border-color: var(--s-soft);
+}
+
+.s-playlist button[aria-current="true"] {
+  border-color: var(--s-red);
+  color: var(--s-head);
+}
+
+.s-playlist-num {
+  flex: none;
+  width: 22px;
+  color: var(--s-red);
+  font-variant-numeric: tabular-nums;
+}
