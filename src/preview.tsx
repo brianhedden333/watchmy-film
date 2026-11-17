@@ -1,8 +1,8 @@
-import { StrictMode, useEffect, useState, type CSSProperties } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, dollars, getMe } from "./api";
-import { COLOR_DEFAULTS, textOn, type ColorKey, type Film } from "./films";
+import { pageTheme, type Film } from "./films";
 import "./styles.css";
 import "./sample.css";
 
@@ -41,25 +41,6 @@ function liveAddress(f: Film) {
   return null;
 }
 
-// The film's four colors become the sample page's color variables.
-function themeFor(f: Film): CSSProperties {
-  const c = (k: ColorKey) => f[k] || COLOR_DEFAULTS[k];
-  const bg = c("color_background");
-  const btn = c("color_button");
-  return {
-    "--s-bg": bg,
-    "--s-card": `color-mix(in srgb, ${bg} 90%, ${textOn(bg)})`,
-    "--s-line": `color-mix(in srgb, ${bg} 78%, ${textOn(bg)})`,
-    "--s-head": c("color_primary"),
-    "--s-text": c("color_secondary"),
-    "--s-soft": c("color_secondary"),
-    "--s-faint": `color-mix(in srgb, ${c("color_secondary")} 70%, ${bg})`,
-    "--s-red": btn,
-    "--s-red-hover": `color-mix(in srgb, ${btn} 85%, ${textOn(btn)})`,
-    "--s-btn-text": textOn(btn),
-  } as CSSProperties;
-}
-
 function Preview() {
   const [film, setFilm] = useState<Film | null>(null);
   const [mine, setMine] = useState(true);
@@ -88,7 +69,7 @@ function Preview() {
   }
 
   return (
-    <div className="sample" style={themeFor(film)}>
+    <div className="sample" style={pageTheme(film)}>
       {mine ? <PreviewBanner film={film} /> : <AdminBanner film={film} />}
       <WatchPage film={film} />
     </div>

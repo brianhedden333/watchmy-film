@@ -2,10 +2,11 @@ import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode 
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, ApiError, dollars, getMe, type User } from "./api";
-import { BONUS_MAX, COLOR_DEFAULTS, STATUS_LABEL, textOn, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
+import { BONUS_MAX, COLOR_DEFAULTS, pageTheme, STATUS_LABEL, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { StripeDetails } from "./StripeDetails";
 import "./styles.css";
+import "./sample.css";
 import "./dashboard.css";
 
 /* Add a film (onboarding, and where each film is edited): add a film, fill in its details, then pay the setup fee (or use a code) to send it to review. */
@@ -648,16 +649,39 @@ function ColorField({ label, hint, value, fallback, onChange, disabled, error }:
 }
 
 
+// The Rent (or Buy) box from the watch page, drawn with the colors being picked. Uses the watch page's own styles.
 function DesignPreview({ form }: { form: FormState }) {
-  const valid = (v: string) => (/^#[0-9a-fA-F]{6}$/.test(v) ? v : "");
-  const c = (k: ColorKey) => valid(form[k]) || COLOR_DEFAULTS[k];
+  const rent = form.rent_price.trim() || (form.buy_price.trim() ? "" : "4.99");
+  const days = form.rental_days.trim() || "30";
+  const hours = form.rental_hours.trim() || "72";
   return (
-    <div className="design-preview" style={{ background: c("color_background") }} aria-label="Preview of your colors">
-      <p className="dp-title" style={{ color: c("color_primary") }}>{form.title || "Your film"}</p>
-      <p className="dp-text" style={{ color: c("color_secondary") }}>{form.logline || "A one-line description of your film."}</p>
-      <span className="dp-btn" style={{ background: c("color_button"), color: textOn(c("color_button")) }}>
-        Rent{form.rent_price ? ` for $${form.rent_price}` : ""}
-      </span>
+    <div className="design-preview sample" style={pageTheme(form)} aria-label="Preview of your colors on your watch page's sales box">
+      <div className="s-card dp-card" aria-hidden="true">
+        {rent ? (
+          <>
+            <h3>Rent for ${rent}</h3>
+            <p className="s-sub">{days} days to start watching</p>
+            <div className="s-box">
+              <p className="s-box-title">Viewing period</p>
+              <p>Start watching within {days} days</p>
+              <p>{hours} hours to finish once started</p>
+            </div>
+            <span className="s-btn">▶ Rent Now</span>
+          </>
+        ) : (
+          <>
+            <h3>Buy for ${form.buy_price.trim()}</h3>
+            <p className="s-sub">Lifetime access via this website</p>
+            <div className="s-box">
+              <ul className="s-checks">
+                <li>Unlimited access to {form.title.trim() || "your film"}</li>
+              </ul>
+            </div>
+            <span className="s-btn">Buy Now</span>
+          </>
+        )}
+        <p className="s-fine">Secure payment powered by Stripe</p>
+      </div>
     </div>
   );
 }

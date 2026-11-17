@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 // Film record as the API returns it, shared by the dashboard and admin pages.
 
 export type Credit = { role: string; names: string[] };
@@ -66,6 +68,25 @@ export const COLOR_DEFAULTS: Record<ColorKey, string> = {
   color_secondary: "#b3b3b3",
   color_button: "#4a1424",
 };
+
+// The watch page's color variables (see sample.css) from a film's four colors. Empty or invalid → our default.
+export function pageTheme(colors: Partial<Record<ColorKey, string | null>>): CSSProperties {
+  const c = (k: ColorKey) => (/^#[0-9a-fA-F]{6}$/.test(colors[k] || "") ? colors[k]! : COLOR_DEFAULTS[k]);
+  const bg = c("color_background");
+  const btn = c("color_button");
+  return {
+    "--s-bg": bg,
+    "--s-card": `color-mix(in srgb, ${bg} 90%, ${textOn(bg)})`,
+    "--s-line": `color-mix(in srgb, ${bg} 78%, ${textOn(bg)})`,
+    "--s-head": c("color_primary"),
+    "--s-text": c("color_secondary"),
+    "--s-soft": c("color_secondary"),
+    "--s-faint": `color-mix(in srgb, ${c("color_secondary")} 70%, ${bg})`,
+    "--s-red": btn,
+    "--s-red-hover": `color-mix(in srgb, ${btn} 85%, ${textOn(btn)})`,
+    "--s-btn-text": textOn(btn),
+  } as CSSProperties;
+}
 
 // Black or white text, whichever reads better on the given #rrggbb color.
 export const textOn = (hex: string) => {

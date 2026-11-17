@@ -364,43 +364,35 @@
   margin-top: 4px;
 }
 
-.design-preview {
+/* Color preview: the watch page's sales box (sample.css .s-card), sized for the form column */
+.design-preview.sample {
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 28px 24px;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 10px;
-  transition: background 0.15s;
+  padding: 20px;
+  align-self: start;
 }
 
-.design-preview p {
-  margin: 0;
+.dp-card.s-card {
+  padding: 22px;
 }
 
-.dp-title {
-  font-family: var(--display);
-  font-stretch: 62%;
-  font-weight: 800;
+.dp-card.s-card h3 {
   font-size: 24px;
-  line-height: 1.1;
-  overflow-wrap: anywhere;
 }
 
-.dp-text {
-  font-size: 15px;
-  line-height: 1.5;
+.dp-card .s-btn {
+  font-size: 16px;
+  padding: 14px;
+  cursor: default;
 }
 
-.dp-btn {
-  align-self: flex-start;
-  margin-top: 8px;
-  padding: 12px 20px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 15px;
+.dp-card .s-btn:hover {
+  background: var(--s-red);
+}
+
+.dp-card .s-fine {
+  margin: 0;
 }
 
 .admin-images {
