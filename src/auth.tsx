@@ -232,37 +232,13 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
         go(r.next);
         return;
       }
-      if (site.accountsOpen || mode === "signin") {
-        await api("/auth/request", { body: { email, mode, terms: form.get("terms") === "on", _gotcha: gotcha, elapsed } });
-      } else {
-        // Before launch: email us the sign-up instead of creating an account.
-        const body = new FormData();
-        body.set("email", email);
-        body.set("_subject", `New ${site.name} sign-up`);
-        body.set("_gotcha", gotcha); // Formspree drops submissions with this filled in
-        const res = await fetch(site.formEndpoint, { method: "POST", headers: { Accept: "application/json" }, body });
-        if (!res.ok) throw new Error("That didn't go through. Check your connection and try again.");
-      }
+      await api("/auth/request", { body: { email, mode, terms: form.get("terms") === "on", _gotcha: gotcha, elapsed } });
       setSentTo(email);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setStatus("idle");
     }
-  }
-
-  if (sentTo && !site.accountsOpen && mode === "signup") {
-    return (
-      <div role="status">
-        <h2>Thanks!</h2>
-        <p>
-          We've received your email (<strong>{sentTo}</strong>) and will be in touch soon.
-        </p>
-        <a className="btn" href={home}>
-          Back to {site.name}
-        </a>
-      </div>
-    );
   }
 
   if (sentTo) {
@@ -291,8 +267,7 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
         </div>
       )}
 
-      {/* Hidden until accounts open (and the Terms/Privacy pages exist) */}
-      {mode === "signup" && site.accountsOpen && (
+      {mode === "signup" && (
         <div className="terms">
           <input id={termsId} name="terms" type="checkbox" required />
           <label htmlFor={termsId}>I agree to the Terms of Service and Privacy Policy</label>
@@ -333,11 +308,9 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
               </li>
             </ol>
           </details>
-          {site.accountsOpen && (
-            <p className="switch">
-              Already have an account? <a href={`${home}signin/`}>Sign in</a>
-            </p>
-          )}
+          <p className="switch">
+            Already have an account? <a href={`${home}signin/`}>Sign in</a>
+          </p>
         </>
       ) : (
         <p className="switch">
