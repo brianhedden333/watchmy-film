@@ -143,6 +143,15 @@ const MIGRATIONS = [
   -- Optional wide banner (3:1) across the top of the watch page. Without one, the 16:9 wide image is used.
   ALTER TABLE films ADD COLUMN banner_path TEXT;
   `,
+  `
+  -- Where the filmmaker's sales should be paid, collected during review (before Stripe Connect is set up).
+  -- stripe_has_account: 1 = has one, 0 = not yet, NULL = hasn't said.
+  ALTER TABLE users ADD COLUMN stripe_has_account INTEGER;
+  ALTER TABLE users ADD COLUMN stripe_email TEXT;
+  ALTER TABLE users ADD COLUMN stripe_account_id TEXT;
+  ALTER TABLE users ADD COLUMN stripe_country TEXT;
+  ALTER TABLE users ADD COLUMN stripe_updated_at TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

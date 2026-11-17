@@ -17,6 +17,7 @@ adminRouter.get("/overview", (_req, res) => {
   const films = db
     .prepare(
       `SELECT f.*, u.email AS owner_email, u.name AS owner_name,
+         u.stripe_has_account, u.stripe_email, u.stripe_account_id, u.stripe_country,
          (SELECT group_concat(c.code, ', ') FROM promo_redemptions r JOIN promo_codes c ON c.id = r.promo_code_id WHERE r.film_id = f.id) AS codes_used,
          (SELECT sum(amount_cents) FROM payments p WHERE p.film_id = f.id) AS paid_cents
        FROM films f JOIN users u ON u.id = f.user_id
@@ -26,7 +27,8 @@ adminRouter.get("/overview", (_req, res) => {
     .map(publicFilm);
   const users = db
     .prepare(
-      `SELECT u.id, u.email, u.name, u.created_at, u.last_login_at, (SELECT count(*) FROM films f WHERE f.user_id = u.id) AS films
+      `SELECT u.id, u.email, u.name, u.created_at, u.last_login_at,
+         u.stripe_has_account, u.stripe_email, u.stripe_account_id, u.stripe_country, (SELECT count(*) FROM films f WHERE f.user_id = u.id) AS films
        FROM users u ORDER BY u.created_at DESC`
     )
     .all();

@@ -4,6 +4,7 @@ import { site } from "./config";
 import { api, ApiError, dollars, getMe, type User } from "./api";
 import { COLOR_DEFAULTS, STATUS_LABEL, textOn, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
+import { StripeDetails } from "./StripeDetails";
 import "./styles.css";
 import "./dashboard.css";
 
@@ -686,10 +687,20 @@ function SetupCard({ film, meta, dirty, save, onChange }: { film: Film; meta: Fi
     );
   }
 
+  // Once the fee is in, they can tell us where to be paid while we review.
+  const askStripe = film.setup_status !== "unpaid" && (film.status === "in_review" || film.status === "approved" || film.status === "changes_requested");
+
   return (
     <aside className="setup-card" aria-label="Setup">
       {body}
       {error && <p className="field-err" role="alert">{error}</p>}
+      {askStripe && (
+        <section className="setup-stripe" aria-label="Get paid">
+          <h2>Get paid</h2>
+          <p>Every sale goes straight to your own Stripe account. Tell us which one while we review your film, so your page can go live sooner.</p>
+          <StripeDetails compact />
+        </section>
+      )}
     </aside>
   );
 }

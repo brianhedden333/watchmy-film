@@ -11,9 +11,12 @@ import "./dashboard.css";
 
 const home = import.meta.env.BASE_URL;
 
-type AdminFilm = Film & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; submitted_at: string | null; updated_at: string };
+type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; submitted_at: string | null; updated_at: string };
 type Code = { id: number; code: string; max_uses: number | null; uses: number; expires_at: string | null; active: number; note: string | null; used_by: string | null; created_at: string };
-type AdminUser = { id: number; email: string; name: string | null; created_at: string; last_login_at: string | null; films: number };
+type StripeCols = { stripe_has_account: number | null; stripe_email: string | null; stripe_account_id: string | null; stripe_country: string | null };
+type AdminUser = StripeCols & { id: number; email: string; name: string | null; created_at: string; last_login_at: string | null; films: number };
+const stripeText = (u: StripeCols) =>
+  u.stripe_has_account == null ? "Not given" : u.stripe_has_account ? [u.stripe_email, u.stripe_account_id, u.stripe_country].filter(Boolean).join(" · ") : `No account yet (${u.stripe_country})`;
 type Overview = { films: AdminFilm[]; users: AdminUser[]; codes: Code[]; revenue: { cents: number; n: number }; statuses: Film["status"][]; setupFeeCents: number };
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "");
@@ -132,6 +135,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Trailer</dt><dd>{film.trailer_url ? <a href={film.trailer_url} target="_blank" rel="noreferrer">{film.trailer_url}</a> : "None"}</dd></div>
             <div><dt>Details</dt><dd>{[film.year, film.runtime_minutes && `${film.runtime_minutes} min`, film.languages, film.genre].filter(Boolean).join(" · ") || "None"}</dd></div>
             <div><dt>Credits</dt><dd>{film.credits.filter((c) => c.names.length).map((c) => <span key={c.role} className="credit-line"><strong>{c.role}:</strong> {c.names.join(", ")}</span>)}{!film.credits.some((c) => c.names.length) && "None"}</dd></div>
+            <div><dt>Stripe</dt><dd>{stripeText(film)}</dd></div>
             <div><dt>Contact</dt><dd>{[film.contact_name || film.owner_name, film.owner_email, film.contact_phone].filter(Boolean).join(" · ")}</dd></div>
           </dl>
           <p>
@@ -241,7 +245,7 @@ function Users({ users }: { users: AdminUser[] }) {
     <div className="table-wrap">
       <table className="admin-table">
         <thead>
-          <tr><th>Email</th><th>Name</th><th>Films</th><th>Joined</th><th>Last sign-in</th></tr>
+          <tr><th>Email</th><th>Name</th><th>Films</th><th>Joined</th><th>Last sign-in</th><th>Stripe</th></tr>
         </thead>
         <tbody>
           {users.map((u) => (
@@ -251,6 +255,7 @@ function Users({ users }: { users: AdminUser[] }) {
               <td>{u.films}</td>
               <td>{day(u.created_at)}</td>
               <td>{day(u.last_login_at) || "Never"}</td>
+              <td>{stripeText(u)}</td>
             </tr>
           ))}
         </tbody>

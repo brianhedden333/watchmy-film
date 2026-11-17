@@ -196,13 +196,46 @@ authRouter.post("/logout", (req, res) => {
 authRouter.get("/me", (req, res) => {
   if (!req.user) return res.json({ user: null });
   const { id, email, name } = req.user;
-  res.json({ user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(id) } });
+  res.json({
+    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(id), stripe: stripeInfo(req.user) },
+  });
 });
 
 authRouter.patch("/me", requireUser, (req, res) => {
   const name = String(req.body.name ?? "").trim().slice(0, 120) || null;
   db.prepare("UPDATE users SET name = ? WHERE id = ?").run(name, req.user.id);
   res.json({ ok: true });
+});
+
+// Payout details, collected before Stripe Connect exists so we can connect each account by hand.
+export const stripeInfo = (u) =>
+  u.stripe_has_account == null
+    ? null
+    : { hasAccount: !!u.stripe_has_account, email: u.stripe_email, accountId: u.stripe_account_id, country: u.stripe_country, updatedAt: u.stripe_updated_at };
+
+authRouter.put("/stripe", requireUser, (req, res) => {
+  const has = req.body.hasAccount === true;
+  if (req.body.hasAccount !== true && req.body.hasAccount !== false) return res.status(400).json({ error: "Say whether you have a Stripe account." });
+  const errors = {};
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const accountId = String(req.body.accountId || "").trim();
+  const country = String(req.body.country || "").trim().slice(0, 60);
+  if (has && (!EMAIL_RE.test(email) || email.length > 254)) errors.email = "Enter the email you use to sign in to Stripe.";
+  if (has && accountId && !/^acct_[A-Za-z0-9]{8,32}$/.test(accountId)) errors.accountId = "Account IDs start with acct_ (or leave it blank).";
+  if (!country) errors.country = "Choose the country your bank account is in.";
+  if (Object.keys(errors).length) return res.status(400).json({ error: Object.values(errors)[0], errors });
+
+  db.prepare(
+    `UPDATE users SET stripe_has_account = ?, stripe_email = ?, stripe_account_id = ?, stripe_country = ?, stripe_updated_at = ? WHERE id = ?`
+  ).run(has ? 1 : 0, has ? email : null, has ? accountId || null : null, country, now(), req.user.id);
+  notifyAdmin(
+    "Stripe details added",
+    has
+      ? `${req.user.email}: Stripe account ${email}${accountId ? ` (${accountId})` : ""}, ${country}.`
+      : `${req.user.email} doesn't have a Stripe account yet (${country}).`
+  );
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+  res.json({ stripe: stripeInfo(user) });
 });
 
 // Housekeeping, run hourly from index.js.

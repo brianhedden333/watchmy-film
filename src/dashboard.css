@@ -1320,3 +1320,91 @@
   justify-content: flex-end;
   gap: 12px;
 }
+
+/* ---------- Stripe payout details (add-a-film sidebar and Account) ---------- */
+
+.setup-stripe {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.setup-stripe > p {
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.stripe-form,
+.stripe-saved {
+  max-width: 480px;
+}
+
+.stripe-choice {
+  border: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+
+.stripe-choice legend {
+  width: 100%;
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.dash .stripe-choice label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text);
+}
+
+.stripe-choice input {
+  accent-color: var(--gold);
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.stripe-help {
+  margin: 0 0 16px;
+}
+
+.stripe-form .small-print {
+  margin-top: 6px;
+}
+
+.stripe-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stripe-dl {
+  margin: 0 0 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.stripe-dl dt {
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.stripe-dl dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.stripe-saved > p {
+  line-height: 1.5;
+}
+
+.stripe-saved .link-btn {
+  margin-top: 4px;
+}
