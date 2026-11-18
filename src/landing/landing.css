@@ -8,6 +8,7 @@
   --aisle: #a39e95;
   --seam: #3a3734;
   --gold: #fceb7e;
+  --keep-green: #b4e89a; /* what the filmmaker keeps with us: pricing calculator and our comparison chart */
   --burgundy: #8c1c3a; /* step lines in "From finished film to first sale" */
   --burgundy-bright: #b8405c; /* step numbers: the same red lifted enough to read on --house (3.1:1, large text) */ /* only for what the filmmaker keeps in the pricing calculator */
 
@@ -876,7 +877,7 @@ textarea:focus-visible {
 }
 
 .s-you {
-  background: var(--gold);
+  background: var(--keep-green);
 }
 
 .s-us {
@@ -913,7 +914,7 @@ textarea:focus-visible {
 
 .split .you .num {
   font-size: clamp(64px, 8vw, 104px);
-  color: var(--gold);
+  color: var(--keep-green);
 }
 
 .split small {
@@ -979,7 +980,7 @@ textarea:focus-visible {
   --k-you: var(--gold);
   --k-platform: #c25a6e; /* muted rose from the burgundy family */
   --k-agg: #716c65; /* 3.2:1 on --house */
-  --k-ours: #b4e89a; /* pale green, same lightness as --gold */
+  --k-ours: var(--keep-green);
   --k-card: var(--k-agg); /* same dark grey as the aggregator */
 }
 
