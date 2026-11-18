@@ -997,7 +997,11 @@ textarea:focus-visible {
 }
 
 .keep-card.ours {
-  border-top-color: var(--gold);
+  border-top-color: var(--k-ours);
+}
+
+.keep-card.ours .keep-you-num {
+  color: var(--k-ours);
 }
 
 .keep-card h3 {
