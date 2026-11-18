@@ -164,6 +164,28 @@ const zelle = (v) => {
   throw new Error("must be the email or US phone number you use with Zelle");
 };
 
+// Browse tags: up to 10, each 1–32 characters of letters, numbers, spaces and simple punctuation.
+// Duplicates (ignoring case) are dropped; the filmmaker's capitalization is kept.
+export const TAGS_MAX = 10;
+const tags = (v) => {
+  if (v == null || v === "") return null;
+  if (!Array.isArray(v)) throw new Error("must be a list of tags");
+  const out = [];
+  const seen = new Set();
+  for (const raw of v) {
+    const t = String(raw ?? "").trim().replace(/\s+/g, " ");
+    if (!t) continue;
+    if (t.length > 32) throw new Error(`"${t.slice(0, 32)}…" is too long (32 characters at most)`);
+    if (!/^[\p{L}\p{N}][\p{L}\p{N} &'’.\/+-]*$/u.test(t)) throw new Error(`"${t}" can use only letters, numbers, spaces and & ' - / . +`);
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  if (out.length > TAGS_MAX) throw new Error(`can have up to ${TAGS_MAX} tags`);
+  return out.length ? JSON.stringify(out) : null;
+};
+
 const color = (v) => {
   const s = String(v ?? "").trim().toLowerCase();
   if (!s) return null;
@@ -193,6 +215,8 @@ const FIELDS = {
   tip_venmo: venmo,
   tip_paypal: paypal,
   tip_zelle: zelle,
+  discoverable: flag,
+  tags,
   rental_days: int(1, 365),
   rental_hours: int(1, 720),
   tier: oneOf("standard", "secure"),
@@ -242,6 +266,8 @@ export const publicFilm = (f) => ({
   missing: missingFields(f),
   hidden: !!f.hidden,
   pwyw_enabled: !!f.pwyw_enabled,
+  discoverable: !!f.discoverable,
+  tags: f.tags ? JSON.parse(f.tags) : [],
   editable: EDITABLE.has(f.status),
 });
 

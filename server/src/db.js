@@ -178,6 +178,11 @@ const MIGRATIONS = [
   ALTER TABLE films ADD COLUMN tip_paypal TEXT;
   ALTER TABLE films ADD COLUMN tip_zelle TEXT;
   `,
+  `
+  -- Browse: the filmmaker opts in to being listed, and describes the film with up to 10 tags (JSON array of strings).
+  ALTER TABLE films ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE films ADD COLUMN tags TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

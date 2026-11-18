@@ -1,10 +1,11 @@
-import { StrictMode, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { StrictMode, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
 import { api, ApiError, dollars, getMe, type StripeInfo, type User } from "./api";
 import { BONUS_MAX, COLOR_DEFAULTS, liveAddress, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { StripeDetails } from "./StripeDetails";
+import { cleanTag, QUICK_TAGS, suggestTags, TAG_RE, TAGS_MAX } from "./tags";
 import "./styles.css";
 import "./sample.css";
 import "./dashboard.css";
@@ -22,7 +23,7 @@ const TEXT_FIELDS = [
   "color_background", "color_primary", "color_secondary", "color_button",
   "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle",
 ] as const;
-type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_price" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested", string>;
+type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_price" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "discoverable", string>;
 
 function toForm(f: Film): FormState {
   const out = {} as FormState;
@@ -32,6 +33,7 @@ function toForm(f: Film): FormState {
   out.pwyw_enabled = f.pwyw_enabled ? "1" : "";
   out.pwyw_min = (f.pwyw_min_cents / 100).toFixed(2);
   out.pwyw_suggested = f.pwyw_suggested_cents == null ? "" : (f.pwyw_suggested_cents / 100).toFixed(2);
+  out.discoverable = f.discoverable ? "1" : "";
   return out;
 }
 
@@ -53,8 +55,8 @@ function toCredits(f: Film): Credit[] {
 
 const toBonus = (f: Film): Bonus => JSON.parse(JSON.stringify(f.bonus));
 
-function toBody(s: FormState, credits: Credit[], bonus: Bonus) {
-  const body: Record<string, string | number | null | Credit[] | Bonus> = { credits, bonus };
+function toBody(s: FormState, credits: Credit[], bonus: Bonus, tags: string[]) {
+  const body: Record<string, string | number | null | Credit[] | Bonus | string[]> = { credits, bonus, tags };
   for (const k of TEXT_FIELDS) body[k] = s[k];
   const cents = (v: string) => (v.trim() === "" ? null : Math.round(Number(v.replace(/[$,\s]/g, "")) * 100));
   body.rent_price_cents = cents(s.rent_price);
@@ -62,6 +64,7 @@ function toBody(s: FormState, credits: Credit[], bonus: Bonus) {
   body.pwyw_enabled = s.pwyw_enabled ? 1 : 0;
   body.pwyw_min_cents = cents(s.pwyw_min);
   body.pwyw_suggested_cents = cents(s.pwyw_suggested);
+  body.discoverable = s.discoverable ? 1 : 0;
   return body;
 }
 
@@ -218,13 +221,16 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
   const [savedCredits, setSavedCredits] = useState<Credit[]>(() => toCredits(film));
   const [bonus, setBonus] = useState<Bonus>(() => toBonus(film));
   const [savedBonus, setSavedBonus] = useState<Bonus>(() => toBonus(film));
+  const [tags, setTags] = useState<string[]>(() => [...film.tags]);
+  const [savedTags, setSavedTags] = useState<string[]>(() => [...film.tags]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
   const dirty =
     JSON.stringify(form) !== JSON.stringify(saved) ||
     JSON.stringify(credits) !== JSON.stringify(savedCredits) ||
-    JSON.stringify(bonus) !== JSON.stringify(savedBonus);
+    JSON.stringify(bonus) !== JSON.stringify(savedBonus) ||
+    JSON.stringify(tags) !== JSON.stringify(savedTags);
   const locked = !film.editable;
 
   useEffect(() => {
@@ -243,7 +249,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
     setSaveState("saving");
     setErrors({});
     try {
-      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: toBody(form, credits, bonus) });
+      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: toBody(form, credits, bonus, tags) });
       onChange(r.film);
       const f = toForm(r.film);
       setForm(f);
@@ -254,6 +260,8 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
       const b = toBonus(r.film);
       setBonus(b);
       setSavedBonus(b);
+      setTags([...r.film.tags]);
+      setSavedTags([...r.film.tags]);
       setSaveState("saved");
       return true;
     } catch (e) {
@@ -340,6 +348,35 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               {field("languages", "Languages", { placeholder: "English, Spanish" })}
             </div>
             {field("genre", "Genre", { placeholder: "Documentary" })}
+          </fieldset>
+
+          <fieldset>
+            <legend>Browse</legend>
+            <div className="pwyw browse">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.discoverable}
+                  disabled={locked}
+                  onChange={(e) => set("discoverable")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Allow my film to be discovered in Browse</strong>
+                  <span className="hint">Lists your film where viewers browse {site.name} films. Tags help the right viewers find it.</span>
+                </span>
+              </label>
+              {form.discoverable && (
+                <TagPicker
+                  tags={tags}
+                  disabled={locked}
+                  error={errors.tags}
+                  onChange={(t) => {
+                    setTags(t);
+                    setSaveState("idle");
+                  }}
+                />
+              )}
+            </div>
           </fieldset>
 
           <fieldset>
@@ -628,6 +665,152 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
         </div>
       )}
     </>
+  );
+}
+
+// Up to TAGS_MAX tags: tick common ones from the checklist, or type to search the full list (or add your own).
+function TagPicker({ tags, onChange, disabled, error }: { tags: string[]; onChange: (t: string[]) => void; disabled: boolean; error?: string }) {
+  const id = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const [note, setNote] = useState("");
+  const full = tags.length >= TAGS_MAX;
+  const has = (t: string) => tags.some((x) => x.toLowerCase() === t.toLowerCase());
+  const suggestions = suggestTags(query, tags);
+  const typed = cleanTag(query);
+  // Offer what they typed as its own tag when it isn't already a suggestion.
+  const options = typed && !has(typed) && !suggestions.some((s) => s.toLowerCase() === typed.toLowerCase()) ? [...suggestions, typed] : suggestions;
+  const open = options.length > 0 && !full;
+
+  function add(raw: string) {
+    const t = cleanTag(raw);
+    if (!t) return;
+    if (has(t)) return setNote(`"${t}" is already added.`);
+    if (full) return setNote(`You can add up to ${TAGS_MAX} tags.`);
+    if (t.length > 32) return setNote("Tags can be up to 32 characters.");
+    if (!TAG_RE.test(t)) return setNote("Tags can use letters, numbers, spaces and & ' - / . +");
+    onChange([...tags, t]);
+    setQuery("");
+    setActive(0);
+    setNote("");
+  }
+  const remove = (t: string) => {
+    onChange(tags.filter((x) => x !== t));
+    setNote("");
+  };
+
+  return (
+    <div className="tags">
+      <div className="tags-head">
+        <p className="pwyw-label" id={`${id}-label`}>Tags</p>
+        <p className={`tags-count${full ? " is-full" : ""}`} aria-live="polite">
+          {tags.length} of {TAGS_MAX}
+        </p>
+      </div>
+
+      {tags.length > 0 ? (
+        <ul className="tag-chips" aria-label="Added tags">
+          {tags.map((t) => (
+            <li key={t}>
+              {t}
+              <button type="button" onClick={() => remove(t)} disabled={disabled} aria-label={`Remove ${t}`}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="tags-empty">No tags yet. Tick some below or type to search.</p>
+      )}
+
+      <div className="tag-combo">
+        <input
+          ref={inputRef}
+          type="text"
+          role="combobox"
+          aria-labelledby={`${id}-label`}
+          aria-expanded={open}
+          aria-controls={`${id}-list`}
+          aria-autocomplete="list"
+          aria-activedescendant={open ? `${id}-opt-${active}` : undefined}
+          placeholder={full ? "Remove a tag to add another" : "Type a tag, like documentary or climate"}
+          value={query}
+          disabled={disabled || full}
+          maxLength={40}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setActive(0);
+            setNote("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown" && open) {
+              e.preventDefault();
+              setActive((a) => (a + 1) % options.length);
+            } else if (e.key === "ArrowUp" && open) {
+              e.preventDefault();
+              setActive((a) => (a - 1 + options.length) % options.length);
+            } else if (e.key === "Enter" || e.key === ",") {
+              // Enter would otherwise submit (save) the whole form.
+              e.preventDefault();
+              add(open ? options[active] : query);
+            } else if (e.key === "Escape") {
+              setQuery("");
+            } else if (e.key === "Backspace" && !query && tags.length) {
+              remove(tags[tags.length - 1]);
+            }
+          }}
+        />
+        {open && (
+          <ul className="tag-options" id={`${id}-list`} role="listbox">
+            {options.map((t, i) => (
+              <li
+                key={t}
+                id={`${id}-opt-${i}`}
+                role="option"
+                aria-selected={i === active}
+                className={i === active ? "active" : undefined}
+                onMouseEnter={() => setActive(i)}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // keep focus in the input
+                  add(t);
+                  inputRef.current?.focus();
+                }}
+              >
+                {i === suggestions.length ? <>Add "{t}"</> : t}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {(note || error) && (
+        <p className="field-err" role="alert">
+          {note || `Tags ${error}.`}
+        </p>
+      )}
+
+      <div className="tag-checklist">
+        {QUICK_TAGS.map(([group, list]) => (
+          <fieldset key={group}>
+            <legend>{group}</legend>
+            {list.map((t) => {
+              const on = has(t);
+              return (
+                <label key={t} className={`tag-check${on ? " on" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    disabled={disabled || (!on && full)}
+                    onChange={() => (on ? remove(tags.find((x) => x.toLowerCase() === t.toLowerCase())!) : add(t))}
+                  />
+                  {t}
+                </label>
+              );
+            })}
+          </fieldset>
+        ))}
+      </div>
+    </div>
   );
 }
 

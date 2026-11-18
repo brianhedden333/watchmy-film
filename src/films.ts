@@ -31,6 +31,8 @@ export type Film = {
   rent_price_cents: number | null;
   buy_price_cents: number | null;
   pwyw_enabled: boolean;
+  discoverable: boolean;
+  tags: string[];
   pwyw_min_cents: number;
   pwyw_suggested_cents: number | null;
   pwyw_access: "rent" | "buy";
