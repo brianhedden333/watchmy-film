@@ -17,6 +17,11 @@ export const config = {
   // Public address of the site; used in emailed links and Stripe return URLs.
   appUrl: (env.APP_URL || "http://localhost:5173").replace(/\/$/, ""),
   siteName: env.SITE_NAME || "watchmyfilm.online",
+  // Films live at <name>.<siteDomain>.
+  siteDomain: (env.SITE_DOMAIN || "watchmyfilm.online").toLowerCase(),
+  // The built site (for the watch page shell). On the droplet: /var/www/watchmyfilm/site.
+  // Defaults to ../site next to the server (the droplet's layout), else ../dist (a local build).
+  siteDir: resolve(root, env.SITE_DIR || (existsSync(resolve(root, "../site")) ? "../site" : "../dist")),
   dbPath: resolve(root, env.DB_PATH || "data/watchmyfilm.db"),
   uploadDir: resolve(root, env.UPLOAD_DIR || "uploads"),
   stripeSecretKey: env.STRIPE_SECRET_KEY || "",

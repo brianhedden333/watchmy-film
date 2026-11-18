@@ -7,6 +7,7 @@ import { authRouter, loadUser, purgeExpired } from "./auth.js";
 import { filmsRouter } from "./films.js";
 import { adminRouter } from "./admin.js";
 import { libraryRouter } from "./library.js";
+import { watchRouter } from "./watch.js";
 import { stripeWebhook } from "./payments.js";
 
 const app = express();
@@ -23,6 +24,7 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+app.use("/api/watch", watchRouter); // public, no sign-in
 app.use("/api", loadUser);
 app.use("/api/auth", authRouter);
 app.use("/api/films", filmsRouter);

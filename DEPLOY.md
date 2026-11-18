@@ -39,6 +39,19 @@ The script never copies `.env`, the database or uploads.
    `pm2 restart watchmyfilm --update-env`.
 8. SendGrid: authenticate the domain `watchmyfilm.online` (adds DNS records) so sign-in emails don't land in spam.
 
+## Film addresses (<name>.watchmyfilm.online), once
+
+Nothing is done per film: one wildcard covers them all.
+
+1. Cloudflare → SSL/TLS → Origin Server → Create Certificate for `watchmyfilm.online` and `*.watchmyfilm.online`
+   (15 years). On the droplet save them as `/etc/ssl/watchmyfilm/origin.pem` and `/etc/ssl/watchmyfilm/origin.key`
+   (`chmod 600` the key).
+2. Copy `deploy/cloudflare-realip.conf` to `/etc/nginx/snippets/`, and `deploy/nginx-watchmyfilm-films.conf` to
+   `/etc/nginx/sites-available/watchmyfilm-films`, symlink it into `sites-enabled`, `nginx -t && systemctl reload nginx`.
+3. Cloudflare DNS: `A` record, name `*`, value `164.92.121.73`, proxied.
+4. The API serves the page at `/api/watch/page` from the built site's `watch/index.html` (`SITE_DIR`, default
+   `../site` next to the server). Films own domains (watch.theirfilm.com) need Cloudflare for SaaS later.
+
 ## Notes
 
 - The FTS Stripe account also takes Fracking the System sales. Our Checkout sessions carry `metadata.app = watchmyfilm`

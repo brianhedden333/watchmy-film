@@ -15,6 +15,10 @@ export default defineConfig({
       name: "workflow-slash",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
+          // A film's own address (e.g. mountaingoat.localhost:5173) shows its live watch page, as nginx does in production.
+          if (/^[^.]+\.localhost(:\d+)?$/.test(req.headers.host || "") && (req.url === "/" || req.url?.startsWith("/?"))) {
+            req.url = "/watch/";
+          }
           const path = req.url?.split("?")[0];
           if (path && SLASH_PAGES.includes(path)) {
             res.statusCode = 301;
@@ -38,6 +42,7 @@ export default defineConfig({
         workflow: resolve(__dirname, "workflow/index.html"), // internal, not linked
         signup: resolve(__dirname, "signup/index.html"),
         terms: resolve(__dirname, "terms/index.html"),
+        watch: resolve(__dirname, "watch/index.html"), // live watch page, served at each film's own address
         privacy: resolve(__dirname, "privacy/index.html"),
         // Account pages need the API server, so they're only built with VITE_ACCOUNTS=open
         ...(process.env.VITE_ACCOUNTS === "open" && {
