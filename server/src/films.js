@@ -243,6 +243,8 @@ const LABELS = {
 };
 
 const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
+// Browse settings can be changed at any time, even after approval or go-live.
+const ALWAYS_EDITABLE = new Set(["discoverable", "tags"]);
 
 // What still needs filling in before the film can go to review.
 export function missingFields(f) {
@@ -378,7 +380,8 @@ filmsRouter.get("/:id", (req, res) => {
 filmsRouter.patch("/:id", (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
-  if (!EDITABLE.has(film.status)) return res.status(409).json({ error: "This film is approved. Email us to change its details." });
+  if (!EDITABLE.has(film.status) && Object.keys(req.body || {}).some((k) => !ALWAYS_EDITABLE.has(k)))
+    return res.status(409).json({ error: "This film is approved. Email us to change its details." });
   const { out, errors } = clean(req.body, { requireTitle: false });
   const minC = out.pwyw_min_cents ?? film.pwyw_min_cents;
   const sugC = "pwyw_suggested_cents" in out ? out.pwyw_suggested_cents : film.pwyw_suggested_cents;

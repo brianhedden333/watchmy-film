@@ -979,6 +979,7 @@ textarea:focus-visible {
   --k-you: var(--gold);
   --k-platform: #c25a6e; /* muted rose from the burgundy family */
   --k-agg: #716c65; /* 3.2:1 on --house */
+  --k-ours: #b4e89a; /* pale green, same lightness as --gold */
   --k-card: var(--k-agg); /* same dark grey as the aggregator */
 }
 
@@ -1060,6 +1061,9 @@ textarea:focus-visible {
 .k-platform { stroke: var(--k-platform); background: var(--k-platform); }
 .k-agg { stroke: var(--k-agg); background: var(--k-agg); }
 .k-card { stroke: var(--k-card); background: var(--k-card); }
+
+/* Our chart: the filmmaker's share in a green with the same light, soft tint as the gold. */
+.keep-card.ours .k-you { stroke: var(--k-ours); background: var(--k-ours); }
 
 .keep-you {
   margin: 0;

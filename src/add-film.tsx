@@ -249,7 +249,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
     setSaveState("saving");
     setErrors({});
     try {
-      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: toBody(form, credits, bonus, tags) });
+      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: locked ? { discoverable: form.discoverable ? 1 : 0, tags } : toBody(form, credits, bonus, tags) });
       onChange(r.film);
       const f = toForm(r.film);
       setForm(f);
@@ -280,7 +280,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
 
   // The preview shows saved details, so save any changes first.
   async function openPreview() {
-    if (dirty && !locked && !(await save())) return;
+    if (dirty && !(await save())) return;
     location.assign(`${home}preview/?film=${film.id}`);
   }
 
@@ -332,8 +332,8 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
         >
           {locked && (
             <p className="dash-notice">
-              Your film is {STATUS_LABEL[film.status].toLowerCase()}, so its details are locked. Need a change? Reply to any of our
-              emails.
+              Your film is {STATUS_LABEL[film.status].toLowerCase()}, so its details are locked, except Browse, which you can change
+              any time. Need another change? Reply to any of our emails.
             </p>
           )}
 
@@ -357,7 +357,6 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                 <input
                   type="checkbox"
                   checked={!!form.discoverable}
-                  disabled={locked}
                   onChange={(e) => set("discoverable")(e.target.checked ? "1" : "")}
                 />
                 <span>
@@ -368,7 +367,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               {form.discoverable && (
                 <TagPicker
                   tags={tags}
-                  disabled={locked}
+                  disabled={false}
                   error={errors.tags}
                   onChange={(t) => {
                     setTags(t);
@@ -559,7 +558,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             {field("notes", "Anything we should know?", { multiline: 3 })}
           </fieldset>
 
-          {!locked && (
+          {(!locked || dirty) && (
             <div className="save-bar">
               <button className="btn" disabled={saveState === "saving" || !dirty}>
                 {saveState === "saving" ? "Saving…" : "Save changes"}
