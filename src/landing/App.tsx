@@ -34,11 +34,11 @@ export default function App() {
       <main id="main">
         <Hero frameRef={heroRef} />
         <Samples />
+        <Keep />
         <HowItWorks />
         <WhatYouGet />
         <Pricing />
         <Story />
-        <Compare />
         <Faq />
         <Contact />
       </main>
@@ -70,11 +70,11 @@ const REVEAL = [
   ".calc",
   ".tiers > div",
   ".fine",
+  ".keep-card",
+  ".keep-punch",
   ".story-still",
   ".story-body > p",
   ".story-points > div",
-  ".table-scroll",
-  ".fine-note",
   ".faq-item",
   ".contact-grid > :last-child",
 ].join(", ");
@@ -416,7 +416,7 @@ function HowItWorks() {
     },
   ];
   return (
-    <section id="how" className="house" aria-labelledby="how-title">
+    <section id="how" className="screen" aria-labelledby="how-title">
       <div className="wrap">
         <h2 id="how-title">From finished film to first sale</h2>
         <ol className="strip">
@@ -437,7 +437,7 @@ function HowItWorks() {
 
 function WhatYouGet() {
   return (
-    <section className="house tight" aria-labelledby="get-title">
+    <section className="screen tight" aria-labelledby="get-title">
       <div className="wrap two-col">
         <h2 id="get-title" className="visually-hidden">
           What viewers get and what you keep
@@ -504,7 +504,7 @@ function Pricing() {
   const { standard, secure } = pricing.tiers;
 
   return (
-    <section id="pricing" className="screen pricing" aria-labelledby="pricing-title">
+    <section id="pricing" className="house pricing" aria-labelledby="pricing-title">
       <div className="wrap">
         <h2 id="pricing-title">No monthly fee. {money(pricing.setupFee).replace(".00", "")} one-time setup cost.</h2>
 
@@ -589,11 +589,196 @@ function Pricing() {
   );
 }
 
+/* ---------- Keep more of every viewer: what one viewer is worth on each route ---------- */
+
+// Every number in this section. Change them here; the percentages and dollar amounts are computed from these.
+// Our own fees come from `pricing` in config.ts so this section always agrees with the calculator above.
+const KEEP = {
+  ticket: 5.99, // the example rental price
+  tubi: { platformShare: 0.5, perStream: 0.004, perStreamRange: [0.002, 0.008] }, // filmmaker's estimated take per stream
+  amazon: { storeShare: 0.5 }, // Prime Video Direct pays 50% on rentals
+  apple: { storeShare: 0.3 }, // Apple pays about 70%
+  aggregatorShare: 0.2, // of whatever the platform pays out
+  stripePercent: pricing.stripePercent,
+  stripeFixed: pricing.stripeFixed,
+  ourPercent: pricing.tiers.standard.percent,
+  ourMinimum: pricing.tiers.standard.minimum,
+};
+
+type Slice = { key: "you" | "platform" | "agg" | "card"; label: string; amount: number };
+type Route = { id: string; name: string; what: string; slices: Slice[]; unit: string; note?: string; decimals: number };
+
+const cents = (n: number) => Math.round(n * 100) / 100;
+
+function keepRoutes(): Route[] {
+  const k = KEEP;
+  // Tubi: work back from the per-stream estimate to the ad revenue that stream earned.
+  const tubiPayout = k.tubi.perStream / (1 - k.aggregatorShare);
+  const tubiGross = tubiPayout / (1 - k.tubi.platformShare);
+  // Stores: the store keeps its share, the aggregator takes its cut of the rest.
+  const store = (share: number) => {
+    const payout = k.ticket * (1 - share);
+    const agg = payout * k.aggregatorShare;
+    return { store: k.ticket * share, agg, you: payout - agg };
+  };
+  const amazon = store(k.amazon.storeShare);
+  const apple = store(k.apple.storeShare);
+  const card = cents(k.ticket * k.stripePercent + k.stripeFixed);
+  const fee = cents(Math.max(k.ticket * k.ourPercent, k.ourMinimum));
+  const range = k.tubi.perStreamRange.map((n) => `$${n.toFixed(3)}`).join(" to ");
+
+  return [
+    {
+      id: "tubi",
+      name: "Tubi/AVOD",
+      what: "One ad-supported stream",
+      unit: "per stream",
+      decimals: 3,
+      note: `Ad-supported, so there's no ticket. Typical indie payouts run ${range} per stream.`,
+      slices: [
+        { key: "you", label: "Filmmaker", amount: k.tubi.perStream },
+        { key: "platform", label: "Tubi's share of ad revenue", amount: tubiGross - tubiPayout },
+        { key: "agg", label: "Aggregator", amount: tubiPayout - k.tubi.perStream },
+      ],
+    },
+    {
+      id: "stores",
+      name: "Amazon / Apple - TVOD",
+      what: `One ${money(k.ticket)} rental, through an aggregator`,
+      unit: "per rental",
+      decimals: 2,
+      note: `Apple pays about ${Math.round((1 - k.apple.storeShare) * 100)}% before the aggregator, so roughly ${money(apple.you)}.`,
+      slices: [
+        { key: "you", label: "Filmmaker", amount: amazon.you },
+        { key: "platform", label: "Store's share", amount: amazon.store },
+        { key: "agg", label: "Aggregator", amount: amazon.agg },
+      ],
+    },
+    {
+      id: "us",
+      name: `${site.name} - TVOD`,
+      what: `One ${money(k.ticket)} rental on Standard`,
+      unit: "per rental",
+      decimals: 2,
+      note: "Paid straight to your own Stripe account.",
+      slices: [
+        { key: "you", label: "Filmmaker", amount: cents(k.ticket - card - fee) },
+        { key: "platform", label: `${site.name} fee`, amount: fee },
+        { key: "card", label: "Card processing", amount: card },
+      ],
+    },
+  ];
+}
+
+// Whole percentages that always add up to 100 (largest remainder).
+function wholePercents(values: number[]) {
+  const total = values.reduce((a, b) => a + b, 0);
+  const raw = values.map((v) => (v / total) * 100);
+  const out = raw.map(Math.floor);
+  const order = raw.map((r, i) => [r - Math.floor(r), i] as const).sort((a, b) => b[0] - a[0]);
+  for (let n = 100 - out.reduce((a, b) => a + b, 0), j = 0; n > 0; n--, j++) out[order[j][1]]++;
+  return out;
+}
+
+function Donut({ route, pcts, active, setActive }: { route: Route; pcts: number[]; active: string | null; setActive: (k: string | null) => void }) {
+  const r = 42;
+  const c = 2 * Math.PI * r;
+  const total = route.slices.reduce((a, s) => a + s.amount, 0);
+  const gap = 1.2; // about 2px at the drawn size
+  let at = 0;
+  return (
+    <svg className="donut" viewBox="0 0 100 100" aria-hidden="true">
+      {route.slices.map((s) => {
+        const len = (s.amount / total) * c;
+        const seg = (
+          <circle
+            key={s.key}
+            className={`slice k-${s.key}${active === s.key ? " on" : ""}${active && active !== s.key ? " off" : ""}`}
+            cx="50"
+            cy="50"
+            r={r}
+            strokeDasharray={`${Math.max(0, len - gap)} ${c}`}
+            strokeDashoffset={-at}
+            onMouseEnter={() => setActive(s.key)}
+            onMouseLeave={() => setActive(null)}
+          />
+        );
+        at += len;
+        return seg;
+      })}
+      <text x="50" y="50" className="donut-pct">
+        {pcts[0]}%
+      </text>
+      <text x="50" y="63" className="donut-sub">
+        to you
+      </text>
+    </svg>
+  );
+}
+
+function KeepCard({ route }: { route: Route }) {
+  const [active, setActive] = useState<string | null>(null);
+  const pcts = wholePercents(route.slices.map((s) => s.amount));
+  const you = route.slices[0].amount;
+  const fmt = (n: number) => `$${n.toFixed(route.decimals)}`;
+  return (
+    <article className={`keep-card${route.id === "us" ? " ours" : ""}`} aria-labelledby={`keep-${route.id}`}>
+      <h3 id={`keep-${route.id}`}>{route.name}</h3>
+      <p className="keep-what">{route.what}</p>
+      <div className="keep-top">
+        <Donut route={route} pcts={pcts} active={active} setActive={setActive} />
+        <p className="keep-you">
+          <span className="keep-you-label">{route.id === "tubi" ? "You get about" : "You get"}</span>
+          <span className="keep-you-num">{fmt(you)}</span>
+          <span className="keep-you-unit">{route.unit}</span>
+        </p>
+      </div>
+      <ul className="keep-legend" aria-label={`Where the money goes: ${route.name}`}>
+        {route.slices.map((s, i) => (
+          <li
+            key={s.key}
+            className={active === s.key ? "on" : undefined}
+            onMouseEnter={() => setActive(s.key)}
+            onMouseLeave={() => setActive(null)}
+          >
+            <span className={`sw k-${s.key}`} aria-hidden="true" />
+            <span className="lg-label">{s.label}</span>
+            <span className="lg-pct">{pcts[i]}%</span>
+            <span className="lg-amt">{fmt(s.amount)}</span>
+          </li>
+        ))}
+      </ul>
+      {route.note && <p className="keep-note">{route.note}</p>}
+    </article>
+  );
+}
+
+function Keep() {
+  const routes = useMemo(keepRoutes, []);
+  return (
+    <section id="keep" className="house keep" aria-labelledby="keep-title">
+      <div className="wrap">
+        <h2 id="keep-title">Keep more of your sales.</h2>
+        <p className="section-lede">Where the money goes from one stream or one {money(KEEP.ticket)} rental.</p>
+        <div className="keep-grid">
+          {routes.map((r) => (
+            <KeepCard key={r.id} route={r} />
+          ))}
+        </div>
+        <p className="keep-punch">
+          One rental on your own storefront earns about what a thousand Tubi streams do. And you keep your viewer list.
+        </p>
+        <p className="keep-foot">Estimates for illustration. Store, aggregator and ad-revenue terms vary by platform and deal.</p>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- Story ---------- */
 
 function Story() {
   return (
-    <section id="about" className="house story" aria-labelledby="story-title">
+    <section id="about" className="screen story" aria-labelledby="story-title">
       <div className="wrap story-grid">
         <figure className="story-still">
           <img src={`${base}landing/fts-still.jpg`} alt="Fracking the System: a girl with a pink backpack walks toward a refinery at sunset" loading="lazy" width={1280} height={720} />
@@ -632,73 +817,6 @@ function Story() {
             </div>
           </dl>
         </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- How we compare (checked Nov 14, 2026; recheck before changing) ---------- */
-
-type Rival = { name: string; plan?: string; builtFor: string; fees: string[]; rental: string; setup: string; us?: boolean };
-
-const rivals: Rival[] = [
-  { name: site.name, builtFor: "Selling your film from its own website", fees: [`$${pricing.setupFee} one-time setup`, "No monthly fee", "8%–10% platform fee per sale"], rental: "$0.50–$0.75", setup: "Done for you", us: true },
-  { name: "Eventive", plan: "Virtual Single Film", builtFor: "Festival-style virtual screenings", fees: ["$299 one-time", "2.1% + 69¢–99¢ ticketing fee per sale", "99¢ streaming fee per viewer after the first 100"], rental: "$0.82–$1.81", setup: "Self-serve" },
-  { name: "MediaZilla", plan: "Growth", builtFor: "Video storefronts", fees: ["$37 monthly, billed annually ($444 a year)", "0% per sale"], rental: "$0", setup: "Self-serve" },
-  { name: "Uscreen", plan: "Starter", builtFor: "Video memberships", fees: ["$49 monthly", "10% per sale"], rental: "$0.60", setup: "Self-serve" },
-  { name: "Vimeo OTT", plan: "Starter", builtFor: "Subscription channels", fees: ["$1 monthly per subscriber", "10% per sale"], rental: "$0.60", setup: "Self-serve" },
-  { name: "Dacast", plan: "Event", builtFor: "Live events", fees: ["$63 monthly, billed annually ($756 a year)", "9.9% + 40¢ per sale, card processing included"], rental: "$0.99*", setup: "Self-serve" },
-  { name: "Vodlix", plan: "Launch", builtFor: "Streaming services", fees: ["$99 monthly, or $990 annually", "0% per sale"], rental: "$0", setup: "Self-serve" },
-  { name: "Gumroad", builtFor: "Digital downloads", fees: ["No monthly fee", "10% + 50¢ per sale"], rental: "$1.10", setup: "Self-serve" },
-  { name: "Payhip", plan: "Free Forever", builtFor: "Downloads and courses", fees: ["No monthly fee", "5% per sale"], rental: "$0.30", setup: "Self-serve" },
-];
-
-function Compare() {
-  return (
-    <section id="compare" className="screen" aria-labelledby="compare-title">
-      <div className="wrap">
-        <h2 id="compare-title">How we compare</h2>
-        <p className="section-lede">What it costs to sell a film on each platform, from their own pricing pages.</p>
-        <div className="table-scroll" role="region" aria-labelledby="compare-title" tabIndex={0}>
-          <table className="compare">
-            <thead>
-              <tr>
-                <th scope="col">Platform</th>
-                <th scope="col">Built for</th>
-                <th scope="col">Fees</th>
-                <th scope="col" className="num-col">
-                  Platform fee on a $5.99 rental
-                </th>
-                <th scope="col">Setup</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rivals.map((r) => (
-                <tr key={r.name} className={r.us ? "us" : undefined}>
-                  <th scope="row">
-                    {r.name}
-                    {r.plan && <span>{r.plan}</span>}
-                  </th>
-                  <td>{r.builtFor}</td>
-                  <td>
-                    <ul>
-                      {r.fees.map((f) => (
-                        <li key={f}>{f}</li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="num-col">{r.rental}</td>
-                  <td>{r.setup}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="fine-note">
-          Prices checked November 2026 and can change. Card processing (about 2.9% + 30¢ per sale through Stripe) is extra
-          on every platform except where marked *. Our platform fee has a minimum of 50¢ (Standard) or 75¢ (Secure) per
-          sale.
-        </p>
       </div>
     </section>
   );
