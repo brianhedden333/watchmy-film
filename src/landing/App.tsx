@@ -130,10 +130,10 @@ function Nav({ solid }: { solid: boolean }) {
           />
         </a>
         <nav aria-label="Main">
+          <a href="#keep">Why?</a>
           <a href="#how">How it works</a>
           <a href="#pricing">Pricing</a>
           <a href="#about">About us</a>
-          <a href="#faq">Questions</a>
           {me ? (
             <a href={`${base}${me.home.replace(/^\//, "")}`} className="btn btn-small">
               {me.isAdmin ? "Admin" : "Your films"}
@@ -576,6 +576,7 @@ function Pricing() {
           </div>
         </div>
 
+        <div className="pricing-foot">
         <ul className="fine">
           <li>
             Setup is $0 to start: we build your page, connect Stripe and run a test purchase together. We recover the{" "}
@@ -588,6 +589,7 @@ function Pricing() {
         <a href={signupUrl} className="btn pricing-cta">
           Get started
         </a>
+        </div>
       </div>
     </section>
   );
