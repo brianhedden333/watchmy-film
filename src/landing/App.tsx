@@ -556,8 +556,8 @@ function Pricing() {
             </div>
           </dl>
           <p className="calc-note">
-            Shown after setup is covered. Until then, we add {money(pricing.setupSurcharge).replace(".00", "")} to each sale
-            until the {money(pricing.setupFee).replace(".00", "")} setup cost is paid off.
+            Shown after setup is covered. A {money(pricing.setupFee).replace(".00", "")} setup fee is deducted{" "}
+            {money(pricing.setupSurcharge).replace(".00", "")} at a time from sales until it is collected.
           </p>
           <p className="visually-hidden" aria-live="polite">
             At {money(price)} on {tier === "standard" ? "Standard" : "Secure"}, you keep {money(split.filmmaker)}.
