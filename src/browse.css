@@ -382,10 +382,14 @@
 }
 
 .bz-peek-donate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 8px 0 0;
   font-size: 14px;
+  font-weight: 600;
   line-height: 1.4;
-  color: var(--sticker);
+  color: var(--donate);
 }
 
 .bz-peek-hint {

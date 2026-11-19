@@ -474,7 +474,8 @@ function Peek({ film: f }: { film: Card | null }) {
           )}
           {donations && (
             <p className="bz-peek-donate">
-              <strong>Accepts donations.</strong> {donations}.
+              <span className="bz-dot" aria-hidden="true" />
+              Accepts Donations
             </p>
           )}
           <p className="bz-peek-hint">{f.trailer_url ? "Click the spine for the trailer" : "Click the spine for details"}</p>
