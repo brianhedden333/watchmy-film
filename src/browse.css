@@ -244,9 +244,93 @@
   color: var(--type);
 }
 
-.bz-pile {
-  max-width: 1040px;
+.bz-floor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: clamp(32px, 4vw, 64px);
+  align-items: start;
   margin-top: 40px;
+}
+
+/* ---------- The panel on the right: the hovered film ---------- */
+
+.bz-peek {
+  position: sticky;
+  top: 88px;
+  margin-top: 58px; /* lines up with the top of the stack */
+  padding: 18px;
+  border: 1px solid var(--seam);
+  border-radius: 6px;
+  background: var(--shelf);
+  pointer-events: none;
+}
+
+.bz-peek.is-empty {
+  background: none;
+  border-style: dashed;
+}
+
+.bz-peek-blank {
+  aspect-ratio: 2 / 3;
+  max-height: calc(100svh - 200px);
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: var(--aisle);
+  font-size: 15px;
+}
+
+.bz-peek-blank p {
+  margin: 0 0 6px;
+}
+
+.bz-peek-poster {
+  display: block;
+  /* Small enough that the details under it fit on a laptop screen. */
+  width: min(100%, calc((100svh - 420px) * 2 / 3));
+  min-width: 140px;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  margin-bottom: 16px;
+}
+
+.bz .bz-peek h3 {
+  font-size: 30px;
+  line-height: 0.95;
+  margin: 0 0 8px;
+}
+
+.bz-peek-who {
+  margin: 0;
+  font-size: 14px;
+  color: var(--aisle);
+}
+
+.bz-peek-log {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.bz-peek-prices {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--seam);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bz-peek-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--aisle);
 }
 
 /* A pile of cases lying flat: only the spines show. The pile sits on a lit counter. */
@@ -648,6 +732,16 @@ html.bz-locked {
 
 .bz-empty-inline {
   color: var(--aisle);
+}
+
+@media (max-width: 960px) {
+  .bz-floor {
+    grid-template-columns: 1fr;
+  }
+
+  .bz-peek {
+    display: none;
+  }
 }
 
 @media (max-width: 760px) {
