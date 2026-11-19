@@ -410,12 +410,12 @@ function HowItWorks() {
       body: "Add your poster, trailer and prices. Your film plays from a private Vimeo link or an unlisted YouTube link on your own account. You approve the page before it goes live.",
     },
     {
-      title: "Connect your Stripe account",
-      body: "Sales are charged on your own account and paid out to your bank on Stripe's normal schedule. We never hold your money.",
+      title: "Connect your accounts",
+      body: "Connect your Stripe account if you are selling rentals or purchases. Sales are paid out directly to your bank on Stripe's normal schedule. Just want to share your film? Add your Venmo, PayPal or Zelle to the tip jar, let people watch for free.",
     },
     {
       title: "Share your link",
-      body: "Point a 'Watch Now' button on your website at it, and use the same link in newsletters, social posts and screening Q&As.",
+      body: "After we approve your film, point a 'Watch Now' button on your website at it, and use the same link in newsletters, social posts and screening Q&As.",
     },
   ];
   return (
@@ -457,7 +457,7 @@ function WhatYouGet() {
         <div>
           <h3>You</h3>
           <ul className="lines">
-            <li>Every sale goes to your own Stripe account</li>
+            <li>Every sale goes to your own Stripe account, and tips go straight to your Venmo, PayPal or Zelle</li>
             <li>Get a list of everyone who watched, ready to export</li>
             <li>Your prices, your rental window, promo codes and free press screeners</li>
             <li>No exclusivity. Sell on any other platform too</li>
@@ -866,7 +866,8 @@ function Donate() {
 
 const faqs = [
   { q: "Do I need my own domain?", a: "No. Every film gets an address like yourfilm.watchmyfilm.online. If you already own a domain, we can put the page at watch.yourfilm.com instead." },
-  { q: "Who actually receives the money?", a: "You do. Each sale is charged on your own Stripe account, our fee is deducted automatically, and Stripe pays the rest out to your bank." },
+  { q: "Who actually receives the money?", a: "You do. Each sale is charged on your own Stripe account, our fee is deducted automatically, and Stripe pays the rest out to your bank. Tips from the tip jar go straight to your Venmo, PayPal or Zelle, and we take nothing from them." },
+  { q: "Do I need a Stripe account?", a: "Only if you sell rentals or purchases. If you just want people to watch your film, let them watch for free and add your Venmo, PayPal or Zelle to the tip jar. You can go live without Stripe and add it later." },
   { q: "Can I keep selling on other platforms?", a: "Yes. There's no exclusivity, and you can leave whenever you want. Your viewer list comes with you." },
   {
     q: "What happens to my buyers if watchmyfilm.online shuts down?",
