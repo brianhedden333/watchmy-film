@@ -1314,6 +1314,39 @@ main section.tight {
   }
 }
 
+/* ---------- Donate ---------- */
+
+.donate-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: end;
+}
+
+.donate .section-lede {
+  margin-bottom: 16px;
+}
+
+.donate-body {
+  color: var(--aisle);
+  font-size: 18px;
+  max-width: 56ch;
+  margin: 0;
+}
+
+.donate-fine {
+  margin: 14px 0 0;
+  font-size: 15px;
+  color: var(--aisle);
+}
+
+@media (max-width: 860px) {
+  .donate-grid {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
+
 /* ---------- FAQ ---------- */
 
 .faq {

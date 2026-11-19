@@ -6,6 +6,9 @@ export const site = {
   // "https://formspree.io/f/xxxxxxx"). Leave empty until one is set up — the form
   // will say it isn't connected yet instead of pretending to send.
   formEndpoint: "https://formspree.io/f/xbgodbay",
+  // Stripe Payment Link (customer chooses the amount) for the Donate section on the home page, e.g.
+  // "https://buy.stripe.com/…". Leave empty until it exists: the section then says donations open soon.
+  donateUrl: "",
   // Real accounts (sign-in, dashboard, payments) need the API server. Until launch, sign-ups just email us.
   // Build with VITE_ACCOUNTS=open to switch them on.
   // The dev server has them on unless started with VITE_ACCOUNTS=closed.
