@@ -32,7 +32,8 @@ type Card = {
   added_at: string;
 };
 
-const SHELVES_MAX = 8; // aisle shelves shown before the full list
+const SHELVES_MAX = 6; // aisle shelves shown on the front page
+const SHELF_MIN = 3; // an aisle gets its own shelf once it has this many films (smaller ones are in the aisle signs)
 const NEW_MAX = 12;
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
@@ -197,7 +198,10 @@ function Browse() {
           {films && films.length > 0 && !filtering && (
             <>
               <Shelf name="New arrivals" films={films.slice(0, NEW_MAX)} />
-              {aisles.slice(0, SHELVES_MAX).map((a) => (
+              {aisles
+                .filter((a) => a.n >= SHELF_MIN)
+                .slice(0, SHELVES_MAX)
+                .map((a) => (
                 <Shelf
                   key={a.name}
                   name={a.name}
@@ -207,7 +211,7 @@ function Browse() {
                     document.getElementById("shelves")?.scrollIntoView({ block: "start" });
                   }}
                 />
-              ))}
+                ))}
             </>
           )}
         </div>
@@ -269,7 +273,11 @@ function Shelf({ name, films, onAll }: { name: string; films: Card[]; onAll?: ()
     if (!el) return;
     setEnds({ start: el.scrollLeft < 8, end: el.scrollLeft + el.clientWidth > el.scrollWidth - 8 });
   };
-  useEffect(update, [films]);
+  useEffect(() => {
+    update();
+    addEventListener("resize", update);
+    return () => removeEventListener("resize", update);
+  }, [films]);
 
   const move = (dir: 1 | -1) => {
     const el = row.current;
@@ -291,12 +299,16 @@ function Shelf({ name, films, onAll }: { name: string; films: Card[]; onAll?: ()
               See all
             </button>
           )}
-          <button type="button" className="bz-arrow" onClick={() => move(-1)} disabled={ends.start} aria-label={`Scroll ${name} back`}>
-            ‹
-          </button>
-          <button type="button" className="bz-arrow" onClick={() => move(1)} disabled={ends.end} aria-label={`Scroll ${name} forward`}>
-            ›
-          </button>
+          {!(ends.start && ends.end) && (
+            <>
+              <button type="button" className="bz-arrow" onClick={() => move(-1)} disabled={ends.start} aria-label={`Scroll ${name} back`}>
+                ‹
+              </button>
+              <button type="button" className="bz-arrow" onClick={() => move(1)} disabled={ends.end} aria-label={`Scroll ${name} forward`}>
+                ›
+              </button>
+            </>
+          )}
         </div>
       </div>
       <ul className="bz-row" ref={row} onScroll={update}>
