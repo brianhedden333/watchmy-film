@@ -130,7 +130,7 @@ function Nav({ solid }: { solid: boolean }) {
           />
         </a>
         <nav aria-label="Main">
-          <a href="#keep">Why?</a>
+          <a href="#why">Why?</a>
           <a href="#how">How it works</a>
           <a href="#pricing">Pricing</a>
           <a href="#about">About us</a>
@@ -762,7 +762,7 @@ function KeepCard({ route }: { route: Route }) {
 function Keep() {
   const routes = useMemo(keepRoutes, []);
   return (
-    <section id="keep" className="house keep" aria-labelledby="keep-title">
+    <section id="why" className="house keep" aria-labelledby="keep-title">
       <div className="wrap">
         <h2 id="keep-title">Keep more of your sales.</h2>
         <p className="section-lede">Where the money goes from one stream or one {money(KEEP.ticket)} rental.</p>
