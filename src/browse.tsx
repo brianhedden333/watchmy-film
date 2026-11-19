@@ -399,6 +399,7 @@ function Spine({
     >
       <span className="bz-spine-who">{f.director}</span>
       <span className="bz-spine-title">{f.title}</span>
+      <span className="bz-spine-time">{f.runtime_minutes ? `${f.runtime_minutes} min` : ""}</span>
       <span className="bz-spine-year">{f.year}</span>
       <span className="bz-spine-img" aria-hidden="true">
         {img && <img src={img} alt="" loading="lazy" />}
