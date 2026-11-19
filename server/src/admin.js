@@ -52,7 +52,8 @@ adminRouter.patch("/films/:id", async (req, res) => {
   const status = req.body.status ?? film.status;
   if (!STATUSES.includes(status)) return res.status(400).json({ error: "Unknown status." });
   const note = "admin_note" in req.body ? String(req.body.admin_note || "").trim().slice(0, 3000) || null : film.admin_note;
-  db.prepare("UPDATE films SET status = ?, admin_note = ?, updated_at = ? WHERE id = ?").run(status, note, now(), film.id);
+  const staffPick = "staff_pick" in req.body ? (req.body.staff_pick ? 1 : 0) : film.staff_pick;
+  db.prepare("UPDATE films SET status = ?, admin_note = ?, staff_pick = ?, updated_at = ? WHERE id = ?").run(status, note, staffPick, now(), film.id);
 
   let emailed = false;
   if (req.body.notify && status !== film.status) {

@@ -38,6 +38,7 @@ function card(f) {
     color_background: f.color_background,
     color_primary: f.color_primary,
     color_button: f.color_button,
+    staff_pick: !!f.staff_pick,
     address: address(f),
     added_at: f.submitted_at || f.created_at,
   };

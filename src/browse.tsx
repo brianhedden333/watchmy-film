@@ -35,12 +35,15 @@ type Card = {
   pwyw_enabled: boolean;
   pwyw_min_cents: number;
   trailer_url: string | null;
+  staff_pick: boolean;
   color_background: string | null;
   color_primary: string | null;
   color_button: string | null;
   address: string;
   added_at: string;
 };
+
+const NEW_MAX = 6; // spines in New Arrivals
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
 const href = (f: Card) => `https://${f.address}`;
@@ -148,6 +151,7 @@ function Browse() {
   }, [films]);
 
   const query = q.trim().toLowerCase();
+  const filtering = !!aisle || !!query;
   const shown = useMemo(() => {
     if (!films) return [];
     return films.filter((f) => {
@@ -161,6 +165,61 @@ function Browse() {
       return hay.includes(query);
     });
   }, [films, aisle, query]);
+
+  // The front page of the stack: New Arrivals, Staff Picks, then one stack per aisle (the tags listed up top).
+  const sections = useMemo(() => {
+    if (!films) return [];
+    const out: { key: string; title: string; films: Card[] }[] = [{ key: "new", title: "New Arrivals", films: films.slice(0, NEW_MAX) }];
+    const picks = films.filter((f) => f.staff_pick);
+    if (picks.length) out.push({ key: "picks", title: "Staff Picks", films: picks });
+    for (const a of aisles)
+      out.push({ key: `aisle-${a.name}`, title: a.name, films: films.filter((f) => f.tags.some((t) => t.toLowerCase() === a.name.toLowerCase())) });
+    return out;
+  }, [films, aisles]);
+
+  // One stack of spines with its heading. Used for each section, and for a search or aisle.
+  const pile = (title: string, list: Card[], key: string) => {
+    const headId = `bz-pile-${key.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+    return (
+      <section className="bz-pile" aria-labelledby={headId} key={key}>
+        <h2 className="bz-shelf-name" id={headId}>
+          {title}
+          <span className="bz-n">{list.length === 1 ? "1 film" : `${list.length} films`}</span>
+        </h2>
+        {list.length ? (
+          <ol className="bz-stack" onMouseLeave={() => setPeek(null)}>
+            {list.map((f) => (
+              <li key={f.id} style={{ marginLeft: `${2 + nudge(f.id)}%`, marginRight: `${2 - nudge(f.id)}%` }}>
+                <Spine
+                  film={f}
+                  current={open?.id === f.id}
+                  onPeek={() => setPeek(f)}
+                  onOpen={(el) => {
+                    lastSpine.current = el;
+                    setOpen(f);
+                  }}
+                />
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="bz-empty-inline">
+            Nothing in the stack matches.{" "}
+            <button
+              type="button"
+              className="bz-link"
+              onClick={() => {
+                setQ("");
+                setAisle(null);
+              }}
+            >
+              See everything
+            </button>
+          </p>
+        )}
+      </section>
+    );
+  };
 
   return (
     <div className="bz">
@@ -285,58 +344,11 @@ function Browse() {
 
           {films && films.length > 0 && (
             <div className="bz-floor">
-              <section
-                className={`bz-pile${open ? " is-open" : ""}`}
-                aria-labelledby="bz-pile-title"
-              >
-                <h2 className="bz-shelf-name" id="bz-pile-title">
-                  {aisle || (query ? "Search" : "Everything")}
-                  <span className="bz-n" aria-live="polite">
-                    {shown.length === 1 ? "1 film" : `${shown.length} films`}
-                  </span>
-                </h2>
-                {shown.length ? (
-                  <ol
-                    className="bz-stack"
-                    id="stack"
-                    onMouseLeave={() => setPeek(null)}
-                  >
-                    {shown.map((f) => (
-                      <li
-                        key={f.id}
-                        style={{
-                          marginLeft: `${2 + nudge(f.id)}%`,
-                          marginRight: `${2 - nudge(f.id)}%`,
-                        }}
-                      >
-                        <Spine
-                          film={f}
-                          current={open?.id === f.id}
-                          onPeek={() => setPeek(f)}
-                          onOpen={(el) => {
-                            lastSpine.current = el;
-                            setOpen(f);
-                          }}
-                        />
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="bz-empty-inline">
-                    Nothing in the stack matches.{" "}
-                    <button
-                      type="button"
-                      className="bz-link"
-                      onClick={() => {
-                        setQ("");
-                        setAisle(null);
-                      }}
-                    >
-                      See everything
-                    </button>
-                  </p>
-                )}
-              </section>
+              <div className={`bz-piles${open ? " is-open" : ""}`} id="stack">
+                {filtering
+                  ? pile(aisle || "Search", shown, "results")
+                  : sections.map((sec) => pile(sec.title, sec.films, sec.key))}
+              </div>
               <Peek film={peek} />
             </div>
           )}

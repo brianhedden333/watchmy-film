@@ -183,6 +183,10 @@ const MIGRATIONS = [
   ALTER TABLE films ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE films ADD COLUMN tags TEXT;
   `,
+  `
+  -- Browse: films we feature under "Staff Picks". Set by an admin.
+  ALTER TABLE films ADD COLUMN staff_pick INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

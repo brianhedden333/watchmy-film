@@ -244,6 +244,14 @@
   color: var(--type);
 }
 
+.bz-pile {
+  max-width: 1040px;
+}
+
+.bz-pile + .bz-pile {
+  margin-top: 56px;
+}
+
 .bz-floor {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
@@ -463,12 +471,12 @@
 }
 
 /* A film is off the stack: everything else dims; the open one stays pulled out. */
-.bz-pile.is-open .bz-stack > li {
+.bz-piles.is-open .bz-stack > li {
   opacity: 0.25;
   filter: grayscale(0.7);
 }
 
-.bz-pile.is-open .bz-stack > li:has(.is-current) {
+.bz-piles.is-open .bz-stack > li:has(.is-current) {
   opacity: 0.6;
   filter: none;
 }
