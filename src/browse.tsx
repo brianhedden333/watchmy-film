@@ -634,7 +634,7 @@ function FilmPopup({ film: f, onClose }: { film: Card; onClose: () => void }) {
             )}
             {f.pwyw_enabled && (
               <a className="bz-ghost" href={href(f)}>
-                Or pay what you want, from {money(f.pwyw_min_cents)}
+                Or pay what you want
               </a>
             )}
           </div>
