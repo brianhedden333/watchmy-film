@@ -427,45 +427,57 @@ function Peek({ film: f }: { film: Card | null }) {
       </aside>
     );
   }
-  const details = [
-    f.year,
-    f.runtime_minutes && `${f.runtime_minutes} min`,
-    f.genre,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const details = [f.year, f.runtime_minutes && `${f.runtime_minutes} min`, f.genre, f.languages].filter(Boolean).join(", ");
   const prices = [
     f.rent_price_cents != null && `Rent ${money(f.rent_price_cents)}`,
     f.buy_price_cents != null && `Buy ${money(f.buy_price_cents)}`,
     f.pwyw_enabled && `Pay what you want from ${money(f.pwyw_min_cents)}`,
   ].filter(Boolean) as string[];
+  const paragraphs = (f.synopsis || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const credits = f.credits.filter((c) => !/^directors?$/i.test(c.role)); // the director is already up top
   return (
     <aside className="bz-peek" aria-hidden="true">
-      {f.poster_url && (
-        <img
-          className="bz-peek-poster"
-          src={f.poster_url}
-          alt=""
-          width={400}
-          height={600}
-        />
-      )}
-      <h3>{f.title}</h3>
-      {f.director && <p className="bz-peek-who">Directed by {f.director}</p>}
-      {details && <p className="bz-peek-who">{details}</p>}
-      {f.logline && <p className="bz-peek-log">{f.logline}</p>}
-      {prices.length > 0 && (
-        <ul className="bz-peek-prices">
-          {prices.map((p) => (
-            <li key={p}>{p}</li>
-          ))}
-        </ul>
-      )}
-      <p className="bz-peek-hint">
-        {f.trailer_url
-          ? "Click the spine for the trailer"
-          : "Click the spine for details"}
-      </p>
+      <div className="bz-peek-head">
+        {f.poster_url && <img className="bz-peek-poster" src={f.poster_url} alt="" width={400} height={600} />}
+        <div>
+          <h3>{f.title}</h3>
+          {f.director && <p className="bz-peek-who">Directed by {f.director}</p>}
+          {details && <p className="bz-peek-who">{details}</p>}
+          {prices.length > 0 && (
+            <ul className="bz-peek-prices">
+              {prices.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          )}
+          <p className="bz-peek-hint">{f.trailer_url ? "Click the spine for the trailer" : "Click the spine for details"}</p>
+        </div>
+      </div>
+      <div className="bz-peek-more">
+        {f.logline && <p className="bz-peek-log">{f.logline}</p>}
+        {paragraphs.map((p, i) => (
+          <p key={i} className="bz-peek-syn">
+            {p}
+          </p>
+        ))}
+        {credits.length > 0 && (
+          <dl className="bz-peek-credits">
+            {credits.map((c) => (
+              <div key={c.role}>
+                <dt>{c.role}</dt>
+                <dd>{c.names.join(", ")}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {f.tags.length > 0 && (
+          <ul className="bz-peek-tags">
+            {f.tags.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        )}
+      </div>
     </aside>
   );
 }

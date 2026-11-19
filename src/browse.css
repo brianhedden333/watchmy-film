@@ -254,7 +254,7 @@
 
 .bz-floor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
   gap: clamp(32px, 4vw, 64px);
   align-items: start;
   margin-top: 40px;
@@ -262,27 +262,29 @@
 
 /* ---------- The panel on the right: the hovered film ---------- */
 
+/* Pinned just under the menu bar and as tall as the screen, so it stays in view while the stacks scroll past.
+   Poster beside the title and prices; synopsis, credits and tags fill the rest, fading out if they run long. */
 .bz-peek {
   position: sticky;
-  top: 88px;
-  margin-top: 58px; /* lines up with the top of the stack */
+  top: 80px;
+  height: calc(100svh - 96px);
+  display: flex;
+  flex-direction: column;
   padding: 18px;
   border: 1px solid var(--seam);
   border-radius: 6px;
   background: var(--shelf);
   pointer-events: none;
+  overflow: hidden;
 }
 
 .bz-peek.is-empty {
   background: none;
   border-style: dashed;
+  justify-content: center;
 }
 
 .bz-peek-blank {
-  aspect-ratio: 2 / 3;
-  max-height: calc(100svh - 200px);
-  display: grid;
-  place-content: center;
   text-align: center;
   color: var(--aisle);
   font-size: 15px;
@@ -292,35 +294,34 @@
   margin: 0 0 6px;
 }
 
+.bz-peek-head {
+  display: grid;
+  grid-template-columns: 42% minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  flex: none;
+}
+
 .bz-peek-poster {
   display: block;
-  /* Small enough that the details under it fit on a laptop screen. */
-  width: min(100%, calc((100svh - 420px) * 2 / 3));
-  min-width: 140px;
+  width: 100%;
   height: auto;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: 3px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
-  margin-bottom: 16px;
 }
 
 .bz .bz-peek h3 {
-  font-size: 30px;
+  font-size: 28px;
   line-height: 0.95;
   margin: 0 0 8px;
 }
 
 .bz-peek-who {
-  margin: 0;
-  font-size: 14px;
+  margin: 0 0 2px;
+  font-size: 13px;
   color: var(--aisle);
-}
-
-.bz-peek-log {
-  margin: 10px 0 0;
-  font-size: 15px;
-  line-height: 1.45;
 }
 
 .bz-peek-prices {
@@ -328,16 +329,78 @@
   margin: 12px 0 0;
   padding: 10px 0 0;
   border-top: 1px solid var(--seam);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  font-size: 15px;
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .bz-peek-hint {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--aisle);
+}
+
+.bz-peek-more {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--seam);
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+
+.bz-peek-log {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.bz-peek-syn {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(237, 232, 223, 0.85);
+}
+
+.bz-peek-credits {
+  margin: 14px 0 0;
+  display: grid;
+  gap: 4px;
   font-size: 13px;
+}
+
+.bz-peek-credits > div {
+  display: grid;
+  grid-template-columns: 8.5em minmax(0, 1fr);
+  gap: 8px;
+}
+
+.bz-peek-credits dt {
+  color: var(--aisle);
+}
+
+.bz-peek-credits dd {
+  margin: 0;
+}
+
+.bz-peek-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.bz-peek-tags li {
+  padding: 2px 8px;
+  border: 1px solid var(--seam);
+  border-radius: 999px;
+  font-size: 12px;
   color: var(--aisle);
 }
 
