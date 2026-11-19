@@ -31,6 +31,11 @@ function card(f) {
     rental_hours: f.rental_hours,
     pwyw_enabled: !!f.pwyw_enabled,
     pwyw_min_cents: f.pwyw_min_cents,
+    trailer_url: f.trailer_url, // public anyway: it plays on the watch page for everyone
+    // The film's own page colors (public on its watch page). The spine is printed in them.
+    color_background: f.color_background,
+    color_primary: f.color_primary,
+    color_button: f.color_button,
     address: address(f),
     added_at: f.submitted_at || f.created_at,
   };
