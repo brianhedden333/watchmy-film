@@ -1316,29 +1316,26 @@ main section.tight {
 
 /* ---------- Donate ---------- */
 
-/* The one green band on the page: the same green as "You keep", with black type. */
+/* The one green band on the page: a deep green, with the site's usual light type and the pale "You keep" green
+   on the button. */
 .screen.donate {
-  background: var(--keep-green);
-  color: #000;
+  background: #1e3518;
+  color: var(--projector);
 }
 
 .donate .section-lede,
 .donate .donate-body,
 .donate .donate-fine {
-  color: rgba(0, 0, 0, 0.75);
+  color: rgba(237, 232, 223, 0.78);
 }
 
 .donate .btn {
-  background: #000;
-  color: var(--keep-green);
+  background: var(--keep-green);
+  color: #000;
 }
 
 .donate .btn:hover {
-  background: #1f1d1b;
-}
-
-.donate :focus-visible {
-  outline-color: #000;
+  background: #c9f1b5;
 }
 
 .donate-grid {
