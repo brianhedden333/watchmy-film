@@ -8,7 +8,7 @@ export const site = {
   formEndpoint: "https://formspree.io/f/xbgodbay",
   // Stripe Payment Link (customer chooses the amount) for the Donate section on the home page, e.g.
   // "https://buy.stripe.com/…". Leave empty until it exists: the section then says donations open soon.
-  donateUrl: "",
+  donateUrl: "https://buy.stripe.com/3cI9AU4pBfWOajh91e2sM00",
   // Real accounts (sign-in, dashboard, payments) need the API server. Until launch, sign-ups just email us.
   // Build with VITE_ACCOUNTS=open to switch them on.
   // The dev server has them on unless started with VITE_ACCOUNTS=closed.
