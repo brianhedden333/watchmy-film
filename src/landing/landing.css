@@ -27,7 +27,6 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 64px; /* menu links land each section just below the fixed menu bar */
   -webkit-text-size-adjust: 100%;
 }
 
@@ -511,7 +510,7 @@ textarea:focus-visible {
   padding: clamp(40px, 4vw, 56px) 0;
 }
 
-/* Menu links stop each section just below the fixed menu bar (also set on html; this one is what Safari uses). */
+/* Menu links stop each section just below the fixed menu bar. */
 main section[id] {
   scroll-margin-top: 64px;
 }
