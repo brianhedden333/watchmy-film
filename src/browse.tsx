@@ -4,7 +4,7 @@ import { api, getMe, type User } from "./api";
 import "./styles.css";
 import "./browse.css";
 
-/* Browse: the public catalog, set up like a late-night video store. One film on the counter (just added),
+/* Browse: the public catalog, set up like a late-night video store. A storefront sign over a photo of the racks,
    aisles you can filter by (the filmmakers' tags), and shelves of cases. Every case opens the film's own watch page.
    Not linked from anywhere yet. */
 
@@ -47,7 +47,6 @@ function sticker(f: Card) {
   return "";
 }
 
-const meta = (f: Card) => [f.year, f.runtime_minutes && `${f.runtime_minutes} min`].filter(Boolean).join(", ");
 
 function Browse() {
   const [films, setFilms] = useState<Card[] | null>(null);
@@ -96,7 +95,6 @@ function Browse() {
     });
   }, [films, aisle, query]);
 
-  const featured = films?.find((f) => f.still_url || f.banner_url) || null;
 
   return (
     <div className="bz">
@@ -119,11 +117,13 @@ function Browse() {
       </header>
 
       <main>
-        {featured && !filtering && <Counter film={featured} />}
-
-        <section className="bz-wrap bz-intro" aria-labelledby="bz-title">
-          <h1 id="bz-title">{featured && !filtering ? "The shelves" : "Browse the shelves"}</h1>
-          <p>Independent films, rented and bought straight from the people who made them.</p>
+        <section className="bz-hero" aria-labelledby="bz-title">
+          <img className="bz-hero-img" src={`${home}browse/video-store.jpg`} alt="" width={600} height={424} />
+          <div className="bz-hero-shade" aria-hidden="true" />
+          <div className="bz-wrap bz-hero-in">
+            <h1 id="bz-title">Watch Our Films</h1>
+            <p>Independent films, rented and bought straight from the people who made them.</p>
+          </div>
         </section>
 
         <div className="bz-wrap bz-tools">
@@ -227,38 +227,6 @@ function Browse() {
         </p>
       </footer>
     </div>
-  );
-}
-
-// The film on the counter: the newest arrival with a wide image.
-function Counter({ film: f }: { film: Card }) {
-  const img = f.banner_url || f.still_url;
-  const bits = [f.director && `Directed by ${f.director}`, meta(f), f.genre].filter(Boolean);
-  return (
-    <section className="bz-counter" aria-labelledby="bz-counter-title">
-      <img className="bz-counter-img" src={img!} alt="" />
-      <div className="bz-counter-shade" aria-hidden="true" />
-      <div className="bz-wrap bz-counter-in">
-        <p className="bz-counter-kicker">Just in</p>
-        <h2 id="bz-counter-title">{f.title}</h2>
-        {f.logline && <p className="bz-counter-log">{f.logline}</p>}
-        {bits.length > 0 && (
-          <ul className="bz-counter-meta">
-            {bits.map((b) => (
-              <li key={String(b)}>{b}</li>
-            ))}
-          </ul>
-        )}
-        <div className="bz-counter-act">
-          <a className="btn" href={href(f)}>
-            {sticker(f) || "Watch"}
-          </a>
-          <a className="bz-ghost" href={href(f)}>
-            Watch the trailer
-          </a>
-        </div>
-      </div>
-    </section>
   );
 }
 
