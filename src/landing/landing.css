@@ -27,6 +27,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Sections settle into place when scrolling stops near their top. "proximity", not "mandatory",
+     so a section taller than the screen can still be read all the way through. */
+  scroll-snap-type: y proximity;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -510,9 +513,19 @@ textarea:focus-visible {
   padding: clamp(40px, 4vw, 56px) 0;
 }
 
-/* Menu links stop each section just below the fixed menu bar. */
-main section[id] {
+/* Menu links (and scroll snapping) stop each section just below the fixed menu bar. */
+main section {
   scroll-margin-top: 64px;
+  scroll-snap-align: start;
+}
+
+/* The hero snaps to the very top; "What you get" continues the section above it, so it doesn't snap. */
+main section.hero {
+  scroll-margin-top: 0;
+}
+
+main section.tight {
+  scroll-snap-align: none;
 }
 
 .house {
