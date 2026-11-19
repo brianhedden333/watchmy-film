@@ -315,7 +315,7 @@ function Samples() {
   return (
     <section className="samples" aria-labelledby="samples-title">
       <div className="wrap">
-        <h2 id="samples-title">Three films, three watch pages</h2>
+        <h2 id="samples-title">Browse our library</h2>
       </div>
       <ul className="sample-row">
         {samples.map((f) => (
