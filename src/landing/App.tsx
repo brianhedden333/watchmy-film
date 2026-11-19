@@ -39,6 +39,7 @@ export default function App() {
         <WhatYouGet />
         <Pricing />
         <Story />
+        <Donate />
         <Faq />
         <Contact />
       </main>
@@ -828,6 +829,40 @@ function Story() {
   );
 }
 
+/* ---------- Donate ---------- */
+
+function Donate() {
+  return (
+    <section id="donate" className="screen donate" aria-labelledby="donate-title">
+      <div className="wrap donate-grid">
+        <div>
+          <h2 id="donate-title">Help keep our projectors on</h2>
+          <p className="section-lede">
+            {site.name} is a grassroots service, built by filmmakers, for filmmakers. There are no investors and no monthly
+            fees, just a small share of each sale to keep the lights on.
+          </p>
+          <p className="donate-body">
+            If it helped your film, or you'd like to see more independent films sold on their makers' own terms, you can
+            chip in toward hosting and development. Every bit goes into keeping the service running and free to start.
+          </p>
+        </div>
+        <div className="donate-act">
+          {site.donateUrl ? (
+            <>
+              <a href={site.donateUrl} className="btn" target="_blank" rel="noopener">
+                Donate
+              </a>
+              <p className="donate-fine">Any amount. Secure checkout by Stripe. Donations aren't tax-deductible.</p>
+            </>
+          ) : (
+            <p className="donate-fine">Donations open soon.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- Questions ---------- */
 
 const faqs = [
@@ -846,7 +881,7 @@ function Faq() {
   const [open, setOpen] = useState<number | null>(null);
   const baseId = useId();
   return (
-    <section id="faq" className="house" aria-labelledby="faq-title">
+    <section id="faq" className="screen" aria-labelledby="faq-title">
       <div className="wrap">
         <h2 id="faq-title">Questions filmmakers ask</h2>
         <div className="faq">
@@ -896,7 +931,7 @@ function Contact() {
   }
 
   return (
-    <section id="contact" className="screen contact" aria-labelledby="contact-title">
+    <section id="contact" className="house contact" aria-labelledby="contact-title">
       <div className="wrap contact-grid">
         <div>
           <h2 id="contact-title">Have questions? Reach out to us</h2>
