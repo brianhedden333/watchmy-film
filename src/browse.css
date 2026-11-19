@@ -252,12 +252,19 @@
   margin-top: 56px;
 }
 
+/* The preview panel floats on the right; the search, aisles and stacks keep clear of it. */
+.bz {
+  --peek-w: clamp(320px, 28vw, 400px);
+  --peek-right: max(var(--gutter), calc((100vw - 1320px) / 2 + var(--gutter)));
+}
+
 .bz-floor {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
-  gap: clamp(32px, 4vw, 64px);
-  align-items: start;
   margin-top: 40px;
+  padding-right: calc(var(--peek-w) + 40px);
+}
+
+.bz-wrap.bz-tools {
+  padding-right: calc(var(--gutter) + var(--peek-w) + 40px);
 }
 
 /* ---------- The panel on the right: the hovered film ---------- */
@@ -265,9 +272,14 @@
 /* Pinned just under the menu bar and as tall as the screen, so it stays in view while the stacks scroll past.
    Poster beside the title and prices; synopsis, credits and tags fill the rest, fading out if they run long. */
 .bz-peek {
-  position: sticky;
+  position: fixed;
+  z-index: 15;
   top: 80px;
+  right: var(--peek-right);
+  width: var(--peek-w);
   height: calc(100svh - 96px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease), visibility 0.18s;
   display: flex;
   flex-direction: column;
   padding: 18px;
@@ -279,19 +291,9 @@
 }
 
 .bz-peek.is-empty {
-  background: none;
-  border-style: dashed;
-  justify-content: center;
-}
-
-.bz-peek-blank {
-  text-align: center;
-  color: var(--aisle);
-  font-size: 15px;
-}
-
-.bz-peek-blank p {
-  margin: 0 0 6px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
 }
 
 .bz-peek-head {
@@ -814,7 +816,11 @@ html.bz-locked {
 
 @media (max-width: 960px) {
   .bz-floor {
-    grid-template-columns: 1fr;
+    padding-right: 0;
+  }
+
+  .bz-wrap.bz-tools {
+    padding-right: var(--gutter);
   }
 
   .bz-peek {

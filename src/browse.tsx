@@ -417,16 +417,8 @@ function Spine({
 // The panel on the right of the stack: the hovered film's poster and details. Just a preview (the spine opens the film),
 // so it isn't clickable. Hidden on phones, where there's no hover.
 function Peek({ film: f }: { film: Card | null }) {
-  if (!f) {
-    return (
-      <aside className="bz-peek is-empty" aria-hidden="true">
-        <div className="bz-peek-blank">
-          <p>Hover a spine to see the cover.</p>
-          <p>Click it for the trailer.</p>
-        </div>
-      </aside>
-    );
-  }
+  // Nothing hovered: the panel fades away.
+  if (!f) return <aside className="bz-peek is-empty" aria-hidden="true" />;
   const details = [f.year, f.runtime_minutes && `${f.runtime_minutes} min`, f.genre, f.languages].filter(Boolean).join(", ");
   const prices = [
     f.rent_price_cents != null && `Rent ${money(f.rent_price_cents)}`,
