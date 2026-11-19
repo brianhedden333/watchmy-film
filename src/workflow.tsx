@@ -16,7 +16,7 @@ const phases: Phase[] = [
     items: [
       { id: "intake", who: "Both", task: "Intake call", note: "Title, runtime, release date, prices, rental window, existing domain, festival or distributor restrictions, territories they hold rights in." },
       { id: "rights", who: "Filmmaker", task: "Confirm rights", note: "They own distribution rights in the territories they'll sell to, music is licensed for streaming, and content fits Stripe's acceptable-use rules." },
-      { id: "tier", who: "Both", task: "Choose plan and address", note: "Standard (their Vimeo) or Secure (Mux). Address: film.watchmyfilm.online or watch.theirdomain.com." },
+      { id: "tier", who: "Both", task: "Choose plan and address", note: "One plan for now (8%): the film plays from their private Vimeo or unlisted YouTube link. Secure (Mux) is paused. Address: film.watchmyfilm.online or watch.theirdomain.com." },
       { id: "agreement", who: "You", task: "Send filmmaker agreement", note: "Fees, payout terms, rights warranty, refund policy, 60 days' notice before fee changes, no exclusivity." },
       { id: "setup-fee", who: "You", task: "Setup fee: $0 to start", note: `Nothing to invoice. We recover the $${pricing.setupFee} setup cost by adding $${pricing.setupSurcharge} to our fee on each sale until it's covered. Don't start work until the agreement is signed.` },
     ],
@@ -36,8 +36,8 @@ const phases: Phase[] = [
     title: "Video",
     items: [
       { id: "master", who: "Filmmaker", task: "Deliver files", note: "Feature master, trailer, and captions (.vtt or .srt). Secure plan: a high-bitrate master by file transfer." },
-      { id: "vimeo", who: "Filmmaker", task: "Standard: set up Vimeo", note: "Paid Vimeo plan. Privacy: hide from Vimeo, embed only on the watch page domain, downloads off, captions uploaded. Send you the video ID." },
-      { id: "mux", who: "You", task: "Secure: upload to Mux", note: "Signed playback policy, captions attached, poster frame chosen. Store the playback ID." },
+      { id: "vimeo", who: "Filmmaker", task: "Set up Vimeo (or YouTube)", note: "YouTube: Unlisted, embedding on (less protected: the link plays anywhere). Vimeo: paid plan. Privacy: hide from Vimeo, embed only on the watch page domain, downloads off, captions uploaded. Send you the video ID." },
+      { id: "mux", who: "You", task: "Secure: upload to Mux (paused)", note: "Signed playback policy, captions attached, poster frame chosen. Store the playback ID." },
       { id: "lockdown", who: "You", task: "Test that the film is locked down", note: "Player URL opened directly and embedded on another site should both be blocked. Only the watch page plays it." },
       { id: "trailer", who: "You", task: "Set up the trailer as public", note: "Plays for anyone, no purchase needed." },
     ],

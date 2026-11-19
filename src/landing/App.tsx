@@ -407,7 +407,7 @@ function HowItWorks() {
   const steps = [
     {
       title: "Add your film",
-      body: "Add your poster, trailer and prices. Keep the film on your own Vimeo account, or let us stream it with download-resistant links. You approve the page before it goes live.",
+      body: "Add your poster, trailer and prices. Your film plays from a private Vimeo link or an unlisted YouTube link on your own account. You approve the page before it goes live.",
     },
     {
       title: "Connect your Stripe account",
@@ -498,13 +498,14 @@ function useTween(target: number, ms = 260) {
 
 function Pricing() {
   const [price, setPrice] = useState(5.99);
-  const [tier, setTier] = useState<TierKey>("standard");
+  // One plan for now (Secure, with hosting we pay for, is paused). Its numbers stay in config for later.
+  const tier: TierKey = "standard";
   const split = useMemo(() => splitSale(price, tier), [price, tier]);
   const you = useTween(split.filmmaker);
   const us = useTween(split.fee);
   const stripe = useTween(split.stripe);
   const pct = (n: number) => `${((n / price) * 100).toFixed(1)}%`;
-  const { standard, secure } = pricing.tiers;
+  const { standard } = pricing.tiers;
 
   return (
     <section id="pricing" className="house pricing" aria-labelledby="pricing-title">
@@ -517,13 +518,6 @@ function Pricing() {
               {pricing.examplePrices.map((p) => (
                 <button key={p} type="button" role="radio" aria-checked={price === p} onClick={() => setPrice(p)}>
                   {money(p)}
-                </button>
-              ))}
-            </div>
-            <div className="seg" role="radiogroup" aria-label="Plan">
-              {(["standard", "secure"] as TierKey[]).map((k) => (
-                <button key={k} type="button" role="radio" aria-checked={tier === k} onClick={() => setTier(k)}>
-                  {k === "standard" ? "Standard" : "Secure"}
                 </button>
               ))}
             </div>
@@ -560,29 +554,24 @@ function Pricing() {
             {money(pricing.setupSurcharge).replace(".00", "")} at a time from sales until it is collected.
           </p>
           <p className="visually-hidden" aria-live="polite">
-            At {money(price)} on {tier === "standard" ? "Standard" : "Secure"}, you keep {money(split.filmmaker)}.
+            At {money(price)}, you keep {money(split.filmmaker)}.
           </p>
         </div>
 
         <div className="tiers">
           <div>
-            <h3>Standard</h3>
+            <h3>Platform fee</h3>
             <p className="rate">
               {standard.percent * 100}% per sale <span>minimum {money(standard.minimum)}</span>
             </p>
-            <p>
-              Your film streams behind a secure paywall, from your own Vimeo account, locked so it only plays on your watch
-              page. That stops casual sharing. Your Vimeo plan covers the streaming.
-            </p>
+            <p>Covers your watch page, checkout, viewer access and your viewer list. No monthly fee.</p>
           </div>
           <div>
-            <h3>Secure</h3>
-            <p className="rate">
-              {secure.percent * 100}% per sale <span>minimum {money(secure.minimum)}</span>
-            </p>
+            <h3>Your film stays on your account</h3>
             <p>
-              We host and stream the film with links that expire after each viewing session, which makes it much harder to
-              download. Streaming costs are included. Choose this if a distributor or festival requires it.
+              Your film plays behind the paywall from a private Vimeo link or an unlisted YouTube link, so your own account
+              covers the streaming. Vimeo is the safer choice: we lock it so it only plays on your watch page. An unlisted
+              YouTube link plays anywhere it's shared.
             </p>
           </div>
         </div>
@@ -593,7 +582,7 @@ function Pricing() {
             {money(pricing.setupFee).replace(".00", "")} setup cost with {money(pricing.setupSurcharge).replace(".00", "")} per
             sale until it's paid off.
           </li>
-          <li>Stripe's card fee is 2.9% + 30¢ per sale on any plan.</li>
+          <li>Stripe's card fee is 2.9% + 30¢ per sale.</li>
         </ul>
       </div>
     </section>
@@ -668,7 +657,7 @@ function keepRoutes(): Route[] {
     {
       id: "us",
       name: `${site.name} - TVOD`,
-      what: `One ${money(k.ticket)} rental on Standard`,
+      what: `One ${money(k.ticket)} rental`,
       unit: "per rental",
       decimals: 2,
       note: "Paid straight to your own Stripe account.",
@@ -841,9 +830,9 @@ const faqs = [
   { q: "Can I keep selling on other platforms?", a: "Yes. There's no exclusivity, and you can leave whenever you want. Your viewer list comes with you." },
   {
     q: "What happens to my buyers if watchmyfilm.online shuts down?",
-    a: "You keep everything you need to look after them. Every sale was already paid into your own Stripe account, so there's no balance waiting with us. Your viewer list is yours to export at any time, so you can email every buyer directly. And your film stays yours: on Standard it lives on your own Vimeo account, and on Secure we'll send you back every file we host. With those, you can give your buyers access somewhere else.",
+    a: "You keep everything you need to look after them. Every sale was already paid into your own Stripe account, so there's no balance waiting with us. Your viewer list is yours to export at any time, so you can email every buyer directly. And your film stays yours: it lives on your own Vimeo or YouTube account. With those, you can give your buyers access somewhere else.",
   },
-  { q: "Can people pirate it?", a: "No streaming site can stop someone determined to record their screen. Standard stops casual sharing: the video won't play anywhere but your page. Secure adds expiring links, which make downloading much harder." },
+  { q: "Can people pirate it?", a: "No streaming site can stop someone determined to record their screen. A private Vimeo link stops casual sharing: we lock it so the video won't play anywhere but your page. An unlisted YouTube link is easier to pass around, so choose Vimeo if that matters to you." },
   { q: "What about sales tax?", a: "You're the seller, so tax registration is yours. Stripe can calculate and collect sales tax and VAT on each sale, and we'll help you switch it on during setup." },
 ];
 

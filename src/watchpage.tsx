@@ -367,7 +367,7 @@ function ScreeningRoom({ film: f, kind, days, hours, onSwitch, onClose }: {
           <iframe key={src} src={src} title={`${f.title}: ${current.title}`} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
         ) : (
           <p className="s-player-missing">
-            {current.url ? `This link can't be played here: ${current.url}` : "No Vimeo link for the film yet."}
+            {current.url ? `This link can't be played here: ${current.url}` : "No link for the film yet."}
           </p>
         )}
       </div>

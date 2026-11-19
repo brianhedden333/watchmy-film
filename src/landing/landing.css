@@ -971,6 +971,10 @@ textarea:focus-visible {
   margin-left: 8px;
 }
 
+.tiers h3 + p:not(.rate) {
+  margin-top: 12px;
+}
+
 .tiers p:not(.rate) {
   color: var(--aisle);
   max-width: 52ch;

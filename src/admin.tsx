@@ -147,7 +147,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Colors</dt><dd className="swatches">{(["color_background", "color_primary", "color_secondary", "color_button"] as const).map((k) => film[k] ? <span key={k} title={`${k.replace("color_", "")}: ${film[k]}`} style={{ background: film[k]! }} /> : null)}{!film.color_background && !film.color_primary && !film.color_secondary && !film.color_button && "Defaults"}</dd></div>
             <div><dt>Plan</dt><dd>{film.tier === "secure" ? "Secure (10%)" : "Standard (8%)"}</dd></div>
             <div><dt>Address</dt><dd>{address}</dd></div>
-            <div><dt>Vimeo</dt><dd>{film.vimeo_url ? <a href={film.vimeo_url} target="_blank" rel="noreferrer">{film.vimeo_url}</a> : "None"}</dd></div>
+            <div><dt>Film link</dt><dd>{film.vimeo_url ? <a href={film.vimeo_url} target="_blank" rel="noreferrer">{film.vimeo_url}</a> : "None"}</dd></div>
             <div><dt>Trailer</dt><dd>{film.trailer_url ? <a href={film.trailer_url} target="_blank" rel="noreferrer">{film.trailer_url}</a> : "None"}</dd></div>
             <div><dt>Details</dt><dd>{[film.year, film.runtime_minutes && `${film.runtime_minutes} min`, film.languages, film.genre].filter(Boolean).join(" · ") || "None"}</dd></div>
             <div><dt>Credits</dt><dd>{film.credits.filter((c) => c.names.length).map((c) => <span key={c.role} className="credit-line"><strong>{c.role}:</strong> {c.names.join(", ")}</span>)}{!film.credits.some((c) => c.names.length) && "None"}</dd></div>

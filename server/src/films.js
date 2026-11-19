@@ -37,6 +37,15 @@ const url = (v) => {
   if (u.protocol !== "https:" && u.protocol !== "http:") throw new Error("must be a web address");
   return u.toString().slice(0, 500);
 };
+// The full film: a private Vimeo link or an unlisted YouTube link.
+const filmLink = (v) => {
+  const s = url(v);
+  if (!s) return null;
+  const host = new URL(s).hostname.replace(/^(www|m)\./, "");
+  if (!["vimeo.com", "player.vimeo.com", "youtube.com", "youtu.be"].includes(host)) throw new Error("must be a Vimeo or YouTube link");
+  return s;
+};
+
 const oneOf = (...opts) => (v) => {
   if (!opts.includes(v)) throw new Error(`must be one of ${opts.join(", ")}`);
   return v;
@@ -205,7 +214,7 @@ const FIELDS = {
   credits,
   bonus,
   trailer_url: url,
-  vimeo_url: url,
+  vimeo_url: filmLink,
   rent_price_cents: int(99, 100000),
   buy_price_cents: int(99, 100000),
   pwyw_enabled: flag,
@@ -219,7 +228,8 @@ const FIELDS = {
   tags,
   rental_days: int(1, 365),
   rental_hours: int(1, 720),
-  tier: oneOf("standard", "secure"),
+  // Only one plan for now: Secure (hosting we pay for) is paused, so every film is Standard.
+  tier: () => "standard",
   address_type: oneOf("sub", "own"),
   subdomain,
   own_domain: domain,
@@ -238,7 +248,7 @@ const LABELS = {
   synopsis: "Synopsis",
   poster_path: "Poster",
   still_path: "Wide image",
-  vimeo_url: "Vimeo link",
+  vimeo_url: "Film link (Vimeo or YouTube)",
   price: "A rent, buy or pay-what-you-want price",
 };
 

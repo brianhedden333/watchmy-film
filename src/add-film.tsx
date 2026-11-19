@@ -407,12 +407,14 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
 
           <fieldset>
             <legend>Video</legend>
-            {field("vimeo_url", "Vimeo link to the full film", {
+            {field("vimeo_url", "Link to the full film (Vimeo or YouTube)", {
               placeholder: "https://vimeo.com/123456789",
               hint: (
                 <>
-                  In Vimeo, set the film's privacy to <strong>Hide from Vimeo</strong> and embedding to <strong>Specific domains</strong>.
-                  We'll add your watch page's address there during setup, so the film only plays on your page.
+                  <strong>Vimeo (recommended):</strong> set the film's privacy to <strong>Hide from Vimeo</strong> and embedding
+                  to <strong>Specific domains</strong>. We'll add your watch page's address there during setup, so the film only
+                  plays on your page. <strong>YouTube:</strong> set it to <strong>Unlisted</strong> (Private videos can't play
+                  on your page). An unlisted link plays anywhere it's shared, so it's less protected.
                 </>
               ),
             })}
@@ -534,20 +536,6 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               onOwn={set("own_domain")}
               disabled={locked}
               errors={errors}
-            />
-          </fieldset>
-
-          <fieldset>
-            <legend>Plan</legend>
-            <Choice
-              name="tier"
-              value={form.tier}
-              onChange={set("tier")}
-              disabled={locked}
-              options={[
-                ["standard", "Standard: 8% per sale, plays from your Vimeo"],
-                ["secure", "Secure: 10% per sale, protected streaming we host"],
-              ]}
             />
           </fieldset>
 

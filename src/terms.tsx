@@ -7,7 +7,7 @@ import { CONTACT, LegalPage, Section } from "./legal";
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const usd = (n: number) => `$${n.toFixed(2).replace(/\.00$/, "")}`;
-const { standard, secure } = pricing.tiers;
+const { standard } = pricing.tiers;
 
 function Terms() {
   return (
@@ -24,8 +24,8 @@ function Terms() {
       <Section id="service" title="What we do">
         <p>
           We build and host a watch page for your film, with its own web address, where viewers can rent or buy it. Sales
-          are paid into your own Stripe account. The film itself plays from your Vimeo account (Standard plan) or from
-          protected streaming we host (Secure plan).
+          are paid into your own Stripe account. The film itself plays from your own account, through a private Vimeo link
+          or an unlisted YouTube link that you provide. We don't host the film.
         </p>
       </Section>
 
@@ -50,9 +50,8 @@ function Terms() {
             separately for the rest. We may waive this for some films.
           </li>
           <li>
-            <strong>Platform fee per sale:</strong> {pct(standard.percent)} (at least {usd(standard.minimum)}) on the Standard
-            plan, or {pct(secure.percent)} (at least {usd(secure.minimum)}) on the Secure plan. This applies to rentals,
-            purchases and pay-what-you-want payments made through your watch page.
+            <strong>Platform fee per sale:</strong> {pct(standard.percent)} (at least {usd(standard.minimum)}). This applies to
+            rentals, purchases and pay-what-you-want payments made through your watch page.
           </li>
           <li>Stripe's own processing fees are separate and are charged by Stripe.</li>
           <li>
@@ -80,8 +79,9 @@ function Terms() {
           </li>
           <li>
             You're the seller. Sales go to your Stripe account, and you're responsible for your Stripe account and its
-            terms, for taxes on your sales, and for viewers' questions, refunds and chargebacks. If you use the Standard
-            plan, you're also responsible for your Vimeo account and its terms.
+            terms, for taxes on your sales, and for viewers' questions, refunds and chargebacks. You're also responsible
+            for the Vimeo or YouTube account your film plays from, and its terms. An unlisted YouTube link can be watched by
+            anyone who has it, so we can't stop it being shared outside your watch page.
           </li>
           <li>
             We review every film before it goes live and may ask for changes or decline it. You choose when an approved
