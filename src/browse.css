@@ -401,7 +401,10 @@
 
 .bz-display-cover img {
   display: block;
-  width: 100%;
+  /* Small enough that the prices and Rent button still fit on a laptop screen. */
+  width: min(100%, calc((100svh - 470px) * 2 / 3));
+  min-width: 150px;
+  height: auto;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: 3px;
@@ -541,7 +544,13 @@
     border-bottom: 0;
   }
 
+  .bz-display.is-open .bz-display-cover img {
+    width: 100%;
+    min-width: 0;
+  }
+
   .bz-display.is-open .bz-display-in {
+    align-items: start;
     display: grid;
     grid-template-columns: 112px minmax(0, 1fr);
     gap: 16px;
@@ -580,7 +589,8 @@
 
   .bz-spine:hover,
   .bz-spine:focus-visible,
-  .bz-spine.is-current {
+  .bz-spine.is-current,
+  .bz-floor.is-open .bz-spine.is-current {
     transform: translateX(8px);
   }
 }
