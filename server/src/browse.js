@@ -17,6 +17,8 @@ function card(f) {
     id: f.id,
     title: f.title,
     logline: f.logline,
+    synopsis: f.synopsis,
+    credits: f.credits ? JSON.parse(f.credits).filter((c) => c.names?.length) : [],
     year: f.year,
     runtime_minutes: f.runtime_minutes,
     genre: f.genre,

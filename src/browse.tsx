@@ -1,13 +1,15 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { api, getMe, type User } from "./api";
-import { textOn } from "./films";
+import { textOn, type Credit } from "./films";
+import { embedUrl } from "./watchpage";
 import "./styles.css";
 import "./browse.css";
 
-/* Browse, spines version: the catalog as a stack of DVD cases lying flat, so you only see each spine.
-   Hover a spine to see its cover and details beside the stack. Click it to take it off the stack: the stack dims,
-   and the cover card stays put (with its links) until you close it with the X.
+/* Browse, spines version: the catalog as a stack of DVD cases lying flat, so you only see each spine (title, and a
+   strip of the film's wide image). Hover a spine for "Click for trailer"; click it and the stack dims while the film
+   opens in a pop-up: trailer, poster and synopsis, rent and buy, then details and credits. The X puts it back.
    The earlier shelves version is saved at git tag browse-shelves-v1. Not linked from anywhere yet. */
 
 const home = import.meta.env.BASE_URL;
@@ -16,6 +18,8 @@ type Card = {
   id: number;
   title: string;
   logline: string | null;
+  synopsis: string | null;
+  credits: Credit[];
   year: number | null;
   runtime_minutes: number | null;
   genre: string | null;
@@ -69,12 +73,11 @@ function contrast(a: string, b: string) {
 // A hand-stacked pile isn't perfectly square: each case sits a little left or right, by film.
 const nudge = (id: number) => (((id * 37) % 11) - 5) * 0.35; // -1.75%..+1.75%
 
-function prices(f: Card) {
-  const out: { label: string; note?: string }[] = [];
-  if (f.rent_price_cents) out.push({ label: `Rent ${money(f.rent_price_cents)}`, note: f.rental_hours ? `${f.rental_hours} hours to watch` : undefined });
-  if (f.buy_price_cents) out.push({ label: `Buy ${money(f.buy_price_cents)}`, note: "Yours to keep" });
-  if (f.pwyw_enabled) out.push({ label: `Pay what you want`, note: `From ${money(f.pwyw_min_cents)}` });
-  return out;
+// The trailer player, starting as soon as the pop-up opens (the click counts as the go-ahead).
+function trailerSrc(link: string | null) {
+  const src = embedUrl(link);
+  if (!src) return null;
+  return `${src}${src.includes("?") ? "&" : "?"}autoplay=1${src.includes("youtube") ? "&rel=0" : ""}`;
 }
 
 function Browse() {
@@ -83,10 +86,7 @@ function Browse() {
   const [me, setMe] = useState<User | null>(null);
   const [aisle, setAisle] = useState<string | null>(() => new URLSearchParams(location.search).get("aisle"));
   const [q, setQ] = useState("");
-  const [peek, setPeek] = useState<Card | null>(null); // hovered or focused spine
-  const [open, setOpen] = useState<Card | null>(null); // clicked: taken off the stack
-  const stackRef = useRef<HTMLOListElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState<Card | null>(null);
   const lastSpine = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -103,20 +103,15 @@ function Browse() {
     history.replaceState(null, "", u);
   }, [aisle]);
 
-  // While a film is open, the stack can't be hovered or tabbed into; Escape puts the film back.
+  // While a film is open, the page behind it can't be reached and doesn't scroll.
   useEffect(() => {
-    const stack = stackRef.current;
-    if (stack) stack.inert = !!open;
-    if (!open) return;
-    closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    addEventListener("keydown", onKey);
-    return () => removeEventListener("keydown", onKey);
+    const root = document.getElementById("root");
+    if (root) root.inert = !!open;
+    document.documentElement.classList.toggle("bz-locked", !!open);
   }, [open]);
 
   function close() {
     setOpen(null);
-    setPeek(null);
     requestAnimationFrame(() => lastSpine.current?.focus({ preventScroll: true }));
   }
 
@@ -142,8 +137,6 @@ function Browse() {
       return hay.includes(query);
     });
   }, [films, aisle, query]);
-
-  const current = open || peek;
 
   return (
     <div className="bz">
@@ -182,15 +175,15 @@ function Browse() {
               <circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" strokeWidth="1.8" />
               <path d="M13 13l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Titles, directors, subjects" disabled={!!open} />
+            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Titles, directors, subjects" />
           </label>
           {aisles.length > 0 && (
             <div className="bz-aisles" role="group" aria-label="Aisles">
-              <button type="button" aria-pressed={!aisle} onClick={() => setAisle(null)} disabled={!!open}>
+              <button type="button" aria-pressed={!aisle} onClick={() => setAisle(null)}>
                 Everything
               </button>
               {aisles.map((a) => (
-                <button key={a.name} type="button" aria-pressed={aisle?.toLowerCase() === a.name.toLowerCase()} onClick={() => setAisle(a.name)} disabled={!!open}>
+                <button key={a.name} type="button" aria-pressed={aisle?.toLowerCase() === a.name.toLowerCase()} onClick={() => setAisle(a.name)}>
                   {a.name}
                   <span className="bz-n">{a.n}</span>
                 </button>
@@ -212,66 +205,44 @@ function Browse() {
           )}
 
           {films && films.length > 0 && (
-            <div className={`bz-floor${open ? " is-open" : ""}`}>
-              <section className="bz-pile" aria-labelledby="bz-pile-title">
-                <h2 className="bz-shelf-name" id="bz-pile-title">
-                  {aisle || (query ? "Search" : "Everything")}
-                  <span className="bz-n" aria-live="polite">
-                    {shown.length === 1 ? "1 film" : `${shown.length} films`}
-                  </span>
-                </h2>
-                {shown.length ? (
-                  <ol className="bz-stack" id="stack" ref={stackRef} onMouseLeave={() => !open && setPeek(null)}>
-                    {shown.map((f) => {
-                      const { bg, fg } = spineColors(f);
-                      return (
-                        <li key={f.id} style={{ marginLeft: `${2 + nudge(f.id)}%`, marginRight: `${2 - nudge(f.id)}%` }}>
-                          <button
-                            type="button"
-                            className={`bz-spine${current?.id === f.id ? " is-current" : ""}`}
-                            style={{ background: bg, color: fg }}
-                            aria-haspopup="dialog"
-                            aria-label={`${f.title}${f.director ? `, ${f.director}` : ""}${f.year ? `, ${f.year}` : ""}`}
-                            onMouseEnter={() => !open && setPeek(f)}
-                            onFocus={() => !open && setPeek(f)}
-                            onClick={(e) => {
-                              lastSpine.current = e.currentTarget;
-                              setPeek(f);
-                              setOpen(f);
-                            }}
-                          >
-                            <span className="bz-spine-who">{f.director}</span>
-                            <span className="bz-spine-title">{f.title}</span>
-                            <span className="bz-spine-year">{f.year}</span>
-                            <span className="bz-spine-mark" aria-hidden="true">
-                              <svg viewBox="0 0 10 10" width="10" height="10">
-                                <path d="M2 1.5v7l6-3.5z" fill="currentColor" />
-                              </svg>
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                ) : (
-                  <p className="bz-empty-inline">
-                    Nothing in the stack matches.{" "}
-                    <button
-                      type="button"
-                      className="bz-link"
-                      onClick={() => {
-                        setQ("");
-                        setAisle(null);
-                      }}
-                    >
-                      See everything
-                    </button>
-                  </p>
-                )}
-              </section>
-
-              <Display film={current} open={!!open} onClose={close} closeRef={closeRef} />
-            </div>
+            <section className={`bz-pile${open ? " is-open" : ""}`} aria-labelledby="bz-pile-title">
+              <h2 className="bz-shelf-name" id="bz-pile-title">
+                {aisle || (query ? "Search" : "Everything")}
+                <span className="bz-n" aria-live="polite">
+                  {shown.length === 1 ? "1 film" : `${shown.length} films`}
+                </span>
+              </h2>
+              {shown.length ? (
+                <ol className="bz-stack" id="stack">
+                  {shown.map((f) => (
+                    <li key={f.id} style={{ marginLeft: `${2 + nudge(f.id)}%`, marginRight: `${2 - nudge(f.id)}%` }}>
+                      <Spine
+                        film={f}
+                        current={open?.id === f.id}
+                        onOpen={(el) => {
+                          lastSpine.current = el;
+                          setOpen(f);
+                        }}
+                      />
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="bz-empty-inline">
+                  Nothing in the stack matches.{" "}
+                  <button
+                    type="button"
+                    className="bz-link"
+                    onClick={() => {
+                      setQ("");
+                      setAisle(null);
+                    }}
+                  >
+                    See everything
+                  </button>
+                </p>
+              )}
+            </section>
           )}
         </div>
       </main>
@@ -285,84 +256,164 @@ function Browse() {
           <a href={`${home}privacy/`}>Privacy</a>
         </p>
       </footer>
+
+      {open && createPortal(<FilmPopup film={open} onClose={close} />, document.body)}
     </div>
   );
 }
 
-// The cover card beside the stack. A preview while hovering (not clickable); once a spine is clicked it stays,
-// becomes a dialog with working links, and closes with the X.
-function Display({ film: f, open, onClose, closeRef }: { film: Card | null; open: boolean; onClose: () => void; closeRef: React.RefObject<HTMLButtonElement> }) {
-  if (!f) {
-    return (
-      <aside className="bz-display is-empty" aria-hidden="true">
-        <div className="bz-display-blank">
-          <p>Hover a spine to see the cover.</p>
-          <p>Click it to take it off the stack.</p>
-        </div>
-      </aside>
-    );
-  }
-  const p = prices(f);
-  const details = [f.year, f.runtime_minutes && `${f.runtime_minutes} min`, f.genre, f.languages].filter(Boolean);
+// One case lying flat: director, title and year, with a strip of the film's wide image at the right end.
+function Spine({ film: f, current, onOpen }: { film: Card; current: boolean; onOpen: (el: HTMLButtonElement) => void }) {
+  const { bg, fg } = spineColors(f);
+  const img = f.still_url || f.banner_url;
   return (
-    <>
-      {open && <div className="bz-scrim" onClick={onClose} aria-hidden="true" />}
-      <aside
-        className={`bz-display${open ? " is-open" : " is-peek"}`}
-        role={open ? "dialog" : undefined}
-        aria-modal={open ? false : undefined}
-        aria-label={open ? f.title : undefined}
-        aria-hidden={open ? undefined : true}
-      >
-        {open && (
-          <button type="button" className="bz-close" onClick={onClose} ref={closeRef} aria-label="Put it back on the stack">
-            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-              <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
-        <div className="bz-display-in">
-          <div className="bz-display-cover">{f.poster_url && <img src={f.poster_url} alt="" width={400} height={600} />}</div>
-          <div className="bz-display-text">
-            <h3>{f.title}</h3>
-            {f.director && <p className="bz-display-who">Directed by {f.director}</p>}
-            {details.length > 0 && <p className="bz-display-meta">{details.join(", ")}</p>}
-            {f.logline && <p className="bz-display-log">{f.logline}</p>}
-            {p.length > 0 && (
-              <ul className="bz-display-prices">
-                {p.map((x) => (
-                  <li key={x.label}>
-                    <strong>{x.label}</strong>
-                    {x.note && <span>{x.note}</span>}
-                  </li>
+    <button
+      type="button"
+      className={`bz-spine${current ? " is-current" : ""}`}
+      style={{ background: bg, color: fg, ["--spine" as string]: bg }}
+      aria-haspopup="dialog"
+      aria-label={`${f.title}${f.director ? `, ${f.director}` : ""}${f.year ? `, ${f.year}` : ""}. ${f.trailer_url ? "Open the trailer" : "Open details"}`}
+      onClick={(e) => onOpen(e.currentTarget)}
+    >
+      <span className="bz-spine-who">{f.director}</span>
+      <span className="bz-spine-title">{f.title}</span>
+      <span className="bz-spine-year">{f.year}</span>
+      <span className="bz-spine-img" aria-hidden="true">
+        {img && <img src={img} alt="" loading="lazy" />}
+        <span className="bz-spine-cta">
+          <svg viewBox="0 0 10 10" width="10" height="10">
+            <path d="M2 1.5v7l6-3.5z" fill="currentColor" />
+          </svg>
+          {f.trailer_url ? "Click for trailer" : "Click for details"}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// The film, taken off the stack: trailer, poster and synopsis, rent and buy above the fold; details and credits below.
+function FilmPopup({ film: f, onClose }: { film: Card; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const trailer = trailerSrc(f.trailer_url);
+  const paragraphs = (f.synopsis || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  // Up top: the one-line description (or the start of the synopsis). The full synopsis is under About the film.
+  const intro = f.logline || paragraphs[0] || "";
+  const details: [string, string][] = [
+    ["Director", f.credits.some((c) => /^directors?$/i.test(c.role)) ? "" : f.director || ""], // listed under Credits when it's there
+    ["Year", f.year ? String(f.year) : ""],
+    ["Running time", f.runtime_minutes ? `${f.runtime_minutes} minutes` : ""],
+    ["Genre", f.genre || ""],
+    ["Languages", f.languages || ""],
+    ["Rental", f.rent_price_cents && f.rental_hours ? `${f.rental_hours} hours to watch once you start` : ""],
+  ].filter((d): d is [string, string] => !!d[1]);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="bz-pop-layer">
+      <div className="bz-pop-scrim" onClick={onClose} aria-hidden="true" />
+      <div className="bz-pop" role="dialog" aria-modal="true" aria-labelledby="bz-pop-title">
+        <button type="button" className="bz-close" onClick={onClose} ref={closeRef} aria-label="Close and put it back on the stack">
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        <div className="bz-pop-screen">
+          {trailer ? (
+            <iframe src={trailer} title={`${f.title} trailer`} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+          ) : (
+            <>
+              {(f.still_url || f.banner_url) && <img src={(f.still_url || f.banner_url)!} alt="" />}
+              <p className="bz-pop-notrailer">No trailer yet</p>
+            </>
+          )}
+        </div>
+
+        <div className="bz-pop-body">
+          <div className="bz-pop-top">
+            {f.poster_url && <img className="bz-pop-poster" src={f.poster_url} alt={`${f.title} poster`} width={400} height={600} />}
+            <div className="bz-pop-text">
+              <h2 id="bz-pop-title">{f.title}</h2>
+              <p className="bz-pop-meta">{[f.director, f.year, f.runtime_minutes && `${f.runtime_minutes} min`].filter(Boolean).join(", ")}</p>
+              {intro && <p className="bz-pop-intro">{intro}</p>}
+            </div>
+          </div>
+
+          <div className="bz-pop-buy">
+            {f.rent_price_cents != null && (
+              <a className="btn" href={href(f)}>
+                Rent {money(f.rent_price_cents)}
+              </a>
+            )}
+            {f.buy_price_cents != null && (
+              <a className={f.rent_price_cents != null ? "btn btn-outline" : "btn"} href={href(f)}>
+                Buy {money(f.buy_price_cents)}
+              </a>
+            )}
+            {f.pwyw_enabled && (
+              <a className="bz-ghost" href={href(f)}>
+                Or pay what you want, from {money(f.pwyw_min_cents)}
+              </a>
+            )}
+          </div>
+
+          <div className="bz-pop-more">
+            {paragraphs.length > 0 && (
+              <section>
+                <h3>About the film</h3>
+                {paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
                 ))}
-              </ul>
+              </section>
             )}
-            {open ? (
-              <div className="bz-display-act">
-                <a className="btn" href={href(f)}>
-                  {p[0]?.label || "Watch"}
-                </a>
-                {f.trailer_url && (
-                  <a className="bz-ghost" href={href(f)}>
-                    Watch the trailer
-                  </a>
-                )}
-              </div>
-            ) : (
-              <p className="bz-display-hint">Click the spine to take it off the stack.</p>
-            )}
+            <div className="bz-pop-cols">
+              {details.length > 0 && (
+                <section>
+                  <h3>Details</h3>
+                  <dl className="bz-dl">
+                    {details.map(([k, v]) => (
+                      <div key={k}>
+                        <dt>{k}</dt>
+                        <dd>{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
+              {f.credits.length > 0 && (
+                <section>
+                  <h3>Credits</h3>
+                  <dl className="bz-dl">
+                    {f.credits.map((c) => (
+                      <div key={c.role}>
+                        <dt>{c.role}</dt>
+                        <dd>{c.names.join(", ")}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
+            </div>
             {f.tags.length > 0 && (
-              <ul className="bz-display-tags" aria-label="Tags">
+              <ul className="bz-pop-tags" aria-label="Tags">
                 {f.tags.map((t) => (
                   <li key={t}>{t}</li>
                 ))}
               </ul>
             )}
+            <p className="bz-pop-page">
+              <a href={href(f)}>Go to the film's page</a>
+            </p>
           </div>
         </div>
-      </aside>
-    </>
+      </div>
+    </div>
   );
 }
 

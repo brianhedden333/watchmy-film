@@ -210,7 +210,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- The stack and the display ---------- */
+/* ---------- The stack ---------- */
 
 .bz .bz-shelf-name {
   display: flex;
@@ -244,11 +244,8 @@
   color: var(--type);
 }
 
-.bz-floor {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-  gap: clamp(32px, 5vw, 72px);
-  align-items: start;
+.bz-pile {
+  max-width: 1040px;
   margin-top: 40px;
 }
 
@@ -270,14 +267,15 @@
 .bz-spine {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 9em) minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 9em) minmax(0, 1fr) auto clamp(120px, 26%, 260px);
   align-items: center;
   gap: 16px;
   width: 100%;
-  height: 54px;
-  padding: 0 16px 0 20px;
+  height: 58px;
+  padding: 0 0 0 20px;
   border: 0;
   border-radius: 2px 5px 5px 2px;
+  overflow: hidden;
   font-family: var(--body);
   text-align: left;
   cursor: pointer;
@@ -289,6 +287,7 @@
 .bz-spine::before {
   content: "";
   position: absolute;
+  z-index: 2;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
@@ -309,7 +308,7 @@
   font-family: var(--display);
   font-stretch: 62%;
   font-weight: 800;
-  font-size: 27px;
+  font-size: 28px;
   line-height: 1;
   letter-spacing: 0.005em;
   white-space: nowrap;
@@ -324,14 +323,47 @@
   opacity: 0.85;
 }
 
-.bz-spine-mark {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1.5px solid currentColor;
-  border-radius: 3px;
-  opacity: 0.7;
+/* The film's wide image across the right end of the spine, fading in from the spine's color. */
+.bz-spine-img {
+  position: relative;
+  align-self: stretch;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.bz-spine-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bz-spine-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, var(--spine) 0, transparent 38%);
+}
+
+.bz-spine-cta {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+
+.bz-spine:hover .bz-spine-cta,
+.bz-spine:focus-visible .bz-spine-cta {
+  opacity: 1;
 }
 
 .bz-spine:hover,
@@ -346,64 +378,128 @@
   outline-offset: 3px;
 }
 
-/* A film is off the stack: everything else dims and stops responding; the open one stays pulled out. */
-.bz-floor.is-open .bz-stack > li {
-  opacity: 0.28;
+/* A film is off the stack: everything else dims; the open one stays pulled out. */
+.bz-pile.is-open .bz-stack > li {
+  opacity: 0.25;
   filter: grayscale(0.7);
 }
 
-.bz-floor.is-open .bz-stack > li:has(.is-current) {
-  opacity: 0.9;
+.bz-pile.is-open .bz-stack > li:has(.is-current) {
+  opacity: 0.6;
   filter: none;
 }
 
-.bz-floor.is-open .bz-spine.is-current {
-  transform: translateX(32px);
+/* ---------- The pop-up ---------- */
+
+html.bz-locked {
+  overflow: hidden;
 }
 
-/* The display beside the stack. */
-.bz-display {
-  position: sticky;
-  top: 88px;
-  border: 1px solid var(--seam);
-  border-radius: 6px;
-  background: var(--shelf);
-  padding: 20px;
-  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
-}
-
-.bz-display.is-peek {
-  pointer-events: none;
-}
-
-.bz-display.is-open {
-  border-color: var(--aisle);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
-}
-
-.bz-display.is-empty {
-  background: none;
-  border-style: dashed;
-}
-
-.bz-display-blank {
-  aspect-ratio: 2 / 3;
+.bz-pop-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
   display: grid;
-  place-content: center;
-  text-align: center;
-  color: var(--aisle);
-  font-size: 15px;
+  place-items: start center;
+  padding: clamp(12px, 3vh, 32px) 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-.bz-display-blank p {
-  margin: 0 0 6px;
+.bz-pop-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
 }
 
-.bz-display-cover img {
+.bz-pop {
+  --type: #ede8df;
+  --aisle: #a39e95;
+  --seam: #3a3734;
+  position: relative;
+  width: min(940px, 100%);
+  background: #141312;
+  color: var(--type);
+  border: 1px solid var(--seam);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  font-family: var(--body);
+}
+
+/* Stays in the pop-up's top corner while its details scroll. */
+.bz-close {
+  position: fixed;
+  z-index: 70;
+  top: calc(clamp(12px, 3vh, 32px) + 12px);
+  right: calc(max(12px, (100vw - 940px) / 2) + 12px);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  cursor: pointer;
+}
+
+.bz-close:hover {
+  border-color: #fff;
+}
+
+/* The trailer, kept short enough that the poster, synopsis and buttons still fit on a laptop screen. */
+.bz-pop-screen {
+  position: relative;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  max-height: 46svh;
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.bz-pop-screen iframe {
+  width: 100%;
+  height: 100%;
+  max-width: calc(46svh * 16 / 9);
+  border: 0;
   display: block;
-  /* Small enough that the prices and Rent button still fit on a laptop screen. */
-  width: min(100%, calc((100svh - 470px) * 2 / 3));
-  min-width: 150px;
+}
+
+.bz-pop-screen img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+}
+
+.bz-pop-notrailer {
+  position: relative;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  color: var(--aisle);
+}
+
+.bz-pop-body {
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.bz-pop-top {
+  display: grid;
+  grid-template-columns: clamp(96px, 16vw, 132px) minmax(0, 1fr);
+  gap: clamp(16px, 2.5vw, 28px);
+  align-items: start;
+}
+
+.bz-pop-poster {
+  width: 100%;
   height: auto;
   aspect-ratio: 2 / 3;
   object-fit: cover;
@@ -411,103 +507,137 @@
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
 }
 
-.bz-display-text {
-  margin-top: 18px;
-}
-
-.bz .bz-display h3 {
-  font-size: 32px;
-  line-height: 0.95;
+.bz .bz-pop h2,
+.bz-pop h2 {
+  font-family: var(--display);
+  font-stretch: 62%;
+  font-weight: 800;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 0.92;
   margin: 0 0 8px;
+  max-width: none;
 }
 
-.bz-display-who,
-.bz-display-meta {
+.bz-pop-meta {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--aisle);
+}
+
+.bz-pop-intro {
   margin: 0;
-  font-size: 14px;
-  color: var(--aisle);
+  font-size: 16px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.bz-display-log {
-  margin: 12px 0 0;
-  font-size: 15px;
-  line-height: 1.45;
-}
-
-.bz-display-prices {
-  list-style: none;
-  margin: 16px 0 0;
-  padding: 0;
-  border-top: 1px solid var(--seam);
-}
-
-.bz-display-prices li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--seam);
-  font-size: 15px;
-}
-
-.bz-display-prices span {
-  color: var(--aisle);
-  font-size: 14px;
-}
-
-.bz-display-act {
+.bz-pop-buy {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 20px;
-  margin-top: 18px;
+  gap: 12px 16px;
+  margin-top: 22px;
 }
 
-.bz-display-hint {
-  margin: 16px 0 0;
-  font-size: 14px;
+.bz-pop .btn-outline {
+  background: none;
+  color: var(--type);
+  box-shadow: inset 0 0 0 1px rgba(237, 232, 223, 0.7);
+}
+
+.bz-pop .btn-outline:hover {
+  box-shadow: inset 0 0 0 1px var(--type);
+}
+
+.bz-ghost {
+  color: var(--type);
+  font-weight: 500;
+  text-underline-offset: 4px;
+}
+
+.bz-pop-more {
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid var(--seam);
+}
+
+.bz-pop-more h3 {
+  font-family: var(--display);
+  font-stretch: 62%;
+  font-weight: 800;
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+
+.bz-pop-more section + section,
+.bz-pop-more > section + .bz-pop-cols {
+  margin-top: 26px;
+}
+
+.bz-pop-more p {
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 68ch;
+}
+
+.bz-pop-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 48px;
+}
+
+.bz-pop-cols > section + section {
+  margin-top: 0;
+}
+
+.bz-dl {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.bz-dl > div {
+  display: grid;
+  grid-template-columns: 9em minmax(0, 1fr);
+  gap: 12px;
+  font-size: 15px;
+}
+
+.bz-dl dt {
   color: var(--aisle);
 }
 
-.bz-display-tags {
+.bz-dl dd {
+  margin: 0;
+}
+
+.bz-pop-tags {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 16px 0 0;
+  margin: 26px 0 0;
   padding: 0;
 }
 
-.bz-display-tags li {
-  padding: 3px 9px;
+.bz-pop-tags li {
+  padding: 3px 10px;
   border: 1px solid var(--seam);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--aisle);
 }
 
-.bz-close {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  right: 10px;
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--seam);
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.7);
+.bz-pop-page {
+  margin: 24px 0 0;
+  font-size: 15px;
+}
+
+.bz-pop-page a {
   color: var(--type);
-  cursor: pointer;
-}
-
-.bz-close:hover {
-  border-color: var(--type);
-}
-
-.bz-scrim {
-  display: none;
 }
 
 .bz-empty {
@@ -520,78 +650,62 @@
   color: var(--aisle);
 }
 
-/* Phones and tablets: no hover, so the display only appears when a spine is tapped, as a sheet from the bottom. */
-@media (max-width: 860px) {
-  .bz-floor {
-    grid-template-columns: 1fr;
-  }
-
-  .bz-display.is-empty,
-  .bz-display.is-peek {
-    display: none;
-  }
-
-  .bz-display.is-open {
-    position: fixed;
-    z-index: 40;
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    max-height: 88svh;
-    overflow-y: auto;
-    border-radius: 14px 14px 0 0;
-    border-bottom: 0;
-  }
-
-  .bz-display.is-open .bz-display-cover img {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .bz-display.is-open .bz-display-in {
-    align-items: start;
-    display: grid;
-    grid-template-columns: 112px minmax(0, 1fr);
-    gap: 16px;
-  }
-
-  .bz-display.is-open .bz-display-text {
-    margin-top: 0;
-    padding-right: 36px;
-  }
-
-  .bz .bz-display h3 {
-    font-size: 26px;
-  }
-
-  .bz-scrim {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 30;
-    background: rgba(0, 0, 0, 0.6);
-  }
-
+@media (max-width: 760px) {
   .bz-spine {
-    grid-template-columns: minmax(0, 1fr) auto;
-    height: 50px;
+    grid-template-columns: minmax(0, 1fr) auto 22%;
+    gap: 10px;
+    height: 52px;
   }
 
-  .bz-spine-who,
-  .bz-spine-mark {
+  .bz-spine-who {
     display: none;
   }
 
   .bz-spine-title {
-    font-size: 24px;
+    font-size: 23px;
+  }
+
+  .bz-spine-year {
+    font-size: 12px;
   }
 
   .bz-spine:hover,
   .bz-spine:focus-visible,
-  .bz-spine.is-current,
-  .bz-floor.is-open .bz-spine.is-current {
+  .bz-spine.is-current {
     transform: translateX(8px);
+  }
+
+  .bz-spine-cta {
+    font-size: 12px;
+  }
+
+  .bz-pop-layer {
+    padding: 0;
+  }
+
+  .bz-close {
+    top: 12px;
+    right: 12px;
+  }
+
+  .bz-pop {
+    border-radius: 0;
+    border: 0;
+    min-height: 100svh;
+    padding-top: 64px; /* a bar for the X, so it doesn't cover the player's own controls */
+    background: #000;
+  }
+
+  .bz-pop-body {
+    background: #141312;
+  }
+
+  .bz-pop-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .bz-dl > div {
+    grid-template-columns: 7.5em minmax(0, 1fr);
   }
 }
 
@@ -631,8 +745,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bz-spine,
+  .bz-spine-cta,
   .bz-stack > li,
-  .bz-display,
   .bz-aisles button {
     transition: none;
   }
