@@ -591,7 +591,7 @@ function Pricing() {
           <li>
             Setup is $0 to start: we build your page, connect Stripe and run a test purchase together. We recover the{" "}
             {money(pricing.setupFee).replace(".00", "")} setup cost with {money(pricing.setupSurcharge).replace(".00", "")} per
-            sale until it's paid off. If you don't sell, you don't pay.
+            sale until it's paid off.
           </li>
           <li>Stripe's card fee is 2.9% + 30¢ per sale on any plan.</li>
         </ul>
