@@ -1316,6 +1316,31 @@ main section.tight {
 
 /* ---------- Donate ---------- */
 
+/* The one green band on the page: the same green as "You keep", with black type. */
+.screen.donate {
+  background: var(--keep-green);
+  color: #000;
+}
+
+.donate .section-lede,
+.donate .donate-body,
+.donate .donate-fine {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.donate .btn {
+  background: #000;
+  color: var(--keep-green);
+}
+
+.donate .btn:hover {
+  background: #1f1d1b;
+}
+
+.donate :focus-visible {
+  outline-color: #000;
+}
+
 .donate-grid {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);

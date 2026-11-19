@@ -833,10 +833,10 @@ function Story() {
 
 function Donate() {
   return (
-    <section id="donate" className="house donate" aria-labelledby="donate-title">
+    <section id="donate" className="screen donate" aria-labelledby="donate-title">
       <div className="wrap donate-grid">
         <div>
-          <h2 id="donate-title">Help keep us afloat</h2>
+          <h2 id="donate-title">Keep our projectors on</h2>
           <p className="section-lede">
             {site.name} is a grassroots service, built by filmmakers, for filmmakers. There are no investors and no monthly
             fees, just a small share of each sale to keep the lights on.
