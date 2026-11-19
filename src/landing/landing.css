@@ -1345,7 +1345,19 @@ main section.tight {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
   gap: clamp(32px, 6vw, 96px);
-  align-items: end;
+  align-items: center;
+}
+
+/* The button sits in the middle of its column, level with the text beside it. */
+.donate-act {
+  justify-self: center;
+  text-align: center;
+  max-width: 32ch;
+}
+
+.donate-act .btn {
+  padding-left: 40px;
+  padding-right: 40px;
 }
 
 .donate .section-lede {
@@ -1369,6 +1381,11 @@ main section.tight {
   .donate-grid {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .donate-act {
+    justify-self: start;
+    text-align: left;
   }
 }
 
