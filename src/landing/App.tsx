@@ -130,10 +130,10 @@ function Nav({ solid }: { solid: boolean }) {
           />
         </a>
         <nav aria-label="Main">
+          <a href="#why">Why?</a>
           <a href="#how">How it works</a>
           <a href="#pricing">Pricing</a>
           <a href="#about">About us</a>
-          <a href="#faq">Questions</a>
           {me ? (
             <a href={`${base}${me.home.replace(/^\//, "")}`} className="btn btn-small">
               {me.isAdmin ? "Admin" : "Your films"}
@@ -576,6 +576,7 @@ function Pricing() {
           </div>
         </div>
 
+        <div className="pricing-foot">
         <ul className="fine">
           <li>
             Setup is $0 to start: we build your page, connect Stripe and run a test purchase together. We recover the{" "}
@@ -588,6 +589,7 @@ function Pricing() {
         <a href={signupUrl} className="btn pricing-cta">
           Get started
         </a>
+        </div>
       </div>
     </section>
   );
@@ -760,7 +762,7 @@ function KeepCard({ route }: { route: Route }) {
 function Keep() {
   const routes = useMemo(keepRoutes, []);
   return (
-    <section id="keep" className="house keep" aria-labelledby="keep-title">
+    <section id="why" className="house keep" aria-labelledby="keep-title">
       <div className="wrap">
         <h2 id="keep-title">Keep more of your sales.</h2>
         <p className="section-lede">Where the money goes from one stream or one {money(KEEP.ticket)} rental.</p>
