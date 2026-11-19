@@ -327,7 +327,13 @@ filmsRouter.get("/", async (req, res) => {
   for (const p of pending) await settleCheckout(p.pending_checkout_id).catch((e) => console.error("Settle failed:", e.message));
 
   const films = db.prepare("SELECT * FROM films WHERE user_id = ? ORDER BY created_at DESC").all(req.user.id);
-  res.json({ films: films.map(publicFilm), setupFeeCents: config.setupFeeCents, checkoutEnabled: stripeEnabled() });
+  res.json({
+    films: films.map(publicFilm),
+    setupFeeCents: config.setupFeeCents,
+    setupUpfront: config.setupUpfront,
+    setupSurchargeCents: config.setupSurchargeCents,
+    checkoutEnabled: stripeEnabled(),
+  });
 });
 
 filmsRouter.post("/", (req, res) => {
@@ -417,10 +423,31 @@ filmsRouter.post("/:id/:kind", (req, res, next) => {
   });
 });
 
+// $0 to start: send the film to review with nothing to pay. The setup cost is recovered later,
+// $1 (SETUP_SURCHARGE_CENTS) per sale until SETUP_FEE_CENTS is covered.
+filmsRouter.post("/:id/submit", (req, res) => {
+  const film = getOwnFilm(req);
+  if (!film) return res.status(404).json({ error: "Film not found." });
+  if (config.setupUpfront) return res.status(409).json({ error: "Pay the setup fee to send your film for review." });
+  if (film.status !== "draft" || film.setup_status !== "unpaid") return res.status(409).json({ error: "This film has already been sent for review." });
+  const missing = missingFields(film);
+  if (missing.length) return res.status(400).json({ error: `Add these first: ${missing.join(", ")}.` });
+  const t = now();
+  db.prepare(
+    "UPDATE films SET setup_status = 'deferred', status = 'in_review', submitted_at = ?, updated_at = ? WHERE id = ?"
+  ).run(t, t, film.id);
+  const updated = db.prepare("SELECT * FROM films WHERE id = ?").get(film.id);
+  notifyAdmin("Film submitted", `${req.user.email} submitted "${updated.title}" ($0 to start).\n\n${config.appUrl}/admin/`);
+  filmSubmittedEmail(req.user.email, updated, "deferred").catch((e) => console.error("Email failed:", e.message));
+  res.json({ film: publicFilm(updated) });
+});
+
+// Paying up front (only when SETUP_UPFRONT=1). Kept for later.
 // Setup fee, option 1: Stripe Checkout.
 filmsRouter.post("/:id/checkout", async (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
+  if (!config.setupUpfront) return res.status(409).json({ error: "There's no setup fee to pay now. Send your film for review instead." });
   if (film.setup_status !== "unpaid") return res.status(409).json({ error: "The setup fee is already taken care of." });
   const missing = missingFields(film);
   if (missing.length) return res.status(400).json({ error: `Add these first: ${missing.join(", ")}.` });

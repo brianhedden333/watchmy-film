@@ -29,8 +29,8 @@ function Privacy() {
             page.
           </li>
           <li>
-            Records of your setup fee payment. Card details are entered on Stripe's checkout page and never reach our
-            servers.
+            Records of the fees you've paid us, including how much of your film's setup cost has been covered. Card
+            details are entered on Stripe's checkout page and never reach our servers.
           </li>
         </ul>
         <h3>Viewers</h3>
@@ -59,7 +59,7 @@ function Privacy() {
 
       <Section id="use" title="How we use it">
         <ul>
-          <li>To run the service: sign you in, build and host watch pages, process the setup fee, and give viewers access.</li>
+          <li>To run the service: sign you in, build and host watch pages, process fees and payments, and give viewers access.</li>
           <li>
             To email you about your account and films: sign-in links, review updates and receipts. We don't send marketing
             email without your permission.

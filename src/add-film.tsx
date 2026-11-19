@@ -10,7 +10,9 @@ import "./styles.css";
 import "./sample.css";
 import "./dashboard.css";
 
-/* Add a film (onboarding, and where each film is edited): add a film, fill in its details, then pay the setup fee (or use a code) to send it to review. */
+/* Add a film (onboarding, and where each film is edited): add a film, fill in its details, then send it to review.
+   $0 to start: the setup cost is recovered per sale later. With SETUP_UPFRONT=1 on the server, the old step comes back:
+   pay the setup fee (or use a code) to send it to review. */
 
 const home = import.meta.env.BASE_URL;
 // /add-a-film/?new=1 (from the films list) opens the "add another film" box straight away.
@@ -318,7 +320,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
         </div>
       </div>
 
-      <Steps film={film} stripe={stripe} />
+      <Steps film={film} stripe={stripe} upfront={meta.setupUpfront} />
 
       <div className="film-grid">
         <form
@@ -1030,7 +1032,7 @@ function DesignPreview({ form }: { form: FormState }) {
 }
 
 // Progress across the top. A step with something to do (or read) scrolls to it when clicked.
-function Steps({ film, stripe }: { film: Film; stripe: StripeInfo | null }) {
+function Steps({ film, stripe, upfront }: { film: Film; stripe: StripeInfo | null; upfront: boolean }) {
   const detailsDone = film.missing.length === 0;
   const feeDone = film.setup_status !== "unpaid";
   const reviewDone = film.status === "approved" || film.status === "live";
@@ -1038,7 +1040,7 @@ function Steps({ film, stripe }: { film: Film; stripe: StripeInfo | null }) {
   const stripeNote = !reviewDone || live ? "" : stripe?.hasAccount ? "Ready: go live whenever you want" : "Add your Stripe details, then go live";
   const steps: { label: string; done: boolean; note?: string; target: string }[] = [
     { label: "Film details", done: detailsDone, note: detailsDone ? "" : `${film.missing.length} left`, target: "film-form" },
-    { label: "Setup fee", done: feeDone, target: "setup-card" },
+    ...(upfront ? [{ label: "Setup fee", done: feeDone, target: "setup-card" }] : []),
     { label: "Review", done: reviewDone, note: film.status === "changes_requested" ? "Changes requested" : "", target: "setup-card" },
     { label: "Connect Stripe and go live", done: live, note: stripeNote, target: film.status === "approved" ? (stripe?.hasAccount ? "go-live" : "get-paid") : feeDone && !live ? "get-paid" : "setup-card" },
   ];
@@ -1067,13 +1069,13 @@ function Steps({ film, stripe }: { film: Film; stripe: StripeInfo | null }) {
 }
 
 function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; dirty: boolean; save: () => Promise<boolean>; onChange: (f: Film) => void; stripe: StripeInfo | null; onStripe: (s: StripeInfo) => void }) {
-  const [busy, setBusy] = useState<"" | "pay" | "code" | "resubmit" | "live" | "visibility">("");
+  const [busy, setBusy] = useState<"" | "pay" | "code" | "submit" | "resubmit" | "live" | "visibility">("");
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
   const codeId = useId();
   const fee = dollars(meta.setupFeeCents).replace(".00", "");
 
-  async function run(kind: "pay" | "code" | "resubmit" | "live" | "visibility", fn: () => Promise<void>) {
+  async function run(kind: "pay" | "code" | "submit" | "resubmit" | "live" | "visibility", fn: () => Promise<void>) {
     setError("");
     setBusy(kind);
     try {
@@ -1100,6 +1102,15 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
       onChange(r.film);
     });
   };
+
+  // $0 to start: straight to review.
+  const submit = () =>
+    run("submit", async () => {
+      const r = await api<{ film: Film }>(`/films/${film.id}/submit`, { body: {} });
+      onChange(r.film);
+    });
+
+  const surcharge = dollars(meta.setupSurchargeCents).replace(".00", "");
 
   const goLive = () =>
     run("live", async () => {
@@ -1148,7 +1159,11 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
     const [h, p] = msgs[film.status] || msgs.in_review;
     body = (
       <>
-        <p className="setup-paid">✓ Setup fee {film.setup_status === "waived" ? "waived" : "paid"}</p>
+        <p className="setup-paid">
+          {film.setup_status === "deferred"
+            ? `✓ $0 to start: ${surcharge} per sale until ${fee} setup is covered`
+            : `✓ Setup fee ${film.setup_status === "waived" ? "waived" : "paid"}`}
+        </p>
         <h2>{h}</h2>
         <p>{p}</p>
         {film.admin_note && <blockquote className="admin-note">{film.admin_note}</blockquote>}
@@ -1174,7 +1189,35 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
           ))}
       </>
     );
+  } else if (!meta.setupUpfront) {
+    const ready = film.missing.length === 0;
+    body = (
+      <>
+        <h2>Send for review</h2>
+        <p className="setup-price">
+          $0 <span>to start</span>
+        </p>
+        <p>
+          We build your watch page, set up your address and Stripe, and review your film. Nothing to pay now: once you're
+          selling, we add {surcharge} to our fee on each sale until the {fee} setup cost is covered. No monthly fee.
+        </p>
+        {!ready && (
+          <div className="missing">
+            <p>Add these first:</p>
+            <ul>
+              {film.missing.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <button type="button" className="btn setup-pay" onClick={submit} disabled={!ready || !!busy}>
+          {busy === "submit" ? "Sending…" : "Send for review"}
+        </button>
+      </>
+    );
   } else {
+    // Paying up front (SETUP_UPFRONT=1 on the server). Kept for later.
     const ready = film.missing.length === 0;
     body = (
       <>

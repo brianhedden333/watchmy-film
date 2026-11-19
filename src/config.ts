@@ -16,7 +16,9 @@ export const site = {
 export const pricing = {
   stripePercent: 0.029,
   stripeFixed: 0.3,
-  setupFee: 99,
+  setupFee: 99, // what setup costs us to recover; filmmakers pay $0 up front (see setupUpfront)
+  setupUpfront: false, // false: $0 to start, recovered with setupSurcharge per sale until setupFee is covered
+  setupSurcharge: 1,
   foundingFilms: 5, // number of films that get the setup fee waived
   licensePercent: 0.05,
   tiers: {

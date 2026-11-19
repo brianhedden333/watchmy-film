@@ -78,7 +78,13 @@ export function signInEmail(to, link, isNew) {
 
 export function filmSubmittedEmail(to, film, how) {
   const dash = `${config.appUrl}/add-a-film/?film=${film.id}`;
-  const line = how === "paid" ? `We received your $${(config.setupFeeCents / 100).toFixed(0)} setup fee.` : "Your setup fee was waived.";
+  const fee = `$${(config.setupFeeCents / 100).toFixed(0)}`;
+  const line =
+    how === "paid"
+      ? `We received your ${fee} setup fee.`
+      : how === "deferred"
+        ? `There's nothing to pay now. Once you're selling, we add $${(config.setupSurchargeCents / 100).toFixed(0)} to our fee on each sale until the ${fee} setup cost is covered.`
+        : "Your setup fee was waived.";
   return sendEmail({
     to,
     subject: `${film.title} is in review`,

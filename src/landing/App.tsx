@@ -508,7 +508,7 @@ function Pricing() {
   return (
     <section id="pricing" className="house pricing" aria-labelledby="pricing-title">
       <div className="wrap">
-        <h2 id="pricing-title">No monthly fee. {money(pricing.setupFee).replace(".00", "")} one-time setup cost.</h2>
+        <h2 id="pricing-title">No monthly fee. $0 to start.</h2>
 
         <div className="calc">
           <div className="calc-controls">
@@ -554,6 +554,10 @@ function Pricing() {
               </dd>
             </div>
           </dl>
+          <p className="calc-note">
+            Shown after setup is covered. Until then, we add {money(pricing.setupSurcharge).replace(".00", "")} to each sale
+            until the {money(pricing.setupFee).replace(".00", "")} setup cost is paid off.
+          </p>
           <p className="visually-hidden" aria-live="polite">
             At {money(price)} on {tier === "standard" ? "Standard" : "Secure"}, you keep {money(split.filmmaker)}.
           </p>
@@ -583,7 +587,11 @@ function Pricing() {
         </div>
 
         <ul className="fine">
-          <li>Setup is {money(pricing.setupFee).replace(".00", "")} once: your page, Stripe connection and a test purchase together.</li>
+          <li>
+            Setup is $0 to start: we build your page, connect Stripe and run a test purchase together. We recover the{" "}
+            {money(pricing.setupFee).replace(".00", "")} setup cost with {money(pricing.setupSurcharge).replace(".00", "")} per
+            sale until it's paid off. If you don't sell, you don't pay.
+          </li>
           <li>Stripe's card fee is 2.9% + 30¢ per sale on any plan.</li>
         </ul>
       </div>

@@ -53,14 +53,14 @@ export type Film = {
   color_button: string | null;
   notes: string | null;
   status: "draft" | "in_review" | "changes_requested" | "approved" | "live";
-  setup_status: "unpaid" | "paid" | "waived";
+  setup_status: "unpaid" | "paid" | "waived" | "deferred";
   admin_note: string | null;
   missing: string[];
   hidden: boolean;
   editable: boolean;
 };
 
-export type FilmsResponse = { films: Film[]; setupFeeCents: number; checkoutEnabled: boolean };
+export type FilmsResponse = { films: Film[]; setupFeeCents: number; setupUpfront: boolean; setupSurchargeCents: number; checkoutEnabled: boolean };
 
 // The film's public address (no https://): watch.<their domain>, or <name>.watchmyfilm.online.
 export function liveAddress(f: Pick<Film, "address_type" | "own_domain" | "subdomain">) {

@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, getMe, type User } from "./api";
+import { pricing } from "./config";
 import { liveAddress, pillClass, statusLabel, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import "./styles.css";
@@ -16,7 +17,7 @@ function nextStep(f: Film) {
   switch (f.status) {
     case "draft":
       if (f.missing.length) return `Finish the film details (${f.missing.length} left)`;
-      return f.setup_status === "unpaid" ? "Pay the setup fee to send it for review" : "Send it for review";
+      return f.setup_status === "unpaid" && pricing.setupUpfront ? "Pay the setup fee to send it for review" : "Send it for review";
     case "in_review":
       return "We're reviewing it. We'll email you when it's approved.";
     case "changes_requested":

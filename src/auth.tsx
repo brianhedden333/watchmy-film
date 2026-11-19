@@ -307,9 +307,16 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
               <li>
                 <strong>Add your film.</strong> Enter its title, poster, trailer and prices.
               </li>
-              <li>
-                <strong>Pay the setup fee.</strong> ${pricing.setupFee} once, or enter a code if we gave you one.
-              </li>
+              {pricing.setupUpfront ? (
+                <li>
+                  <strong>Pay the setup fee.</strong> ${pricing.setupFee} once, or enter a code if we gave you one.
+                </li>
+              ) : (
+                <li>
+                  <strong>Send it for review.</strong> $0 to start. Once you're selling, we add ${pricing.setupSurcharge} per
+                  sale until the ${pricing.setupFee} setup cost is covered.
+                </li>
+              )}
               <li>
                 <strong>We review your film.</strong> We check the film and its content before anything goes public.
               </li>

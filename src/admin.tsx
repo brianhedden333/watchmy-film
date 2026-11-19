@@ -105,7 +105,13 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
   }
 
   const setup =
-    film.setup_status === "paid" ? `Paid ${dollars(film.paid_cents)}` : film.setup_status === "waived" ? `Waived (${film.codes_used || "code"})` : "Unpaid";
+    film.setup_status === "paid"
+      ? `Paid ${dollars(film.paid_cents)}`
+      : film.setup_status === "waived"
+        ? `Waived (${film.codes_used || "code"})`
+        : film.setup_status === "deferred"
+          ? "$0 to start ($1 per sale until covered)"
+          : "Not sent yet";
   const price = [film.rent_price_cents && `Rent ${dollars(film.rent_price_cents)}`, film.buy_price_cents && `Buy ${dollars(film.buy_price_cents)}`].filter(Boolean).join(" · ");
   const address = film.address_type === "own" ? `watch.${film.own_domain || "?"}` : `${film.subdomain || "?"}.${site.name}`;
 

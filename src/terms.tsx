@@ -43,9 +43,11 @@ function Terms() {
       <Section id="fees" title="Fees">
         <ul>
           <li>
-            <strong>Setup fee:</strong> {usd(pricing.setupFee)} per film, paid once when you submit it for review, unless we
-            give you a code that waives it. If we don't approve your film, we refund the setup fee in full. Once your film is
-            approved, the setup fee isn't refundable.
+            <strong>Setup:</strong> $0 to start. There's nothing to pay when you submit a film for review. Setup is a{" "}
+            {usd(pricing.setupFee)} cost per film, which we recover by adding {usd(pricing.setupSurcharge)} to our platform
+            fee on each sale of that film until we've collected {usd(pricing.setupFee)} in total. After that, only the
+            platform fee below applies. If the film never sells enough to cover it, you owe nothing more: we never bill you
+            separately for the rest. We may waive this for some films.
           </li>
           <li>
             <strong>Platform fee per sale:</strong> {pct(standard.percent)} (at least {usd(standard.minimum)}) on the Standard
@@ -53,7 +55,10 @@ function Terms() {
             purchases and pay-what-you-want payments made through your watch page.
           </li>
           <li>Stripe's own processing fees are separate and are charged by Stripe.</li>
-          <li>There is no monthly fee. We'll give you at least 30 days' notice by email before changing fees.</li>
+          <li>
+            There is no monthly fee. We'll give you at least 30 days' notice by email before changing fees. A change to how
+            setup is charged applies only to films submitted after the change.
+          </li>
           <li>
             Tips sent through Venmo, PayPal or Zelle go directly to you. We aren't part of those payments and take no fee
             on them.
