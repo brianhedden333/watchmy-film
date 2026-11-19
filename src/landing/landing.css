@@ -33,6 +33,13 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* No snapping on phones and small tablets: sections are taller than the screen there, and free scrolling reads better. */
+@media (max-width: 860px) {
+  html {
+    scroll-snap-type: none;
+  }
+}
+
 body {
   margin: 0;
   background: var(--screen);
