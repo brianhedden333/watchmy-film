@@ -1,5 +1,6 @@
 // Public watch pages: <name>.watchmyfilm.online (and later watch.<their domain>) show a live film to anyone.
-// Only what a viewer may see is returned. Never the paid film's Vimeo link or the bonus video links.
+// Only what a viewer may see is returned. Never a paid film's Vimeo link or the bonus video links;
+// a film that's free to watch includes its own link (bonus features stay paid).
 
 import { Router } from "express";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -66,6 +67,8 @@ function viewerFilm(row) {
     tip_venmo: f.tip_venmo,
     tip_paypal: f.tip_paypal,
     tip_zelle: f.tip_zelle,
+    free_watch: f.free_watch,
+    vimeo_url: f.free_watch ? f.vimeo_url : null,
     // Titles and descriptions only: the videos themselves are what people pay for.
     bonus: {
       rent: { description: f.bonus.rent.description, videos: f.bonus.rent.videos.map((v) => ({ title: v.title, url: "" })) },

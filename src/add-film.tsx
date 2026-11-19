@@ -25,16 +25,20 @@ const TEXT_FIELDS = [
   "color_background", "color_primary", "color_secondary", "color_button",
   "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle",
 ] as const;
-type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_price" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "discoverable", string>;
+type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable", string>;
 
 function toForm(f: Film): FormState {
   const out = {} as FormState;
   for (const k of TEXT_FIELDS) out[k] = f[k] == null ? "" : String(f[k]);
   out.rent_price = f.rent_price_cents == null ? "" : (f.rent_price_cents / 100).toFixed(2);
   out.buy_price = f.buy_price_cents == null ? "" : (f.buy_price_cents / 100).toFixed(2);
+  // Rent and Buy are on when they have a price; turning one off saves no price for it.
+  out.rent_enabled = f.rent_price_cents == null ? "" : "1";
+  out.buy_enabled = f.buy_price_cents == null ? "" : "1";
   out.pwyw_enabled = f.pwyw_enabled ? "1" : "";
   out.pwyw_min = (f.pwyw_min_cents / 100).toFixed(2);
   out.pwyw_suggested = f.pwyw_suggested_cents == null ? "" : (f.pwyw_suggested_cents / 100).toFixed(2);
+  out.free_watch = f.free_watch ? "1" : "";
   out.discoverable = f.discoverable ? "1" : "";
   return out;
 }
@@ -61,11 +65,12 @@ function toBody(s: FormState, credits: Credit[], bonus: Bonus, tags: string[]) {
   const body: Record<string, string | number | null | Credit[] | Bonus | string[]> = { credits, bonus, tags };
   for (const k of TEXT_FIELDS) body[k] = s[k];
   const cents = (v: string) => (v.trim() === "" ? null : Math.round(Number(v.replace(/[$,\s]/g, "")) * 100));
-  body.rent_price_cents = cents(s.rent_price);
-  body.buy_price_cents = cents(s.buy_price);
+  body.rent_price_cents = s.rent_enabled ? cents(s.rent_price) : null;
+  body.buy_price_cents = s.buy_enabled ? cents(s.buy_price) : null;
   body.pwyw_enabled = s.pwyw_enabled ? 1 : 0;
   body.pwyw_min_cents = cents(s.pwyw_min);
   body.pwyw_suggested_cents = cents(s.pwyw_suggested);
+  body.free_watch = s.free_watch ? 1 : 0;
   body.discoverable = s.discoverable ? 1 : 0;
   return body;
 }
@@ -248,6 +253,16 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
   };
 
   async function save(): Promise<boolean> {
+    // A switched-on option needs its price.
+    const priceErrs: Record<string, string> = {};
+    if (!locked && form.rent_enabled && !form.rent_price.trim()) priceErrs.rent_price = "is needed while Rent is on";
+    if (!locked && form.buy_enabled && !form.buy_price.trim()) priceErrs.buy_price = "is needed while Buy is on";
+    if (Object.keys(priceErrs).length) {
+      setErrors(priceErrs);
+      setSaveError("Add the missing prices.");
+      setSaveState("error");
+      return false;
+    }
     setSaveState("saving");
     setErrors({});
     try {
@@ -362,8 +377,11 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                   onChange={(e) => set("discoverable")(e.target.checked ? "1" : "")}
                 />
                 <span>
-                  <strong>Allow my film to be discovered in Browse</strong>
-                  <span className="hint">Lists your film where viewers browse {site.name} films. Tags help the right viewers find it.</span>
+                  <strong>List my film in watchmyfilm Browse.</strong>
+                  <span className="hint">
+                    Optional, and off unless you turn it on. Viewers browsing {site.name} films can find yours in Browse. Tags help the
+                    right viewers find it. You can change this any time, even after your film is live.
+                  </span>
                 </span>
               </label>
               {form.discoverable && (
@@ -423,14 +441,57 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
 
           <fieldset>
             <legend>Prices</legend>
-            <p className="fieldset-hint">Set a rent price, a buy price, or both. You can also let viewers pay what they want.</p>
-            <div className="row-2">
-              {field("rent_price", "Rent price", { prefix: "$", inputMode: "decimal", placeholder: "4.99" })}
-              {field("buy_price", "Buy price", { prefix: "$", inputMode: "decimal", placeholder: "14.99" })}
+            <p className="fieldset-hint">
+              Turn on any mix of renting, buying and donations. Or leave them all off and use the Tip jar below (Venmo,
+              PayPal or Zelle, and free viewing if you like): no Stripe needed.
+            </p>
+            <section className="stripe-options" aria-labelledby="stripe-options-h">
+            <h3 id="stripe-options-h">Stripe Checkout Options</h3>
+            <p className="stripe-options-hint">Paid through Stripe into your own account. Any of these means you'll connect Stripe before going live.</p>
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.rent_enabled}
+                  disabled={locked}
+                  onChange={(e) => set("rent_enabled")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Rent</strong>
+                  <span className="hint">Viewers pay once to watch for a limited time.</span>
+                </span>
+              </label>
+              {form.rent_enabled && (
+                <>
+                  <div className="row-2">
+                    {field("rent_price", "Rent price", { prefix: "$", inputMode: "decimal", placeholder: "4.99" })}
+                  </div>
+                  <div className="row-2">
+                    {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
+                    {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
+                  </div>
+                </>
+              )}
             </div>
-            <div className="row-2">
-              {field("rental_days", "Rental: days to start watching", { inputMode: "numeric", placeholder: "30" })}
-              {field("rental_hours", "Rental: hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
+
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.buy_enabled}
+                  disabled={locked}
+                  onChange={(e) => set("buy_enabled")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Buy</strong>
+                  <span className="hint">Viewers pay once and can watch whenever they like.</span>
+                </span>
+              </label>
+              {form.buy_enabled && (
+                <div className="row-2">
+                  {field("buy_price", "Buy price", { prefix: "$", inputMode: "decimal", placeholder: "14.99" })}
+                </div>
+              )}
             </div>
 
             <div className="pwyw">
@@ -442,7 +503,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                   onChange={(e) => set("pwyw_enabled")(e.target.checked ? "1" : "")}
                 />
                 <span>
-                  <strong>Also offer pay what you want</strong>
+                  <strong>Accept donations</strong>
                   <span className="hint">Viewers choose the amount, from your minimum up. It goes through Stripe like any sale and unlocks the film.</span>
                 </span>
               </label>
@@ -463,9 +524,16 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                       ["buy", "Theirs to keep, like a purchase"],
                     ]}
                   />
+                  {!form.rent_enabled && form.pwyw_access === "rent" && (
+                    <div className="row-2">
+                      {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
+                      {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
+                    </div>
+                  )}
                 </>
               )}
             </div>
+            </section>
           </fieldset>
 
           <fieldset>
@@ -478,6 +546,23 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             {field("tip_venmo", "Venmo username", { prefix: "@", placeholder: "Jane-Filmmaker" })}
             {field("tip_paypal", "PayPal.Me name", { prefix: "paypal.me/", placeholder: "janefilms" })}
             {field("tip_zelle", "Zelle email or phone", { placeholder: "jane@example.com", hint: "Zelle has no payment links, so viewers see this and send from their bank's app." })}
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.free_watch}
+                  disabled={locked}
+                  onChange={(e) => set("free_watch")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Allow the film to be watched for free</strong>
+                  <span className="hint">
+                    Anyone can watch without paying. Rent, Buy and donations stay available if they're on, and bonus features still
+                    come only with a rental or purchase. Shows as Donation-based in Browse.
+                  </span>
+                </span>
+              </label>
+            </div>
           </fieldset>
 
           <fieldset>
@@ -984,7 +1069,8 @@ function ColorField({ label, hint, value, fallback, onChange, disabled, error }:
 
 // The Rent (or Buy) box from the watch page, drawn with the colors being picked. Uses the watch page's own styles.
 function DesignPreview({ form }: { form: FormState }) {
-  const rent = form.rent_price.trim() || (form.buy_price.trim() ? "" : "4.99");
+  const buy = form.buy_enabled ? form.buy_price.trim() : "";
+  const rent = (form.rent_enabled ? form.rent_price.trim() : "") || (buy ? "" : "4.99");
   const days = form.rental_days.trim() || "30";
   const hours = form.rental_hours.trim() || "72";
   return (
@@ -1003,7 +1089,7 @@ function DesignPreview({ form }: { form: FormState }) {
           </>
         ) : (
           <>
-            <h3>Buy for ${form.buy_price.trim()}</h3>
+            <h3>Buy for ${buy}</h3>
             <p className="s-sub">Lifetime access via this website</p>
             <div className="s-box">
               <ul className="s-checks">
@@ -1020,17 +1106,28 @@ function DesignPreview({ form }: { form: FormState }) {
 }
 
 // Progress across the top. A step with something to do (or read) scrolls to it when clicked.
+// Rent, buy or donations go through Stripe, so they need the filmmaker's Stripe details. Free viewing alone doesn't.
+// Matches sellsWithStripe in server/src/films.js.
+const sellsWithStripe = (f: Film) => !!(f.rent_price_cents || f.buy_price_cents || f.pwyw_enabled);
+
 function Steps({ film, stripe, upfront }: { film: Film; stripe: StripeInfo | null; upfront: boolean }) {
   const detailsDone = film.missing.length === 0;
   const feeDone = film.setup_status !== "unpaid";
   const reviewDone = film.status === "approved" || film.status === "live";
   const live = film.status === "live";
-  const stripeNote = !reviewDone || live ? "" : stripe?.hasAccount ? "Ready: go live whenever you want" : "Add your Stripe details, then go live";
+  const needsStripe = sellsWithStripe(film);
+  const ready = !needsStripe || !!stripe?.hasAccount;
+  const stripeNote = !reviewDone || live ? "" : ready ? "Ready: go live whenever you want" : "Add your Stripe details, then go live";
   const steps: { label: string; done: boolean; note?: string; target: string }[] = [
     { label: "Film details", done: detailsDone, note: detailsDone ? "" : `${film.missing.length} left`, target: "film-form" },
     ...(upfront ? [{ label: "Setup fee", done: feeDone, target: "setup-card" }] : []),
     { label: "Review", done: reviewDone, note: film.status === "changes_requested" ? "Changes requested" : "", target: "setup-card" },
-    { label: "Connect Stripe and go live", done: live, note: stripeNote, target: film.status === "approved" ? (stripe?.hasAccount ? "go-live" : "get-paid") : feeDone && !live ? "get-paid" : "setup-card" },
+    {
+      label: needsStripe ? "Connect Stripe and go live" : "Go live",
+      done: live,
+      note: stripeNote,
+      target: film.status === "approved" ? (ready ? "go-live" : "get-paid") : needsStripe && feeDone && !live ? "get-paid" : "setup-card",
+    },
   ];
   const current = steps.findIndex((st) => !st.done);
   const go = (id: string) => {
@@ -1058,6 +1155,8 @@ function Steps({ film, stripe, upfront }: { film: Film; stripe: StripeInfo | nul
 
 function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; dirty: boolean; save: () => Promise<boolean>; onChange: (f: Film) => void; stripe: StripeInfo | null; onStripe: (s: StripeInfo) => void }) {
   const [busy, setBusy] = useState<"" | "pay" | "code" | "submit" | "resubmit" | "live" | "visibility">("");
+  const needsStripe = sellsWithStripe(film);
+  const ready = !needsStripe || !!stripe?.hasAccount;
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
   const codeId = useId();
@@ -1136,7 +1235,7 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
       in_review: ["In review", "We're checking your film and its details. We'll email you when it's approved, usually within two business days."],
       approved: [
         "Approved",
-        stripe?.hasAccount
+        ready
           ? "Your film passed review. Your page goes public when you say so: check the preview, then go live."
           : "Your film passed review. Add your Stripe details below, then you can go live whenever you're ready.",
       ],
@@ -1157,11 +1256,11 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
         {film.admin_note && <blockquote className="admin-note">{film.admin_note}</blockquote>}
         {film.status === "approved" && (
           <div id="go-live" tabIndex={-1} className="go-live">
-            <button type="button" className="btn setup-pay" onClick={goLive} disabled={!!busy || !stripe?.hasAccount}>
+            <button type="button" className="btn setup-pay" onClick={goLive} disabled={!!busy || !ready}>
               {busy === "live" ? "Going live…" : "Go live"}
             </button>
             <p className="small-print">
-              {stripe?.hasAccount ? "Your page becomes public and viewers can rent or buy." : "Add your Stripe details below first."}
+              {!ready ? "Add your Stripe details below first." : needsStripe ? "Your page becomes public and viewers can rent or buy." : "Your page becomes public and anyone can watch for free."}
             </p>
           </div>
         )}
@@ -1244,7 +1343,8 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
   }
 
   // Once the fee is in, they can tell us where to be paid while we review.
-  const askStripe = film.setup_status !== "unpaid" && (film.status === "in_review" || film.status === "approved" || film.status === "changes_requested");
+  // Only films that sell through Stripe (rent, buy or donations) need it; free-only films skip this.
+  const askStripe = needsStripe && film.setup_status !== "unpaid" && (film.status === "in_review" || film.status === "approved" || film.status === "changes_requested");
 
   return (
     <aside className="setup-card" id="setup-card" tabIndex={-1} aria-label="Setup">

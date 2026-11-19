@@ -1704,6 +1704,32 @@ a.library-poster:focus-visible {
   margin-top: 16px;
 }
 
+.pwyw + .pwyw {
+  margin-top: 12px;
+}
+
+/* Rent, Buy and donations: everything that goes through Stripe, boxed together. */
+.stripe-options {
+  margin-top: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.stripe-options h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--screen);
+}
+
+.stripe-options-hint {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
 .pwyw-label {
   margin: 0 0 8px;
   font-size: 15px;

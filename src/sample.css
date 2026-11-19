@@ -580,6 +580,45 @@
   margin: 0;
 }
 
+/* Free to watch: the title and note on the left, the button on the right (stacked on phones). */
+.s-free {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 24px;
+  padding: 24px 32px;
+}
+
+.s-card.s-free h3 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.s-free .s-sub {
+  grid-column: 1;
+  margin: 0;
+}
+
+.s-free .s-btn {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.s-free .preview-note {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 680px) {
+  .s-free {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .s-free .s-btn {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
 .s-card.s-pwyw h3 {
   font-size: 24px;
   margin-bottom: 4px;

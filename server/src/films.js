@@ -224,6 +224,7 @@ const FIELDS = {
   tip_venmo: venmo,
   tip_paypal: paypal,
   tip_zelle: zelle,
+  free_watch: flag,
   discoverable: flag,
   tags,
   rental_days: int(1, 365),
@@ -249,7 +250,7 @@ const LABELS = {
   poster_path: "Poster",
   still_path: "Wide image",
   vimeo_url: "Film link (Vimeo or YouTube)",
-  price: "A rent, buy or pay-what-you-want price",
+  price: "A rent, buy or donation price, free viewing, or a tip jar",
 };
 
 const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
@@ -260,7 +261,8 @@ const ALWAYS_EDITABLE = new Set(["discoverable", "tags"]);
 export function missingFields(f) {
   const missing = [];
   for (const k of ["title", "synopsis", "poster_path", "still_path", "vimeo_url"]) if (!f[k]) missing.push(LABELS[k]);
-  if (!f.rent_price_cents && !f.buy_price_cents && !f.pwyw_enabled) missing.push(LABELS.price);
+  const hasTips = !!(f.tip_venmo || f.tip_paypal || f.tip_zelle);
+  if (!f.rent_price_cents && !f.buy_price_cents && !f.pwyw_enabled && !f.free_watch && !hasTips) missing.push(LABELS.price);
   if (!f.subdomain) missing.push(LABELS.subdomain);
   return missing;
 }
@@ -278,6 +280,7 @@ export const publicFilm = (f) => ({
   missing: missingFields(f),
   hidden: !!f.hidden,
   pwyw_enabled: !!f.pwyw_enabled,
+  free_watch: !!f.free_watch,
   discoverable: !!f.discoverable,
   tags: f.tags ? JSON.parse(f.tags) : [],
   editable: EDITABLE.has(f.status),
@@ -502,12 +505,15 @@ filmsRouter.post("/:id/redeem", rateLimit({ windowMs: 15 * 60_000, max: 10 }), a
 
 // After we ask for changes, the filmmaker sends it back to review (fee already handled).
 // After approval the owner decides when the page goes public, and can take it down again.
-// Going live needs their Stripe details, since sales are paid into their account.
+// Going live needs their Stripe details when the film sells anything (rent, buy or donations), since sales are paid
+// into their account. A film that's only free to watch and/or has a tip jar can go live without them.
+export const sellsWithStripe = (f) => !!(f.rent_price_cents || f.buy_price_cents || f.pwyw_enabled);
+
 filmsRouter.post("/:id/go-live", (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
   if (film.status !== "approved") return res.status(409).json({ error: "Your film can go live once it's approved." });
-  if (!req.user.stripe_has_account || !req.user.stripe_email) {
+  if (sellsWithStripe(film) && (!req.user.stripe_has_account || !req.user.stripe_email)) {
     return res.status(400).json({ error: "Add your Stripe details first, so sales can be paid to you." });
   }
   db.prepare("UPDATE films SET status = 'live', updated_at = ? WHERE id = ?").run(now(), film.id);

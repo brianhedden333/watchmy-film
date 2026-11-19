@@ -183,6 +183,11 @@ const MIGRATIONS = [
   ALTER TABLE films ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE films ADD COLUMN tags TEXT;
   `,
+  `
+  -- Free to watch: anyone can play the film without paying. Rent, buy and donations still work if they're set,
+  -- but bonus features stay with rentals and purchases.
+  ALTER TABLE films ADD COLUMN free_watch INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

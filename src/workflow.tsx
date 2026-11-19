@@ -24,7 +24,7 @@ const phases: Phase[] = [
   {
     title: "Payments",
     items: [
-      { id: "connect", who: "Filmmaker", task: "Connect Stripe account", note: "Send them your Connect onboarding link. They verify identity and add a bank account." },
+      { id: "connect", who: "Filmmaker", task: "Connect Stripe account", note: "Send them your Connect onboarding link. They verify identity and add a bank account. Skip this whole section for a film with no Rent, Buy or donations (free viewing and/or tip jar only): it needs no Stripe." },
       { id: "connect-check", who: "You", task: "Confirm the account can take payments", note: "In your Connect dashboard: charges enabled and payouts enabled are both on." },
       { id: "descriptor", who: "Filmmaker", task: "Set statement descriptor and receipt branding", note: "So the charge shows the film's name on bank statements instead of something viewers dispute." },
       { id: "methods", who: "Filmmaker", task: "Turn on payment methods", note: "Apple Pay, Google Pay, Link; Cash App Pay optional." },

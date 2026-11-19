@@ -147,8 +147,8 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
   const note = preview ? "Preview only: on your live page this opens checkout." : "Online checkout is opening soon. Check back shortly.";
   const [tried, setTried] = useState("");
   // Admins skip checkout: Rent/Buy opens the screening room a renter or buyer would get.
-  const [watching, setWatching] = useState<"rent" | "buy" | null>(null);
-  const open = (kind: "rent" | "buy") => {
+  const [watching, setWatching] = useState<"rent" | "buy" | "free" | null>(null);
+  const open = (kind: "rent" | "buy" | "free") => {
     setWatching(kind);
     requestAnimationFrame(() => document.querySelector(".s-main")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
@@ -179,7 +179,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
 
   const offers = (rent ? 1 : 0) + (buy ? 1 : 0);
   const hasTips = !!(f.tip_venmo || f.tip_paypal || f.tip_zelle);
-  const extras = f.pwyw_enabled || hasTips;
+  const extras = f.free_watch || f.pwyw_enabled || hasTips;
   // The filmmaker's own line for each box; if they left it blank but added videos, list the titles.
   const bonusLine = (k: "rent" | "buy") => {
     const b = f.bonus[k];
@@ -227,7 +227,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
 
       <main className="s-wrap s-main">
         {watching ? (
-          <ScreeningRoom film={f} kind={watching} days={days} hours={hours} onSwitch={setWatching} onClose={() => setWatching(null)} />
+          <ScreeningRoom film={f} kind={watching} admin={canWatch} days={days} hours={hours} onSwitch={setWatching} onClose={() => setWatching(null)} />
         ) : (
         <div className={`s-buy offers-${offers}${extras ? " has-extras" : ""}`}>
           {f.poster_url ? (
@@ -270,12 +270,26 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
             </div>
           )}
 
-          {preview && offers === 0 && !f.pwyw_enabled && (
-            <div className="s-card preview-missing">Add a rent or buy price and your offers appear here.</div>
+          {preview && offers === 0 && !f.pwyw_enabled && !f.free_watch && !hasTips && (
+            <div className="s-card preview-missing">Add a price, free viewing or a tip jar and your offers appear here.</div>
           )}
 
           {extras && (
             <div className="s-extras">
+              {f.free_watch && (
+                <div className="s-card s-free">
+                  <h3>Watch for free</h3>
+                  <p className="s-sub">No payment needed. If you enjoy it, consider supporting the filmmaker.</p>
+                  <button type="button" className="s-btn" onClick={() => (canWatch || f.vimeo_url ? open("free") : setTried("free"))}>
+                    ▶ Watch Free
+                  </button>
+                  {tried === "free" && (
+                    <p className="s-fine preview-note" role="status">
+                      Add your film link and the film plays here.
+                    </p>
+                  )}
+                </div>
+              )}
               {f.pwyw_enabled && (
                 <PayWhatYouWant
                   film={f}
@@ -338,10 +352,11 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
 
 // What a viewer gets after paying: the film in a large player where the poster and price boxes were,
 // their access terms, and the bonus features for what they bought, playable in the same player.
-function ScreeningRoom({ film: f, kind, days, hours, onSwitch, onClose }: {
-  film: Film; kind: "rent" | "buy"; days: number; hours: number; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
+function ScreeningRoom({ film: f, kind, admin, days, hours, onSwitch, onClose }: {
+  film: Film; kind: "rent" | "buy" | "free"; admin: boolean; days: number; hours: number; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
 }) {
-  const items = [{ title: "The film", url: f.vimeo_url || "" }, ...f.bonus[kind].videos];
+  // Free viewing is the film alone: bonus features come with a rental or purchase.
+  const items = [{ title: "The film", url: f.vimeo_url || "" }, ...(kind === "free" ? [] : f.bonus[kind].videos)];
   const [playing, setPlaying] = useState(0);
   useEffect(() => setPlaying(0), [kind]);
   const current = items[playing];
@@ -351,14 +366,18 @@ function ScreeningRoom({ film: f, kind, days, hours, onSwitch, onClose }: {
   return (
     <section className="s-screen" aria-label={`Watching ${f.title}`}>
       <div className="s-screen-admin">
-        <span>Admin view: what a {kind === "rent" ? "renter" : "buyer"} sees after paying.</span>
-        {both && (
+        {kind === "free" ? (
+          admin && <span>Admin view: what anyone sees when they watch free.</span>
+        ) : (
+          <span>Admin view: what a {kind === "rent" ? "renter" : "buyer"} sees after paying.</span>
+        )}
+        {both && kind !== "free" && (
           <button type="button" className="link-btn" onClick={() => onSwitch(kind === "rent" ? "buy" : "rent")}>
             Show the {kind === "rent" ? "buyer" : "renter"} view
           </button>
         )}
         <button type="button" className="link-btn" onClick={onClose}>
-          Back to Rent and Buy
+          {kind === "free" ? "Back to the film page" : "Back to Rent and Buy"}
         </button>
       </div>
 
@@ -378,10 +397,12 @@ function ScreeningRoom({ film: f, kind, days, hours, onSwitch, onClose }: {
             Now playing: <strong>{playing === 0 ? f.title : current.title}</strong>
           </p>
           <p className="s-access">
-            {kind === "rent"
-              ? `Rented. Start within ${days} days, then you have ${hours} hours to finish.`
-              : "Yours to keep. Watch any time on this website."}{" "}
-            On another device? Sign in with the email you paid with.
+            {kind === "free"
+              ? "Free to watch, thanks to the filmmaker."
+              : kind === "rent"
+                ? `Rented. Start within ${days} days, then you have ${hours} hours to finish.`
+                : "Yours to keep. Watch any time on this website."}{" "}
+            {kind !== "free" && "On another device? Sign in with the email you paid with."}
           </p>
         </div>
       </div>

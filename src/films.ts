@@ -39,6 +39,7 @@ export type Film = {
   tip_venmo: string | null;
   tip_paypal: string | null;
   tip_zelle: string | null;
+  free_watch: boolean;
   rental_days: number | null;
   rental_hours: number | null;
   tier: "standard" | "secure";
