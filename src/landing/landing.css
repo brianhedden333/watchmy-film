@@ -945,6 +945,10 @@ textarea:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.pricing-cta {
+  margin-top: 40px;
+}
+
 .calc-note {
   margin: 20px 0 0;
   font-size: 15px;

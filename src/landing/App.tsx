@@ -584,6 +584,10 @@ function Pricing() {
           </li>
           <li>Stripe's card fee is 2.9% + 30¢ per sale.</li>
         </ul>
+
+        <a href={signupUrl} className="btn pricing-cta">
+          Get started
+        </a>
       </div>
     </section>
   );
