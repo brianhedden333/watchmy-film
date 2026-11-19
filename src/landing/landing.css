@@ -511,6 +511,11 @@ textarea:focus-visible {
   padding: clamp(40px, 4vw, 56px) 0;
 }
 
+/* Menu links stop each section just below the fixed menu bar (also set on html; this one is what Safari uses). */
+main section[id] {
+  scroll-margin-top: 64px;
+}
+
 .house {
   background: var(--house);
 }
