@@ -296,17 +296,16 @@
   transform: translateY(-6px);
 }
 
+/* The poster large on top (as big as the screen height allows), then the title, details and prices. */
 .bz-peek-head {
-  display: grid;
-  grid-template-columns: 42% minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
   flex: none;
 }
 
 .bz-peek-poster {
   display: block;
-  width: 100%;
+  width: min(100%, calc((100svh - 400px) * 2 / 3));
+  min-width: 160px;
+  margin-bottom: 16px;
   height: auto;
   aspect-ratio: 2 / 3;
   object-fit: cover;
@@ -331,9 +330,10 @@
   margin: 12px 0 0;
   padding: 10px 0 0;
   border-top: 1px solid var(--seam);
-  display: grid;
-  gap: 2px;
-  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 15px;
   font-weight: 600;
 }
 
