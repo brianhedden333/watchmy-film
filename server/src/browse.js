@@ -33,6 +33,8 @@ function card(f) {
     rental_hours: f.rental_hours,
     pwyw_enabled: !!f.pwyw_enabled,
     pwyw_min_cents: f.pwyw_min_cents,
+    // Which tip jars it has (the handles themselves are on the film's own page).
+    tips: ["venmo", "paypal", "zelle"].filter((k) => f[`tip_${k}`]),
     trailer_url: f.trailer_url, // public anyway: it plays on the watch page for everyone
     // The film's own page colors (public on its watch page). The spine is printed in them.
     color_background: f.color_background,

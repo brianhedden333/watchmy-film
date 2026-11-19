@@ -34,6 +34,7 @@ type Card = {
   rental_hours: number | null;
   pwyw_enabled: boolean;
   pwyw_min_cents: number;
+  tips: ("venmo" | "paypal" | "zelle")[];
   trailer_url: string | null;
   staff_pick: boolean;
   color_background: string | null;
@@ -44,6 +45,19 @@ type Card = {
 };
 
 const NEW_MAX = 6; // spines in New Arrivals
+const DONATION = "Donation-based"; // the aisle for films that take pay-what-you-want or tips
+
+// Pay what you want, or a tip jar.
+const takesDonations = (f: Card) => f.pwyw_enabled || f.tips.length > 0;
+const TIP_NAMES = { venmo: "Venmo", paypal: "PayPal", zelle: "Zelle" };
+function donationLine(f: Card) {
+  return [
+    f.pwyw_enabled && `Pay what you want, from $${(f.pwyw_min_cents / 100).toFixed(2)}`,
+    f.tips.length > 0 && `Tips by ${f.tips.map((t) => TIP_NAMES[t]).join(", ")}`,
+  ]
+    .filter(Boolean)
+    .join(". ");
+}
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
 const href = (f: Card) => `https://${f.address}`;
@@ -150,13 +164,15 @@ function Browse() {
     );
   }, [films]);
 
+  const donationCount = useMemo(() => (films || []).filter(takesDonations).length, [films]);
   const query = q.trim().toLowerCase();
   const filtering = !!aisle || !!query;
   const shown = useMemo(() => {
     if (!films) return [];
     return films.filter((f) => {
-      if (aisle && !f.tags.some((t) => t.toLowerCase() === aisle.toLowerCase()))
-        return false;
+      if (aisle === DONATION) {
+        if (!takesDonations(f)) return false;
+      } else if (aisle && !f.tags.some((t) => t.toLowerCase() === aisle.toLowerCase())) return false;
       if (!query) return true;
       const hay = [f.title, f.director, f.genre, f.logline, ...f.tags]
         .filter(Boolean)
@@ -308,6 +324,13 @@ function Browse() {
               >
                 Everything
               </button>
+              {donationCount > 0 && (
+                <button type="button" className="bz-aisle-donate" aria-pressed={aisle === DONATION} onClick={() => setAisle(DONATION)}>
+                  <span className="bz-dot" aria-hidden="true" />
+                  {DONATION}
+                  <span className="bz-n">{donationCount}</span>
+                </button>
+              )}
               {aisles.map((a) => (
                 <button
                   key={a.name}
@@ -398,7 +421,14 @@ function Spine({
       onClick={(e) => onOpen(e.currentTarget)}
     >
       <span className="bz-spine-who">{f.director}</span>
-      <span className="bz-spine-title">{f.title}</span>
+      <span className="bz-spine-title">
+        {f.title}
+        {takesDonations(f) && (
+          <span className="bz-dot bz-spine-dot" title="Accepts donations">
+            <span className="visually-hidden">Accepts donations</span>
+          </span>
+        )}
+      </span>
       <span className="bz-spine-time">{f.runtime_minutes ? `${f.runtime_minutes} min` : ""}</span>
       <span className="bz-spine-year">{f.year}</span>
       <span className="bz-spine-img" aria-hidden="true">
@@ -423,8 +453,8 @@ function Peek({ film: f }: { film: Card | null }) {
   const prices = [
     f.rent_price_cents != null && `Rent ${money(f.rent_price_cents)}`,
     f.buy_price_cents != null && `Buy ${money(f.buy_price_cents)}`,
-    f.pwyw_enabled && `Pay what you want from ${money(f.pwyw_min_cents)}`,
   ].filter(Boolean) as string[];
+  const donations = takesDonations(f) ? donationLine(f) : "";
   const paragraphs = (f.synopsis || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   const credits = f.credits.filter((c) => !/^directors?$/i.test(c.role)); // the director is already up top
   return (
@@ -441,6 +471,11 @@ function Peek({ film: f }: { film: Card | null }) {
                 <li key={p}>{p}</li>
               ))}
             </ul>
+          )}
+          {donations && (
+            <p className="bz-peek-donate">
+              <strong>Accepts donations.</strong> {donations}.
+            </p>
           )}
           <p className="bz-peek-hint">{f.trailer_url ? "Click the spine for the trailer" : "Click the spine for details"}</p>
         </div>

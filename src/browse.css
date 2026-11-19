@@ -9,6 +9,7 @@
   --type: #ede8df;
   --aisle: #a39e95;
   --sticker: #fceb7e;
+  --donate: #b4e89a; /* the light green from the home page ("You keep") */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--room);
   color: var(--type);
@@ -203,6 +204,49 @@
   color: #000;
 }
 
+/* Donation-based: light-green outline and text, and the same green dot the spines wear. */
+.bz-aisles button.bz-aisle-donate {
+  align-items: center;
+  border-color: var(--donate);
+  color: var(--donate);
+}
+
+.bz-aisles button.bz-aisle-donate:hover {
+  border-color: var(--donate);
+  color: var(--donate);
+  background: rgba(180, 232, 154, 0.1);
+}
+
+.bz-aisles button.bz-aisle-donate[aria-pressed="true"] {
+  background: var(--donate);
+  border-color: var(--donate);
+  color: #000;
+}
+
+.bz-aisles button.bz-aisle-donate[aria-pressed="true"] .bz-dot {
+  background: #000;
+}
+
+.bz-dot {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--donate);
+}
+
+/* On a spine: a small green dot after the title, with a dark ring so it shows on any spine color. */
+.bz-spine-dot {
+  width: 11px;
+  height: 11px;
+  margin-left: 12px;
+  vertical-align: middle;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45);
+  position: relative;
+  top: -3px;
+}
+
 .bz-n {
   font-size: 13px;
   font-weight: 400;
@@ -335,6 +379,13 @@
   gap: 4px 18px;
   font-size: 15px;
   font-weight: 600;
+}
+
+.bz-peek-donate {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--sticker);
 }
 
 .bz-peek-hint {
