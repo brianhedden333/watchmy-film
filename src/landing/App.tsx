@@ -227,8 +227,8 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
       <div className="wrap hero-copy">
         <div>
           <p className="lede">
-            {site.name} builds a paywall on your film's own web address. Viewers rent or buy in two clicks, no sign-up
-            needed. Every sale lands in your Stripe account, and the viewer list is yours.
+            Build a free paywall on your film's unique web address. Viewers rent or buy in two clicks, no sign-up needed.
+            Every sale lands in your Stripe account, and the viewer list is yours.
           </p>
         </div>
         <div className="hero-act">
