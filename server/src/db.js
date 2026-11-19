@@ -39,7 +39,7 @@ const MIGRATIONS = [
   );
 
   -- status: draft -> in_review (setup fee paid or waived) -> approved -> live; or changes_requested back to the filmmaker.
-  -- setup_status: unpaid | paid | waived | deferred ($0 to start: recovered at $1 per sale until the setup fee is covered)
+  -- setup_status: unpaid | paid | waived | deferred (nothing up front: recovered at $1 per sale until the setup fee is covered)
   CREATE TABLE films (
     id INTEGER PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

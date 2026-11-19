@@ -29,7 +29,7 @@ export const config = {
   // pmc_… id of a Stripe payment method configuration for the setup fee (cards only). Optional.
   stripePaymentMethodConfig: env.STRIPE_PAYMENT_METHOD_CONFIG || "",
   setupFeeCents: Number(env.SETUP_FEE_CENTS || 9900),
-  // $0 to start (default): films go to review without paying; the setup cost is recovered by adding
+  // Nothing up front (default): films go to review without paying; the setup cost is recovered by adding
   // SETUP_SURCHARGE_CENTS to our fee on each sale until SETUP_FEE_CENTS is covered.
   // SETUP_UPFRONT=1 brings back the old flow: pay the setup fee by Stripe Checkout (or a waiver code) to submit.
   setupUpfront: env.SETUP_UPFRONT === "1",

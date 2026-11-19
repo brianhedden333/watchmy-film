@@ -105,7 +105,7 @@ function Dashboard() {
                           </a>
                         )}
                         <a className="btn btn-small btn-red" href={editUrl(f)}>
-                          {f.editable ? "Edit" : "Details"}
+                          Edit
                         </a>
                       </div>
                     </li>

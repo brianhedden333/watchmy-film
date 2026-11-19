@@ -43,7 +43,7 @@ function Terms() {
       <Section id="fees" title="Fees">
         <ul>
           <li>
-            <strong>Setup:</strong> $0 to start. There's nothing to pay when you submit a film for review. Setup is a{" "}
+            <strong>Setup:</strong> There's nothing to pay when you submit a film for review. Setup is a{" "}
             {usd(pricing.setupFee)} cost per film, which we recover by adding {usd(pricing.setupSurcharge)} to our platform
             fee on each sale of that film until we've collected {usd(pricing.setupFee)} in total. After that, only the
             platform fee below applies. If the film never sells enough to cover it, you owe nothing more: we never bill you

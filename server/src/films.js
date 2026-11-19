@@ -254,8 +254,6 @@ const LABELS = {
 };
 
 const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
-// Browse settings can be changed at any time, even after approval or go-live.
-const ALWAYS_EDITABLE = new Set(["discoverable", "tags"]);
 
 // What still needs filling in before the film can go to review.
 export function missingFields(f) {
@@ -399,9 +397,18 @@ filmsRouter.get("/:id", (req, res) => {
 filmsRouter.patch("/:id", (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
-  if (!EDITABLE.has(film.status) && Object.keys(req.body || {}).some((k) => !ALWAYS_EDITABLE.has(k)))
-    return res.status(409).json({ error: "This film is approved. Email us to change its details." });
   const { out, errors } = clean(req.body, { requireTitle: false });
+  // After approval everything stays editable except the link to the full film.
+  if (!EDITABLE.has(film.status)) {
+    if ("vimeo_url" in out && (out.vimeo_url || null) !== (film.vimeo_url || null))
+      return res.status(409).json({ error: "The link to the full film can't change after approval. Email us to change it." });
+    delete out.vimeo_url;
+    const after = { ...film, ...out };
+    const missing = missingFields(after);
+    if (missing.length) return res.status(400).json({ error: `Your film is ${film.status}, so it still needs: ${missing.join(", ")}.` });
+    if (film.status === "live" && sellsWithStripe(after) && (!req.user.stripe_has_account || !req.user.stripe_email))
+      return res.status(400).json({ error: "Add your Stripe details before turning on Rent, Buy or donations, so sales can be paid to you." });
+  }
   const minC = out.pwyw_min_cents ?? film.pwyw_min_cents;
   const sugC = "pwyw_suggested_cents" in out ? out.pwyw_suggested_cents : film.pwyw_suggested_cents;
   if (sugC != null && minC != null && sugC < minC) errors.pwyw_suggested_cents = "must be at least the minimum";
@@ -427,7 +434,6 @@ filmsRouter.post("/:id/:kind", (req, res, next) => {
   if (!image) return next(); // checkout, redeem, etc.
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
-  if (!EDITABLE.has(film.status)) return res.status(409).json({ error: `This film is approved. Email us to change its ${image.name}.` });
   uploaders[req.params.kind](req, res, (err) => {
     if (err) return res.status(400).json({ error: err.code === "LIMIT_FILE_SIZE" ? "Images can be up to 10 MB." : "Upload failed." });
     if (!req.file) return res.status(400).json({ error: "Choose a JPG, PNG or WebP image." });
@@ -436,7 +442,7 @@ filmsRouter.post("/:id/:kind", (req, res, next) => {
   });
 });
 
-// $0 to start: send the film to review with nothing to pay. The setup cost is recovered later,
+// Nothing up front: send the film to review with nothing to pay. The setup cost is recovered later,
 // $1 (SETUP_SURCHARGE_CENTS) per sale until SETUP_FEE_CENTS is covered.
 filmsRouter.post("/:id/submit", (req, res) => {
   const film = getOwnFilm(req);
@@ -450,7 +456,7 @@ filmsRouter.post("/:id/submit", (req, res) => {
     "UPDATE films SET setup_status = 'deferred', status = 'in_review', submitted_at = ?, updated_at = ? WHERE id = ?"
   ).run(t, t, film.id);
   const updated = db.prepare("SELECT * FROM films WHERE id = ?").get(film.id);
-  notifyAdmin("Film submitted", `${req.user.email} submitted "${updated.title}" ($0 to start).\n\n${config.appUrl}/admin/`);
+  notifyAdmin("Film submitted", `${req.user.email} submitted "${updated.title}".\n\n${config.appUrl}/admin/`);
   filmSubmittedEmail(req.user.email, updated, "deferred").catch((e) => console.error("Email failed:", e.message));
   res.json({ film: publicFilm(updated) });
 });

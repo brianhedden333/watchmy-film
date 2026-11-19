@@ -18,7 +18,7 @@ const phases: Phase[] = [
       { id: "rights", who: "Filmmaker", task: "Confirm rights", note: "They own distribution rights in the territories they'll sell to, music is licensed for streaming, and content fits Stripe's acceptable-use rules." },
       { id: "tier", who: "Both", task: "Choose plan and address", note: "One plan for now (8%): the film plays from their private Vimeo or unlisted YouTube link. Secure (Mux) is paused. Address: film.watchmyfilm.online or watch.theirdomain.com." },
       { id: "agreement", who: "You", task: "Send filmmaker agreement", note: "Fees, payout terms, rights warranty, refund policy, 60 days' notice before fee changes, no exclusivity." },
-      { id: "setup-fee", who: "You", task: "Setup fee: $0 to start", note: `Nothing to invoice. We recover the $${pricing.setupFee} setup cost by adding $${pricing.setupSurcharge} to our fee on each sale until it's covered. Don't start work until the agreement is signed.` },
+      { id: "setup-fee", who: "You", task: "Setup fee: nothing up front", note: `Nothing to invoice. We recover the $${pricing.setupFee} setup cost by adding $${pricing.setupSurcharge} to our fee on each sale until it's covered. Don't start work until the agreement is signed.` },
     ],
   },
   {

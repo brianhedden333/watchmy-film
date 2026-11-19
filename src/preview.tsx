@@ -71,7 +71,7 @@ function PreviewBanner({ film }: { film: Film | null }) {
         </p>
       </div>
       <a href={back} className="btn btn-small">
-        {film ? (film.editable ? "Back to editing" : "Back to your film") : "Back to your films"}
+        {film ? "Back to editing" : "Back to your films"}
       </a>
     </div>
   );

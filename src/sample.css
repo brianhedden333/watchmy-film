@@ -676,31 +676,17 @@
   text-align: center;
 }
 
-.s-tips-btn {
+.s-tips-title {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  background: none;
-  border: 1px solid var(--s-line);
-  border-radius: 999px;
-  font: 600 15px/1 var(--body);
-  color: var(--s-text);
-  cursor: pointer;
-}
-
-.s-tips-btn span {
-  color: var(--s-red);
-}
-
-.s-tips-btn:hover,
-.s-tips-btn[aria-expanded="true"] {
-  border-color: var(--s-soft);
+  margin: 0 0 12px;
+  font-size: 20px;
   color: var(--s-head);
 }
 
-.s-tips-panel {
-  margin-top: 14px;
+.s-tips-title span {
+  color: var(--s-red);
 }
 
 .s-tips-links {
@@ -794,4 +780,9 @@
 .watch-404-btn {
   display: inline-block;
   padding: 16px 28px;
+}
+
+/* Tip jar above the player when watching free. */
+.s-screen-tips {
+  margin-bottom: 20px;
 }

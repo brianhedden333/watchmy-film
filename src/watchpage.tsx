@@ -101,42 +101,37 @@ function PayWhatYouWant({ film: f, days, hours, onWatch, tried, note }: { film: 
 
 // Tips straight to the filmmaker (Venmo, PayPal, Zelle). Outside our checkout; unlocks nothing.
 function TipJar({ film: f }: { film: Film }) {
-  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const panel = useId();
+  const heading = useId();
   return (
-    <div className="s-tips">
-      <button type="button" className="s-tips-btn" aria-expanded={open} aria-controls={panel} onClick={() => setOpen((v) => !v)}>
+    <section className="s-tips" aria-labelledby={heading}>
+      <h3 id={heading} className="s-tips-title">
         <span aria-hidden="true">♥</span> Support the filmmaker
-      </button>
-      {open && (
-        <div id={panel} className="s-tips-panel">
-          <div className="s-tips-links">
-            {f.tip_venmo && (
-              <a href={`https://venmo.com/u/${encodeURIComponent(f.tip_venmo)}`} target="_blank" rel="noopener">
-                Venmo <span>@{f.tip_venmo}</span>
-              </a>
-            )}
-            {f.tip_paypal && (
-              <a href={`https://paypal.me/${encodeURIComponent(f.tip_paypal)}`} target="_blank" rel="noopener">
-                PayPal <span>paypal.me/{f.tip_paypal}</span>
-              </a>
-            )}
-            {f.tip_zelle && (
-              <button
-                type="button"
-                onClick={() => navigator.clipboard?.writeText(f.tip_zelle!).then(() => setCopied(true), () => {})}
-              >
-                Zelle <span>{copied ? "Copied" : f.tip_zelle}</span>
-              </button>
-            )}
-          </div>
-          <p className="s-fine">
-            Tips go straight to the filmmaker and don't unlock the film.{f.tip_zelle ? " For Zelle, send from your bank's app." : ""}
-          </p>
-        </div>
-      )}
-    </div>
+      </h3>
+      <div className="s-tips-links">
+        {f.tip_venmo && (
+          <a href={`https://venmo.com/u/${encodeURIComponent(f.tip_venmo)}`} target="_blank" rel="noopener">
+            Venmo <span>@{f.tip_venmo}</span>
+          </a>
+        )}
+        {f.tip_paypal && (
+          <a href={`https://paypal.me/${encodeURIComponent(f.tip_paypal)}`} target="_blank" rel="noopener">
+            PayPal <span>paypal.me/{f.tip_paypal}</span>
+          </a>
+        )}
+        {f.tip_zelle && (
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(f.tip_zelle!).then(() => setCopied(true), () => {})}
+          >
+            Zelle <span>{copied ? "Copied" : f.tip_zelle}</span>
+          </button>
+        )}
+      </div>
+      <p className="s-fine">
+        Tips go straight to the filmmaker and don't unlock the film.{f.tip_zelle ? " For Zelle, send from your bank's app." : ""}
+      </p>
+    </section>
   );
 }
 
@@ -380,6 +375,12 @@ function ScreeningRoom({ film: f, kind, admin, days, hours, onSwitch, onClose }:
           {kind === "free" ? "Back to the film page" : "Back to Rent and Buy"}
         </button>
       </div>
+
+      {kind === "free" && (f.tip_venmo || f.tip_paypal || f.tip_zelle) && (
+        <div className="s-screen-tips">
+          <TipJar film={f} />
+        </div>
+      )}
 
       <div className="s-player">
         {src ? (

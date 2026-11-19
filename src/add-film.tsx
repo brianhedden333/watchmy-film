@@ -11,7 +11,7 @@ import "./sample.css";
 import "./dashboard.css";
 
 /* Add a film (onboarding, and where each film is edited): add a film, fill in its details, then send it to review.
-   $0 to start: the setup cost is recovered per sale later. With SETUP_UPFRONT=1 on the server, the old step comes back:
+   Nothing up front: the setup cost is recovered per sale later. With SETUP_UPFRONT=1 on the server, the old step comes back:
    pay the setup fee (or use a code) to send it to review. */
 
 const home = import.meta.env.BASE_URL;
@@ -238,7 +238,8 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
     JSON.stringify(credits) !== JSON.stringify(savedCredits) ||
     JSON.stringify(bonus) !== JSON.stringify(savedBonus) ||
     JSON.stringify(tags) !== JSON.stringify(savedTags);
-  const locked = !film.editable;
+  // After approval everything stays editable except the link to the full film.
+  const linkLocked = !film.editable;
 
   useEffect(() => {
     if (!dirty) return;
@@ -255,8 +256,8 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
   async function save(): Promise<boolean> {
     // A switched-on option needs its price.
     const priceErrs: Record<string, string> = {};
-    if (!locked && form.rent_enabled && !form.rent_price.trim()) priceErrs.rent_price = "is needed while Rent is on";
-    if (!locked && form.buy_enabled && !form.buy_price.trim()) priceErrs.buy_price = "is needed while Buy is on";
+    if (form.rent_enabled && !form.rent_price.trim()) priceErrs.rent_price = "is needed while Rent is on";
+    if (form.buy_enabled && !form.buy_price.trim()) priceErrs.buy_price = "is needed while Buy is on";
     if (Object.keys(priceErrs).length) {
       setErrors(priceErrs);
       setSaveError("Add the missing prices.");
@@ -266,7 +267,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
     setSaveState("saving");
     setErrors({});
     try {
-      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: locked ? { discoverable: form.discoverable ? 1 : 0, tags } : toBody(form, credits, bonus, tags) });
+      const r = await api<{ film: Film }>(`/films/${film.id}`, { method: "PATCH", body: toBody(form, credits, bonus, tags) });
       onChange(r.film);
       const f = toForm(r.film);
       setForm(f);
@@ -308,7 +309,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
       error={errors[k]}
       value={form[k]}
       onChange={set(k)}
-      disabled={locked}
+      disabled={linkLocked && k === "vimeo_url"}
       {...opts}
     />
   );
@@ -347,10 +348,10 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             save();
           }}
         >
-          {locked && (
+          {linkLocked && (
             <p className="dash-notice">
-              Your film is {STATUS_LABEL[film.status].toLowerCase()}, so its details are locked, except Browse, which you can change
-              any time. Need another change? Reply to any of our emails.
+              Your film is {STATUS_LABEL[film.status].toLowerCase()}. You can still edit everything here except the link to the
+              full film. Need that changed? Reply to any of our emails.
             </p>
           )}
 
@@ -365,6 +366,190 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               {field("languages", "Languages", { placeholder: "English, Spanish" })}
             </div>
             {field("genre", "Genre", { placeholder: "Documentary" })}
+          </fieldset>
+
+          <fieldset>
+            <legend>Images</legend>
+            <p className="fieldset-hint">
+              The poster and wide image are required. The poster shows on desktop; the wide image shows on phones and when your
+              link is shared. The banner is optional and runs across the top of your page.
+            </p>
+            <ImageUpload kind="poster" film={film} onChange={onChange} />
+            <ImageUpload kind="still" film={film} onChange={onChange} />
+            <ImageUpload kind="banner" film={film} onChange={onChange} />
+          </fieldset>
+
+          <fieldset>
+            <legend>Video</legend>
+            {field("vimeo_url", "Link to the full film (Vimeo or YouTube)", {
+              placeholder: "https://vimeo.com/123456789",
+              hint: (
+                <>
+                  <strong>Vimeo (recommended):</strong> set the film's privacy to <strong>Hide from Vimeo</strong> and embedding
+                  to <strong>Specific domains</strong>. We'll add your watch page's address there during setup, so the film only
+                  plays on your page. <strong>YouTube:</strong> set it to <strong>Unlisted</strong> (Private videos can't play
+                  on your page). An unlisted link plays anywhere it's shared, so it's less protected.
+                </>
+              ),
+            })}
+            {field("trailer_url", "Trailer link (YouTube or Vimeo)", { placeholder: "https://youtube.com/watch?v=…" })}
+          </fieldset>
+
+          <fieldset>
+            <legend>Site design</legend>
+            <p className="fieldset-hint">Pick your watch page's colors. We'll match the rest of the design to your poster during setup.</p>
+            <div className="design">
+              <div className="colors">
+                {COLORS.map(([k, label, hint]) => (
+                  <ColorField key={k} label={label} hint={hint} value={form[k]} fallback={COLOR_DEFAULTS[k]} onChange={set(k)} error={errors[k]} />
+                ))}
+              </div>
+              <DesignPreview form={form} />
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Web address</legend>
+            <Choice
+              name="address_type"
+              value={form.address_type}
+              onChange={set("address_type")}
+              options={[
+                ["sub", `A free address on ${site.name}`],
+                ["own", "My own domain"],
+              ]}
+            />
+            <AddressFields
+              filmId={film.id}
+              title={form.title}
+              sub={form.subdomain}
+              own={form.own_domain}
+              ownMode={form.address_type === "own"}
+              onSub={set("subdomain")}
+              onOwn={set("own_domain")}
+              errors={errors}
+            />
+          </fieldset>
+
+          <fieldset>
+            <legend>Prices</legend>
+            <p className="fieldset-hint">
+              Turn on any mix of renting, buying and donations. Or leave them all off and use the Tip jar below (Venmo,
+              PayPal or Zelle, and free viewing if you like): no Stripe needed.
+            </p>
+            <section className="stripe-options" aria-labelledby="stripe-options-h">
+            <h3 id="stripe-options-h">Stripe Checkout Options</h3>
+            <p className="stripe-options-hint">Paid through Stripe into your own account. Any of these means you'll connect Stripe before going live.</p>
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.rent_enabled}
+                  onChange={(e) => set("rent_enabled")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Rent</strong>
+                  <span className="hint">Viewers pay once to watch for a limited time.</span>
+                </span>
+              </label>
+              {form.rent_enabled && (
+                <>
+                  <div className="row-2">
+                    {field("rent_price", "Rent price", { prefix: "$", inputMode: "decimal", placeholder: "4.99" })}
+                  </div>
+                  <div className="row-2">
+                    {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
+                    {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.buy_enabled}
+                  onChange={(e) => set("buy_enabled")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Buy</strong>
+                  <span className="hint">Viewers pay once and can watch whenever they like.</span>
+                </span>
+              </label>
+              {form.buy_enabled && (
+                <div className="row-2">
+                  {field("buy_price", "Buy price", { prefix: "$", inputMode: "decimal", placeholder: "14.99" })}
+                </div>
+              )}
+            </div>
+
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.pwyw_enabled}
+                  onChange={(e) => set("pwyw_enabled")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Accept donations</strong>
+                  <span className="hint">Viewers choose the amount, from your minimum up. It goes through Stripe like any sale and unlocks the film.</span>
+                </span>
+              </label>
+              {form.pwyw_enabled && (
+                <>
+                  <div className="row-2">
+                    {field("pwyw_min", "Minimum", { prefix: "$", inputMode: "decimal", placeholder: "0.99", hint: "At least $0.99." })}
+                    {field("pwyw_suggested", "Suggested amount (optional)", { prefix: "$", inputMode: "decimal", placeholder: "5.00", hint: "Filled in for viewers to start from." })}
+                  </div>
+                  <p className="pwyw-label">What it unlocks</p>
+                  <Choice
+                    name="pwyw_access"
+                    value={form.pwyw_access}
+                    onChange={set("pwyw_access")}
+                    options={[
+                      ["rent", `A rental (${form.rental_days || "30"} days to start, ${form.rental_hours || "72"} hours to finish)`],
+                      ["buy", "Theirs to keep, like a purchase"],
+                    ]}
+                  />
+                  {!form.rent_enabled && form.pwyw_access === "rent" && (
+                    <div className="row-2">
+                      {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
+                      {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            </section>
+          </fieldset>
+
+          <fieldset>
+            <legend>Tip jar</legend>
+            <p className="fieldset-hint">
+              Optional. Adds a "Support the filmmaker" button under your prices. Tips go straight to you outside our checkout, so
+              we take no fee, and a tip doesn't unlock the film. Use accounts that can take payments from the public (for Venmo,
+              a business profile).
+            </p>
+            {field("tip_venmo", "Venmo username", { prefix: "@", placeholder: "Jane-Filmmaker" })}
+            {field("tip_paypal", "PayPal.Me name", { prefix: "paypal.me/", placeholder: "janefilms" })}
+            {field("tip_zelle", "Zelle email or phone", { placeholder: "jane@example.com", hint: "Zelle has no payment links, so viewers see this and send from their bank's app." })}
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.free_watch}
+                  onChange={(e) => set("free_watch")(e.target.checked ? "1" : "")}
+                />
+                <span>
+                  <strong>Allow the film to be watched for free</strong>
+                  <span className="hint">
+                    Anyone can watch without paying. Rent, Buy and donations stay available if they're on, and bonus features still
+                    come only with a rental or purchase. Shows as Donation-based in Browse.
+                  </span>
+                </span>
+              </label>
+            </div>
           </fieldset>
 
           <fieldset>
@@ -403,166 +588,12 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             <p className="fieldset-hint">Add as many people and roles as you like. Empty boxes are skipped when you save.</p>
             <CreditsEditor
               credits={credits}
-              disabled={locked}
               error={errors.credits}
               onChange={(c) => {
                 setCredits(c);
                 setSaveState("idle");
               }}
             />
-          </fieldset>
-
-          <fieldset>
-            <legend>Images</legend>
-            <p className="fieldset-hint">
-              The poster and wide image are required. The poster shows on desktop; the wide image shows on phones and when your
-              link is shared. The banner is optional and runs across the top of your page.
-            </p>
-            <ImageUpload kind="poster" film={film} onChange={onChange} disabled={locked} />
-            <ImageUpload kind="still" film={film} onChange={onChange} disabled={locked} />
-            <ImageUpload kind="banner" film={film} onChange={onChange} disabled={locked} />
-          </fieldset>
-
-          <fieldset>
-            <legend>Video</legend>
-            {field("vimeo_url", "Link to the full film (Vimeo or YouTube)", {
-              placeholder: "https://vimeo.com/123456789",
-              hint: (
-                <>
-                  <strong>Vimeo (recommended):</strong> set the film's privacy to <strong>Hide from Vimeo</strong> and embedding
-                  to <strong>Specific domains</strong>. We'll add your watch page's address there during setup, so the film only
-                  plays on your page. <strong>YouTube:</strong> set it to <strong>Unlisted</strong> (Private videos can't play
-                  on your page). An unlisted link plays anywhere it's shared, so it's less protected.
-                </>
-              ),
-            })}
-            {field("trailer_url", "Trailer link (YouTube or Vimeo)", { placeholder: "https://youtube.com/watch?v=…" })}
-          </fieldset>
-
-          <fieldset>
-            <legend>Prices</legend>
-            <p className="fieldset-hint">
-              Turn on any mix of renting, buying and donations. Or leave them all off and use the Tip jar below (Venmo,
-              PayPal or Zelle, and free viewing if you like): no Stripe needed.
-            </p>
-            <section className="stripe-options" aria-labelledby="stripe-options-h">
-            <h3 id="stripe-options-h">Stripe Checkout Options</h3>
-            <p className="stripe-options-hint">Paid through Stripe into your own account. Any of these means you'll connect Stripe before going live.</p>
-            <div className="pwyw">
-              <label className="pwyw-toggle">
-                <input
-                  type="checkbox"
-                  checked={!!form.rent_enabled}
-                  disabled={locked}
-                  onChange={(e) => set("rent_enabled")(e.target.checked ? "1" : "")}
-                />
-                <span>
-                  <strong>Rent</strong>
-                  <span className="hint">Viewers pay once to watch for a limited time.</span>
-                </span>
-              </label>
-              {form.rent_enabled && (
-                <>
-                  <div className="row-2">
-                    {field("rent_price", "Rent price", { prefix: "$", inputMode: "decimal", placeholder: "4.99" })}
-                  </div>
-                  <div className="row-2">
-                    {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
-                    {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="pwyw">
-              <label className="pwyw-toggle">
-                <input
-                  type="checkbox"
-                  checked={!!form.buy_enabled}
-                  disabled={locked}
-                  onChange={(e) => set("buy_enabled")(e.target.checked ? "1" : "")}
-                />
-                <span>
-                  <strong>Buy</strong>
-                  <span className="hint">Viewers pay once and can watch whenever they like.</span>
-                </span>
-              </label>
-              {form.buy_enabled && (
-                <div className="row-2">
-                  {field("buy_price", "Buy price", { prefix: "$", inputMode: "decimal", placeholder: "14.99" })}
-                </div>
-              )}
-            </div>
-
-            <div className="pwyw">
-              <label className="pwyw-toggle">
-                <input
-                  type="checkbox"
-                  checked={!!form.pwyw_enabled}
-                  disabled={locked}
-                  onChange={(e) => set("pwyw_enabled")(e.target.checked ? "1" : "")}
-                />
-                <span>
-                  <strong>Accept donations</strong>
-                  <span className="hint">Viewers choose the amount, from your minimum up. It goes through Stripe like any sale and unlocks the film.</span>
-                </span>
-              </label>
-              {form.pwyw_enabled && (
-                <>
-                  <div className="row-2">
-                    {field("pwyw_min", "Minimum", { prefix: "$", inputMode: "decimal", placeholder: "0.99", hint: "At least $0.99." })}
-                    {field("pwyw_suggested", "Suggested amount (optional)", { prefix: "$", inputMode: "decimal", placeholder: "5.00", hint: "Filled in for viewers to start from." })}
-                  </div>
-                  <p className="pwyw-label">What it unlocks</p>
-                  <Choice
-                    name="pwyw_access"
-                    value={form.pwyw_access}
-                    onChange={set("pwyw_access")}
-                    disabled={locked}
-                    options={[
-                      ["rent", `A rental (${form.rental_days || "30"} days to start, ${form.rental_hours || "72"} hours to finish)`],
-                      ["buy", "Theirs to keep, like a purchase"],
-                    ]}
-                  />
-                  {!form.rent_enabled && form.pwyw_access === "rent" && (
-                    <div className="row-2">
-                      {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
-                      {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            </section>
-          </fieldset>
-
-          <fieldset>
-            <legend>Tip jar</legend>
-            <p className="fieldset-hint">
-              Optional. Adds a "Support the filmmaker" button under your prices. Tips go straight to you outside our checkout, so
-              we take no fee, and a tip doesn't unlock the film. Use accounts that can take payments from the public (for Venmo,
-              a business profile).
-            </p>
-            {field("tip_venmo", "Venmo username", { prefix: "@", placeholder: "Jane-Filmmaker" })}
-            {field("tip_paypal", "PayPal.Me name", { prefix: "paypal.me/", placeholder: "janefilms" })}
-            {field("tip_zelle", "Zelle email or phone", { placeholder: "jane@example.com", hint: "Zelle has no payment links, so viewers see this and send from their bank's app." })}
-            <div className="pwyw">
-              <label className="pwyw-toggle">
-                <input
-                  type="checkbox"
-                  checked={!!form.free_watch}
-                  disabled={locked}
-                  onChange={(e) => set("free_watch")(e.target.checked ? "1" : "")}
-                />
-                <span>
-                  <strong>Allow the film to be watched for free</strong>
-                  <span className="hint">
-                    Anyone can watch without paying. Rent, Buy and donations stay available if they're on, and bonus features still
-                    come only with a rental or purchase. Shows as Donation-based in Browse.
-                  </span>
-                </span>
-              </label>
-            </div>
           </fieldset>
 
           <fieldset>
@@ -577,51 +608,12 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                 key={kind}
                 kind={kind}
                 value={bonus[kind]}
-                disabled={locked}
                 onChange={(v) => {
                   setBonus((b) => ({ ...b, [kind]: v }));
                   setSaveState("idle");
                 }}
               />
             ))}
-          </fieldset>
-
-          <fieldset>
-            <legend>Site design</legend>
-            <p className="fieldset-hint">Pick your watch page's colors. We'll match the rest of the design to your poster during setup.</p>
-            <div className="design">
-              <div className="colors">
-                {COLORS.map(([k, label, hint]) => (
-                  <ColorField key={k} label={label} hint={hint} value={form[k]} fallback={COLOR_DEFAULTS[k]} onChange={set(k)} disabled={locked} error={errors[k]} />
-                ))}
-              </div>
-              <DesignPreview form={form} />
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Web address</legend>
-            <Choice
-              name="address_type"
-              value={form.address_type}
-              onChange={set("address_type")}
-              disabled={locked}
-              options={[
-                ["sub", `A free address on ${site.name}`],
-                ["own", "My own domain"],
-              ]}
-            />
-            <AddressFields
-              filmId={film.id}
-              title={form.title}
-              sub={form.subdomain}
-              own={form.own_domain}
-              ownMode={form.address_type === "own"}
-              onSub={set("subdomain")}
-              onOwn={set("own_domain")}
-              disabled={locked}
-              errors={errors}
-            />
           </fieldset>
 
           <fieldset>
@@ -633,7 +625,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             {field("notes", "Anything we should know?", { multiline: 3 })}
           </fieldset>
 
-          {(!locked || dirty) && (
+          {(
             <div className="save-bar">
               <button className="btn" disabled={saveState === "saving" || !dirty}>
                 {saveState === "saving" ? "Saving…" : "Save changes"}
@@ -673,11 +665,11 @@ function useAddressCheck(param: "subdomain" | "domain", value: string, filmId: n
 // Every film gets a unique address on our domain. With their own domain, that address is what their DNS points at.
 function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disabled, errors }: {
   filmId: number; title: string; sub: string; own: string; ownMode: boolean;
-  onSub: (v: string) => void; onOwn: (v: string) => void; disabled: boolean; errors: Record<string, string>;
+  onSub: (v: string) => void; onOwn: (v: string) => void; disabled?: boolean; errors: Record<string, string>;
 }) {
   const subId = useId();
   const ownId = useId();
-  const subCheck = useAddressCheck("subdomain", sub, filmId, disabled);
+  const subCheck = useAddressCheck("subdomain", sub, filmId, !!disabled);
   const ownCheck = useAddressCheck("domain", own, filmId, disabled || !ownMode || !own.trim());
   const full = `${sub.trim().toLowerCase() || "yourfilm"}.${site.name}`;
   const ownHost = own.trim() ? `watch.${own.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "")}` : "watch.yourfilm.com";
@@ -743,7 +735,7 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
 }
 
 // Up to TAGS_MAX tags: tick common ones from the checklist, or type to search the full list (or add your own).
-function TagPicker({ tags, onChange, disabled, error }: { tags: string[]; onChange: (t: string[]) => void; disabled: boolean; error?: string }) {
+function TagPicker({ tags, onChange, disabled, error }: { tags: string[]; onChange: (t: string[]) => void; disabled?: boolean; error?: string }) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -888,7 +880,7 @@ function TagPicker({ tags, onChange, disabled, error }: { tags: string[]; onChan
   );
 }
 
-function BonusEditor({ kind, value, onChange, disabled }: { kind: "rent" | "buy"; value: BonusSet; onChange: (v: BonusSet) => void; disabled: boolean }) {
+function BonusEditor({ kind, value, onChange, disabled }: { kind: "rent" | "buy"; value: BonusSet; onChange: (v: BonusSet) => void; disabled?: boolean }) {
   const descId = useId();
   const noun = kind === "rent" ? "rentals" : "purchases";
   const box = kind === "rent" ? "Rent" : "Buy";
@@ -961,7 +953,7 @@ function BonusEditor({ kind, value, onChange, disabled }: { kind: "rent" | "buy"
   );
 }
 
-function CreditsEditor({ credits, onChange, disabled, error }: { credits: Credit[]; onChange: (c: Credit[]) => void; disabled: boolean; error?: string }) {
+function CreditsEditor({ credits, onChange, disabled, error }: { credits: Credit[]; onChange: (c: Credit[]) => void; disabled?: boolean; error?: string }) {
   const update = (i: number, c: Credit) => onChange(credits.map((x, j) => (j === i ? c : x)));
   const isDefault = (role: string) => DEFAULT_ROLES.some((r) => r.toLowerCase() === role.toLowerCase());
 
@@ -1041,7 +1033,7 @@ const COLORS: [ColorKey, string, string][] = [
 ];
 
 function ColorField({ label, hint, value, fallback, onChange, disabled, error }: {
-  label: string; hint: string; value: string; fallback: string; onChange: (v: string) => void; disabled: boolean; error?: string;
+  label: string; hint: string; value: string; fallback: string; onChange: (v: string) => void; disabled?: boolean; error?: string;
 }) {
   const id = useId();
   const shown = value || fallback;
@@ -1190,7 +1182,7 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
     });
   };
 
-  // $0 to start: straight to review.
+  // Nothing up front: straight to review.
   const submit = () =>
     run("submit", async () => {
       const r = await api<{ film: Film }>(`/films/${film.id}/submit`, { body: {} });
@@ -1246,11 +1238,9 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
     const [h, p] = msgs[film.status] || msgs.in_review;
     body = (
       <>
-        <p className="setup-paid">
-          {film.setup_status === "deferred"
-            ? `✓ $0 to start: ${surcharge} per sale until ${fee} setup is covered`
-            : `✓ Setup fee ${film.setup_status === "waived" ? "waived" : "paid"}`}
-        </p>
+        {film.setup_status !== "deferred" && (
+          <p className="setup-paid">✓ Setup fee {film.setup_status === "waived" ? "waived" : "paid"}</p>
+        )}
         <h2>{h}</h2>
         <p>{p}</p>
         {film.admin_note && <blockquote className="admin-note">{film.admin_note}</blockquote>}
@@ -1281,9 +1271,6 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
     body = (
       <>
         <h2>Send for review</h2>
-        <p className="setup-price">
-          $0 <span>to start</span>
-        </p>
         <p>
           We build your watch page, set up your address and Stripe, and review your film. Nothing to pay now: once you're
           selling, we add {surcharge} to our fee on each sale until the {fee} setup cost is covered. No monthly fee.
@@ -1375,7 +1362,7 @@ const IMAGE_KINDS = {
   },
 };
 
-function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IMAGE_KINDS; film: Film; onChange: (f: Film) => void; disabled: boolean }) {
+function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IMAGE_KINDS; film: Film; onChange: (f: Film) => void; disabled?: boolean }) {
   const k = IMAGE_KINDS[kind];
   const src = k.url(film);
   const [busy, setBusy] = useState(false);

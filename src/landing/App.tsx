@@ -228,14 +228,13 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
       <div className="wrap hero-copy">
         <div>
           <p className="lede">
-            Build a free paywall on your film's unique web address. Viewers rent or buy in two clicks, no sign-up needed.
-            Every sale lands in your Stripe account, and the viewer list is yours.
+            Build a free paywall storefront on your film's unique web address. Viewers rent, buy, or donate in two clicks, no sign-up needed.
+            Every sale lands in your account, and the viewer list is yours.
           </p>
         </div>
         <div className="hero-act">
-          <p className="hero-free">$0 to start</p>
           <a href={signupUrl} className="btn">
-            Get started
+            Start for free
           </a>
           <ul className="billing">
             <li>No monthly fee</li>
@@ -511,7 +510,7 @@ function Pricing() {
   return (
     <section id="pricing" className="house pricing" aria-labelledby="pricing-title">
       <div className="wrap">
-        <h2 id="pricing-title">No monthly fee. $0 to start.</h2>
+        <h2 id="pricing-title">No monthly fee.</h2>
 
         <div className="calc">
           <div className="calc-controls">
@@ -580,7 +579,7 @@ function Pricing() {
         <div className="pricing-foot">
         <ul className="fine">
           <li>
-            Setup is $0 to start: we build your page, connect Stripe and run a test purchase together. We recover the{" "}
+            Setup: we build your page, connect Stripe and run a test purchase together. We recover the{" "}
             {money(pricing.setupFee).replace(".00", "")} setup cost with {money(pricing.setupSurcharge).replace(".00", "")} per
             sale until it's paid off.
           </li>
