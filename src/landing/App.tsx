@@ -232,6 +232,7 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
           </p>
         </div>
         <div className="hero-act">
+          <p className="hero-free">$0 to start</p>
           <a href={signupUrl} className="btn">
             Get started
           </a>
