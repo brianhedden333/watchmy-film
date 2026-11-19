@@ -12,6 +12,7 @@ import { rateLimit } from "./limits.js";
 import { redeemSetupWaiver } from "./codes.js";
 import { filmSubmittedEmail, notifyAdmin } from "./email.js";
 import { createSetupCheckout, expireCheckout, settleCheckout, stripeEnabled } from "./payments.js";
+import { canSell } from "./connect.js";
 
 // Editable fields and how to clean each one. Anything not listed here can't be set by the filmmaker.
 const text = (max) => (v) => {
@@ -394,7 +395,7 @@ filmsRouter.get("/:id", (req, res) => {
   res.json({ film: publicFilm(film) });
 });
 
-filmsRouter.patch("/:id", (req, res) => {
+filmsRouter.patch("/:id", async (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
   const { out, errors } = clean(req.body, { requireTitle: false });
@@ -406,8 +407,8 @@ filmsRouter.patch("/:id", (req, res) => {
     const after = { ...film, ...out };
     const missing = missingFields(after);
     if (missing.length) return res.status(400).json({ error: `Your film is ${film.status}, so it still needs: ${missing.join(", ")}.` });
-    if (film.status === "live" && sellsWithStripe(after) && (!req.user.stripe_has_account || !req.user.stripe_email))
-      return res.status(400).json({ error: "Add your Stripe details before turning on Rent, Buy or donations, so sales can be paid to you." });
+    if (film.status === "live" && sellsWithStripe(after) && !sellsWithStripe(film) && !(await canSell(req.user)))
+      return res.status(400).json({ error: "Connect your Stripe account before turning on Rent, Buy or donations, so sales can be paid to you." });
   }
   const minC = out.pwyw_min_cents ?? film.pwyw_min_cents;
   const sugC = "pwyw_suggested_cents" in out ? out.pwyw_suggested_cents : film.pwyw_suggested_cents;
@@ -515,12 +516,12 @@ filmsRouter.post("/:id/redeem", rateLimit({ windowMs: 15 * 60_000, max: 10 }), a
 // into their account. A film that's only free to watch and/or has a tip jar can go live without them.
 export const sellsWithStripe = (f) => !!(f.rent_price_cents || f.buy_price_cents || f.pwyw_enabled);
 
-filmsRouter.post("/:id/go-live", (req, res) => {
+filmsRouter.post("/:id/go-live", async (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
   if (film.status !== "approved") return res.status(409).json({ error: "Your film can go live once it's approved." });
-  if (sellsWithStripe(film) && (!req.user.stripe_has_account || !req.user.stripe_email)) {
-    return res.status(400).json({ error: "Add your Stripe details first, so sales can be paid to you." });
+  if (sellsWithStripe(film) && !(await canSell(req.user))) {
+    return res.status(400).json({ error: "Connect your Stripe account first, so sales can be paid to you." });
   }
   db.prepare("UPDATE films SET status = 'live', updated_at = ? WHERE id = ?").run(now(), film.id);
   notifyAdmin("Film went live", `${req.user.email} set "${film.title}" live.\n\n${config.appUrl}/admin/`);

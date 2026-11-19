@@ -7,6 +7,7 @@ import { config } from "./config.js";
 import { db, now } from "./db.js";
 import { notifyAdmin, signInEmail } from "./email.js";
 import { rateLimit } from "./limits.js";
+import { connectInfo } from "./connect.js";
 
 const COOKIE = "wmf_session";
 // Sign-in links are short-lived. Confirmation links (account not yet confirmed) last a day, because some inboxes
@@ -221,7 +222,7 @@ authRouter.get("/me", (req, res) => {
   if (!req.user) return res.json({ user: null });
   const { id, email, name } = req.user;
   res.json({
-    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user), stripe: stripeInfo(req.user) },
+    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user), stripe: stripeInfo(req.user), connect: connectInfo(req.user) },
   });
 });
 

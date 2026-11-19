@@ -188,6 +188,16 @@ const MIGRATIONS = [
   -- but bonus features stay with rentals and purchases.
   ALTER TABLE films ADD COLUMN free_watch INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  -- Stripe Connect (Accounts v2): the filmmaker's own connected account, where their sales are charged (direct charges).
+  -- connect_card_payments / connect_payouts cache the capability status from Stripe ('active', 'pending', 'restricted',
+  -- 'unsupported'); always re-check with Stripe before going live or taking a payment.
+  ALTER TABLE users ADD COLUMN connect_account_id TEXT;
+  ALTER TABLE users ADD COLUMN connect_card_payments TEXT;
+  ALTER TABLE users ADD COLUMN connect_payouts TEXT;
+  ALTER TABLE users ADD COLUMN connect_checked_at TEXT;
+  CREATE UNIQUE INDEX users_connect_account ON users(connect_account_id) WHERE connect_account_id IS NOT NULL;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

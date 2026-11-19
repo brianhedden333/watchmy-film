@@ -1,10 +1,10 @@
 import { StrictMode, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { site } from "./config";
-import { api, ApiError, dollars, getMe, type StripeInfo, type User } from "./api";
+import { api, ApiError, dollars, getMe, type ConnectInfo, type User } from "./api";
 import { BONUS_MAX, COLOR_DEFAULTS, liveAddress, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
-import { StripeDetails } from "./StripeDetails";
+import { ConnectStripe } from "./ConnectStripe";
 import { cleanTag, QUICK_TAGS, suggestTags, TAG_RE, TAGS_MAX } from "./tags";
 import "./styles.css";
 import "./sample.css";
@@ -144,7 +144,7 @@ function AddFilm() {
             {data.films.length === 0 ? (
               <NewFilm onCreated={(f) => { setData({ ...data, films: [f] }); pick(f.id); }} />
             ) : (
-              film && <FilmView key={film.id} film={film} meta={data} onChange={replaceFilm} stripe={user?.stripe ?? null} onStripe={(st) => setUser((u) => (u ? { ...u, stripe: st } : u))} />
+              film && <FilmView key={film.id} film={film} meta={data} onChange={replaceFilm} stripe={user?.connect ?? null} onStripe={(c) => setUser((u) => (u ? { ...u, connect: c } : u))} />
             )}
           </>
         )}
@@ -221,7 +221,7 @@ function NewFilm({ onCreated, compact, onCancel }: { onCreated: (f: Film) => voi
   );
 }
 
-function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; onChange: (f: Film) => void; stripe: StripeInfo | null; onStripe: (s: StripeInfo) => void }) {
+function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; onChange: (f: Film) => void; stripe: ConnectInfo | null; onStripe: (c: ConnectInfo) => void }) {
   const [form, setForm] = useState<FormState>(() => toForm(film));
   const [saved, setSaved] = useState<FormState>(() => toForm(film));
   const [credits, setCredits] = useState<Credit[]>(() => toCredits(film));
@@ -1102,14 +1102,14 @@ function DesignPreview({ form }: { form: FormState }) {
 // Matches sellsWithStripe in server/src/films.js.
 const sellsWithStripe = (f: Film) => !!(f.rent_price_cents || f.buy_price_cents || f.pwyw_enabled);
 
-function Steps({ film, stripe, upfront }: { film: Film; stripe: StripeInfo | null; upfront: boolean }) {
+function Steps({ film, stripe, upfront }: { film: Film; stripe: ConnectInfo | null; upfront: boolean }) {
   const detailsDone = film.missing.length === 0;
   const feeDone = film.setup_status !== "unpaid";
   const reviewDone = film.status === "approved" || film.status === "live";
   const live = film.status === "live";
   const needsStripe = sellsWithStripe(film);
-  const ready = !needsStripe || !!stripe?.hasAccount;
-  const stripeNote = !reviewDone || live ? "" : ready ? "Ready: go live whenever you want" : "Add your Stripe details, then go live";
+  const ready = !needsStripe || !!stripe?.canAcceptPayments;
+  const stripeNote = !reviewDone || live ? "" : ready ? "Ready: go live whenever you want" : "Connect Stripe, then go live";
   const steps: { label: string; done: boolean; note?: string; target: string }[] = [
     { label: "Film details", done: detailsDone, note: detailsDone ? "" : `${film.missing.length} left`, target: "film-form" },
     ...(upfront ? [{ label: "Setup fee", done: feeDone, target: "setup-card" }] : []),
@@ -1145,10 +1145,10 @@ function Steps({ film, stripe, upfront }: { film: Film; stripe: StripeInfo | nul
   );
 }
 
-function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; dirty: boolean; save: () => Promise<boolean>; onChange: (f: Film) => void; stripe: StripeInfo | null; onStripe: (s: StripeInfo) => void }) {
+function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { film: Film; meta: FilmsResponse; dirty: boolean; save: () => Promise<boolean>; onChange: (f: Film) => void; stripe: ConnectInfo | null; onStripe: (c: ConnectInfo) => void }) {
   const [busy, setBusy] = useState<"" | "pay" | "code" | "submit" | "resubmit" | "live" | "visibility">("");
   const needsStripe = sellsWithStripe(film);
-  const ready = !needsStripe || !!stripe?.hasAccount;
+  const ready = !needsStripe || !!stripe?.canAcceptPayments;
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
   const codeId = useId();
@@ -1229,7 +1229,7 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
         "Approved",
         ready
           ? "Your film passed review. Your page goes public when you say so: check the preview, then go live."
-          : "Your film passed review. Add your Stripe details below, then you can go live whenever you're ready.",
+          : "Your film passed review. Connect Stripe below, then you can go live whenever you're ready.",
       ],
       live: film.hidden
         ? ["Hidden", "Visitors to your address see a holding page. Nobody can rent, buy or watch until you show it again."]
@@ -1250,7 +1250,7 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
               {busy === "live" ? "Going live…" : "Go live"}
             </button>
             <p className="small-print">
-              {!ready ? "Add your Stripe details below first." : needsStripe ? "Your page becomes public and viewers can rent or buy." : "Your page becomes public and anyone can watch for free."}
+              {!ready ? "Connect Stripe below first." : needsStripe ? "Your page becomes public and viewers can rent or buy." : "Your page becomes public and anyone can watch for free."}
             </p>
           </div>
         )}
@@ -1342,9 +1342,9 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
           <h2>Get paid</h2>
           <p>
             Every sale goes straight to your own Stripe account.{" "}
-            {film.status === "approved" ? "Add it here before you go live." : "Tell us which one while we review your film, so you can go live as soon as it's approved."}
+            {film.status === "approved" ? "Connect it here before you go live." : "Connect it while we review your film, so you can go live as soon as it's approved."}
           </p>
-          <StripeDetails compact onSaved={onStripe} />
+          <ConnectStripe initial={stripe} onChange={onStripe} />
         </section>
       )}
     </aside>

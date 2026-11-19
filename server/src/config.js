@@ -26,6 +26,8 @@ export const config = {
   uploadDir: resolve(root, env.UPLOAD_DIR || "uploads"),
   stripeSecretKey: env.STRIPE_SECRET_KEY || "",
   stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || "",
+  // pk_… key for the embedded Connect onboarding in the browser (not secret). Without it, connecting Stripe is off.
+  stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || "",
   // pmc_… id of a Stripe payment method configuration for the setup fee (cards only). Optional.
   stripePaymentMethodConfig: env.STRIPE_PAYMENT_METHOD_CONFIG || "",
   setupFeeCents: Number(env.SETUP_FEE_CENTS || 9900),

@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useId, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { api, getMe, type User } from "./api";
 import { AppHeader } from "./AppHeader";
-import { StripeDetails } from "./StripeDetails";
+import { ConnectStripe } from "./ConnectStripe";
 import "./styles.css";
 import "./dashboard.css";
 
@@ -34,7 +34,7 @@ function Account() {
             <section className="settings-section">
               <h2>Payouts</h2>
               <p className="settings-hint">The Stripe account your film sales are paid into. It's used for all of your films.</p>
-              <StripeDetails />
+              <ConnectStripe initial={user.connect} />
             </section>
           </>
         )}
