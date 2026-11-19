@@ -60,6 +60,7 @@ export default function App() {
 // Skipped entirely with reduced motion.
 const REVEAL = [
   ".film-title",
+  ".film-tagline",
   ".watch-buttons",
   ".hero-copy > *",
   "main section:not(.hero) h2:not(.visually-hidden)",
@@ -211,6 +212,7 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
           <h1 id="hero-title" className="film-title headline">
             Sell your film from your own website.
           </h1>
+          <p className="film-tagline">A cornerstone of your distribution plan.</p>
           <div className="watch-buttons" aria-hidden="true">
             <span className="wbtn wbtn-rent">
               Rent for 48 hours <b>$5.99</b>

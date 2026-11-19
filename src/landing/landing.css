@@ -360,6 +360,17 @@ p {
   max-width: 13ch;
 }
 
+/* Under the headline, like a poster's tagline under the title. */
+.film-tagline {
+  font-size: clamp(19px, 2cqw, 28px);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--projector);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
+  max-width: 34ch;
+  margin: -6px 0 24px;
+}
+
 .watch-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -1421,6 +1432,10 @@ textarea:focus-visible {
 
 .hero .film-title.reveal {
   transition-delay: 0s;
+}
+
+.hero .film-tagline.reveal {
+  transition-delay: 0.3s;
 }
 
 .hero .watch-buttons.reveal {
