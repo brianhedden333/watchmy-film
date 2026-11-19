@@ -1,0 +1,544 @@
+/* Browse: a late-night video store in the site's palette. True black room, warm-grey shelves, off-white type.
+   The one bold thing is the cases on the shelves; everything around them stays quiet. Gold only on price stickers. */
+
+.bz {
+  --room: #000000;
+  --shelf: #1f1d1b;
+  --shelf-edge: #2a2724;
+  --seam: #3a3734;
+  --type: #ede8df;
+  --aisle: #a39e95;
+  --sticker: #fceb7e;
+  --case-w: clamp(140px, 15vw, 196px);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--room);
+  color: var(--type);
+  min-height: 100vh;
+}
+
+.bz-wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.bz-skip {
+  position: absolute;
+  left: -9999px;
+}
+
+.bz-skip:focus {
+  left: 12px;
+  top: 12px;
+  z-index: 50;
+  background: var(--type);
+  color: #000;
+  padding: 8px 14px;
+}
+
+/* ---------- Header ---------- */
+
+.bz-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--seam);
+}
+
+.bz-head-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+}
+
+.bz-logo img {
+  display: block;
+  height: 30px;
+  width: auto;
+}
+
+.bz-nav {
+  display: flex;
+  gap: clamp(14px, 3vw, 32px);
+  font-size: 15px;
+}
+
+.bz-nav a {
+  color: var(--aisle);
+  text-decoration: none;
+}
+
+.bz-nav a:hover,
+.bz-nav a[aria-current="page"] {
+  color: var(--type);
+}
+
+/* ---------- The counter: the newest arrival ---------- */
+
+.bz-counter {
+  position: relative;
+  min-height: min(78svh, 720px);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.bz-counter-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+}
+
+.bz-counter-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.72) 30%, rgba(0, 0, 0, 0.1) 70%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 60%);
+}
+
+.bz-counter-in {
+  width: 100%;
+  padding-top: 120px;
+  padding-bottom: clamp(32px, 6vw, 64px);
+}
+
+.bz-counter-kicker {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--aisle);
+}
+
+.bz-counter h2 {
+  font-size: clamp(52px, 8vw, 120px);
+  line-height: 0.88;
+  letter-spacing: -0.02em;
+  max-width: 12ch;
+  margin: 0 0 18px;
+  text-wrap: balance;
+}
+
+.bz-counter-log {
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.4;
+  max-width: 44ch;
+  margin: 0 0 14px;
+}
+
+.bz-counter-meta {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 0 0 26px;
+  padding: 0;
+  font-size: 15px;
+  color: var(--aisle);
+}
+
+.bz-counter-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.bz-ghost {
+  color: var(--type);
+  font-weight: 500;
+  text-underline-offset: 4px;
+}
+
+/* ---------- Intro, search and aisle signs ---------- */
+
+.bz-intro {
+  padding-top: clamp(48px, 6vw, 80px);
+}
+
+.bz-intro h1 {
+  font-size: clamp(40px, 5vw, 64px);
+  margin: 0 0 10px;
+}
+
+.bz-intro p {
+  color: var(--aisle);
+  font-size: 18px;
+  max-width: 52ch;
+}
+
+.bz-tools {
+  display: grid;
+  gap: 16px;
+  margin: 28px auto 8px;
+}
+
+.bz-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 460px;
+  padding: 0 14px;
+  border: 1px solid var(--seam);
+  border-radius: 999px;
+  color: var(--aisle);
+  background: var(--shelf);
+}
+
+.bz-search:focus-within {
+  border-color: var(--aisle);
+}
+
+.bz-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--type);
+  font: 400 16px/1 var(--body);
+  padding: 12px 0;
+  outline: none;
+}
+
+.bz-search input::placeholder {
+  color: var(--aisle);
+}
+
+.bz-aisles {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.bz-aisles::-webkit-scrollbar {
+  display: none;
+}
+
+.bz-aisles button {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--seam);
+  border-radius: 999px;
+  background: none;
+  color: var(--aisle);
+  font: 500 15px/1.2 var(--body);
+  cursor: pointer;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.bz-aisles button:hover {
+  color: var(--type);
+  border-color: var(--aisle);
+}
+
+.bz-aisles button[aria-pressed="true"] {
+  background: var(--type);
+  border-color: var(--type);
+  color: #000;
+}
+
+.bz-n {
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Shelves ---------- */
+
+#shelves:focus {
+  outline: none;
+}
+
+.bz-shelf {
+  margin-top: clamp(40px, 5vw, 64px);
+}
+
+.bz-shelf-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.bz .bz-shelf-name {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  max-width: none;
+  font-size: clamp(26px, 2.6vw, 34px);
+}
+
+.bz-shelf-name .bz-n {
+  font-family: var(--body);
+  font-stretch: 100%;
+  color: var(--aisle);
+  opacity: 1;
+  font-size: 14px;
+}
+
+.bz-shelf-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bz-link {
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  color: var(--aisle);
+  font: 500 15px/1 var(--body);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.bz-link:hover {
+  color: var(--type);
+}
+
+.bz-arrow {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--seam);
+  border-radius: 50%;
+  background: none;
+  color: var(--type);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bz-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* The shelf itself: cases stand on a lit ledge that runs the width of the page. */
+.bz-row {
+  list-style: none;
+  display: flex;
+  gap: clamp(14px, 1.6vw, 22px);
+  margin: 0;
+  padding: 6px max(var(--gutter), calc((100vw - 1320px) / 2 + var(--gutter))) 26px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: max(var(--gutter), calc((100vw - 1320px) / 2 + var(--gutter)));
+  scrollbar-width: none;
+  background: linear-gradient(to bottom, transparent calc(var(--case-w) * 1.5 + 6px), var(--shelf) calc(var(--case-w) * 1.5 + 6px));
+  border-bottom: 1px solid var(--shelf-edge);
+}
+
+.bz-row::-webkit-scrollbar {
+  display: none;
+}
+
+.bz-row > li {
+  flex: none;
+  width: var(--case-w);
+  scroll-snap-align: start;
+}
+
+/* ---------- A case ---------- */
+
+.bz-case {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.bz-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--shelf-edge);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 10px 24px rgba(0, 0, 0, 0.55);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.bz-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The spine and the plastic sleeve: a soft lit edge on the left and a faint sheen across the top. */
+.bz-cover::before,
+.bz-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bz-cover::before {
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.16) 0, rgba(255, 255, 255, 0.04) 5px, rgba(0, 0, 0, 0.28) 7px, transparent 14px);
+}
+
+.bz-cover::after {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.12) 0%, transparent 34%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: inherit;
+}
+
+.bz-sticker {
+  position: absolute;
+  z-index: 2;
+  right: 8px;
+  top: 8px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  background: var(--sticker);
+  color: #000;
+  font: 700 12px/1.2 var(--body);
+  font-variant-numeric: tabular-nums;
+  transform: rotate(2deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* The back of the case: the logline, shown on hover. */
+.bz-back {
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 0 0;
+  padding: 40px 12px 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 55%, transparent);
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.bz-case:hover .bz-cover,
+.bz-case:focus-visible .bz-cover {
+  transform: translateY(-6px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 34px rgba(0, 0, 0, 0.7);
+}
+
+.bz-case:hover .bz-back,
+.bz-case:focus-visible .bz-back {
+  opacity: 1;
+  transform: none;
+}
+
+.bz-case:focus-visible {
+  outline: none;
+}
+
+.bz-case:focus-visible .bz-cover {
+  outline: 3px solid var(--type);
+  outline-offset: 3px;
+}
+
+.bz-case-title {
+  display: block;
+  margin-top: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.bz-case-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--aisle);
+}
+
+/* ---------- Results grid (an aisle or a search) ---------- */
+
+.bz-results {
+  margin-top: 32px;
+}
+
+.bz-results .bz-shelf-name {
+  margin-bottom: 22px;
+}
+
+.bz-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--case-w), 42vw), 1fr));
+  gap: 32px clamp(14px, 1.6vw, 22px);
+}
+
+.bz-empty {
+  padding-top: 40px;
+  padding-bottom: 40px;
+  color: var(--aisle);
+}
+
+.bz-empty-inline {
+  color: var(--aisle);
+}
+
+/* ---------- Footer ---------- */
+
+.bz-foot {
+  margin-top: clamp(64px, 8vw, 120px);
+  padding-top: 28px;
+  padding-bottom: 40px;
+  border-top: 1px solid var(--seam);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  color: var(--aisle);
+}
+
+.bz-foot a {
+  color: var(--type);
+}
+
+.bz-legal {
+  display: flex;
+  gap: 18px;
+}
+
+@media (max-width: 640px) {
+  .bz-nav a:nth-child(2) {
+    display: none;
+  }
+
+  .bz-arrow {
+    display: none;
+  }
+
+  .bz-counter {
+    min-height: 70svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bz-cover,
+  .bz-back,
+  .bz-aisles button {
+    transition: none;
+  }
+
+  .bz-case:hover .bz-cover {
+    transform: none;
+  }
+}

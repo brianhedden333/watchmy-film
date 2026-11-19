@@ -8,6 +8,7 @@ import { filmsRouter } from "./films.js";
 import { adminRouter } from "./admin.js";
 import { libraryRouter } from "./library.js";
 import { watchRouter } from "./watch.js";
+import { browseRouter } from "./browse.js";
 import { stripeWebhook } from "./payments.js";
 
 const app = express();
@@ -25,6 +26,7 @@ app.use("/api", (req, res, next) => {
 });
 
 app.use("/api/watch", watchRouter); // public, no sign-in
+app.use("/api/browse", browseRouter); // public catalog of opted-in live films
 app.use("/api", loadUser);
 app.use("/api/auth", authRouter);
 app.use("/api/films", filmsRouter);

@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
-const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/preview", "/library", "/admin", "/terms", "/privacy"];
+const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/preview", "/library", "/browse", "/admin", "/terms", "/privacy"];
 
 export default defineConfig({
   // Sub-path the site is served from. GitHub Pages project sites need
@@ -55,6 +55,7 @@ export default defineConfig({
           preview: resolve(__dirname, "preview/index.html"), // the filmmaker's watch page, before it's live
         }),
         sample: resolve(__dirname, "sample/index.html"), // sample watch page (Fracking the System)
+        browse: resolve(__dirname, "browse/index.html"), // public catalog of opted-in live films (not linked yet)
       },
     },
   },
