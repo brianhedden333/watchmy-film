@@ -28,7 +28,7 @@ export const pricing = {
     standard: { percent: 0.08, minimum: 0.5 },
     secure: { percent: 0.1, minimum: 0.75 },
   },
-  examplePrices: [3.99, 5.99, 9.99, 12.99],
+  examplePrices: [3.99, 5.99, 9.99, 24.99],
 };
 
 export type TierKey = keyof typeof pricing.tiers;
