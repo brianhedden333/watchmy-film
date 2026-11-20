@@ -24,20 +24,31 @@ function Privacy() {
             details and notes to us.
           </li>
           <li>
-            Payout details you give us: the email and account ID of your Stripe account and the country of your bank
-            account. If you add a tip jar, your Venmo, PayPal.Me or Zelle handle, which is shown publicly on your watch
-            page.
+            Your Stripe account: when you connect Stripe, Stripe collects your identity, business and bank details
+            directly, under its own privacy policy. We receive your Stripe account ID and whether it can take payments and
+            receive payouts; we don't receive your full Social Security number or bank account number.
           </li>
           <li>
-            Records of the fees you've paid us, including how much of your film's setup cost has been covered. Card
-            details are entered on Stripe's checkout page and never reach our servers.
+            If you add a tip jar, your Venmo, PayPal.Me or Zelle handle, which is shown publicly on your watch page.
+          </li>
+          <li>
+            Records of your sales: amounts, our fees, Stripe's fees, refunds and disputes, and how much of your film's
+            setup cost has been covered, so we can show you your sales and earnings.
           </li>
         </ul>
         <h3>Viewers</h3>
         <ul>
           <li>
-            When you rent or buy a film, your email address and what you bought and when, so we can give you access and
-            show it in your library. Card details are handled by Stripe.
+            When you rent or buy a film, your email address and what you bought and when, so we can give you access, email
+            you a link back to it, and show it in your library. For rentals, we also record when you first pressed play,
+            to time your rental. If a purchase is refunded or disputed, we record that too, because it affects your access.
+          </li>
+          <li>
+            If you create a free account, your Watch Later list (films you save from Browse).
+          </li>
+          <li>
+            Card details are entered on Stripe's checkout page and never reach our servers. If you choose to save your
+            details with Stripe Link for faster checkout, that's between you and Stripe, under Stripe's terms.
           </li>
         </ul>
         <h3>Everyone</h3>
@@ -52,8 +63,10 @@ function Privacy() {
 
       <Section id="cookies" title="Cookies">
         <p>
-          We use one cookie, to keep you signed in. We don't use advertising or analytics cookies. Videos on watch pages
-          play through Vimeo or YouTube, which may set their own cookies under their own policies.
+          We use one cookie, to keep you signed in (each film's watch page has its own, since it's a separate web address).
+          Your browser also remembers a few small things for convenience, such as which page to return to after you sign
+          in. We don't use advertising or analytics cookies. Videos on watch pages play through Vimeo or YouTube, and
+          checkout and Stripe account setup run through Stripe; each may set its own cookies under its own policies.
         </p>
       </Section>
 
@@ -71,9 +84,13 @@ function Privacy() {
       <Section id="share" title="Who we share it with">
         <ul>
           <li>
-            <strong>Filmmakers:</strong> when you rent or buy a film, its filmmaker receives your email address and the
-            details of your purchase. That's how filmmakers own their viewer list. Their use of it is covered by their own
-            practices.
+            <strong>Filmmakers:</strong> when you rent or buy a film, the payment is made to its filmmaker's own Stripe
+            account, so the filmmaker receives your email address, name and the details of your purchase (not your full
+            card number). That's how filmmakers own their viewer list. Their use of it is covered by their own practices.
+          </li>
+          <li>
+            <strong>Stripe:</strong> we share filmmakers' account and sale information with Stripe as needed to process
+            payments, payouts, refunds and disputes, and to meet Stripe's identity verification and legal requirements.
           </li>
           <li>
             <strong>Service providers</strong> that run parts of the service for us: Stripe (payments), Twilio SendGrid
