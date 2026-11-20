@@ -777,6 +777,106 @@ html.bz-locked {
   text-underline-offset: 4px;
 }
 
+/* "Watch later" while signed out: account prompt above the film pop-up (which is z-index 60, its X 70). */
+.bz-ask-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.bz-ask-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.bz-ask {
+  position: relative;
+  width: min(460px, 100%);
+  padding: 28px 28px 22px;
+  background: #1f1d1b;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  color: #ede8df;
+}
+
+.bz-ask h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.bz-ask p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.bz-ask label {
+  display: block;
+  margin: 6px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bz-ask input[type="email"] {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: #000;
+  color: #ede8df;
+  font: inherit;
+}
+
+.bz-ask-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 16px 0 12px;
+}
+
+.bz-ask-notnow {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.bz-ask-fine {
+  font-size: 13px;
+  color: #a39e95;
+}
+
+.bz-ask-fine a {
+  color: inherit;
+}
+
+.bz-ask-err {
+  margin-top: 8px;
+  color: #f2a5a5;
+}
+
+.bz-ask-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: none;
+  color: #ede8df;
+  cursor: pointer;
+}
+
 /* Watch Later toggle in the film pop-up */
 .bz-later {
   padding: 10px 16px;

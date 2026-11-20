@@ -142,15 +142,13 @@ function Browse() {
       .catch(() => {});
   }, []);
 
-  // Add or remove from Watch Later. Not signed in: sign in first, then come back to this film.
+  // Not signed in and pressed "Watch later": explain, and offer a free account without leaving the page.
+  const [askAccount, setAskAccount] = useState<Card | null>(null);
+
+  // Add or remove from Watch Later.
   async function toggleSave(f: Card) {
     if (!me) {
-      try {
-        localStorage.setItem("wmf_return", JSON.stringify({ path: `/browse/?film=${f.id}`, at: Date.now() }));
-      } catch {
-        /* private mode: they'll land on their library instead */
-      }
-      location.assign(`${import.meta.env.BASE_URL}signin/?why=watch-later`);
+      setAskAccount(f);
       return;
     }
     const has = saved.has(f.id);
@@ -427,6 +425,7 @@ function Browse() {
 
       {open &&
         createPortal(<FilmPopup film={open} onClose={close} saved={saved.has(open.id)} onSave={() => toggleSave(open)} />, document.body)}
+      {askAccount && createPortal(<AccountPrompt film={askAccount} onClose={() => setAskAccount(null)} />, document.body)}
     </div>
   );
 }
@@ -543,6 +542,113 @@ function Peek({ film: f }: { film: Card | null }) {
         )}
       </div>
     </aside>
+  );
+}
+
+// "Watch later" while signed out: why an account is needed, and a free one by email, without leaving Browse.
+// The emailed link signs them in and brings them back to this film (via localStorage "wmf_return", read by auth.tsx).
+function AccountPrompt({ film: f, onClose }: { film: Card; onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"" | "sending" | "sent">("");
+  const [error, setError] = useState("");
+  const shownAt = useRef(Date.now());
+  const input = useRef<HTMLInputElement>(null);
+  const home = import.meta.env.BASE_URL;
+
+  // Esc and clicks outside close just this prompt, not the film behind it.
+  useEffect(() => {
+    input.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      onClose();
+    };
+    addEventListener("keydown", onKey, true);
+    return () => removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const gotcha = String(new FormData(e.currentTarget).get("_gotcha") || "");
+    setState("sending");
+    setError("");
+    try {
+      localStorage.setItem("wmf_return", JSON.stringify({ path: `/browse/?film=${f.id}`, at: Date.now() }));
+    } catch {
+      /* private mode: after signing in they'll land on their library instead */
+    }
+    // The server ignores forms filled in under 2.5 seconds (bots), so a very quick person waits a moment.
+    const wait = 2600 - (Date.now() - shownAt.current);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    try {
+      await api("/auth/request", { body: { email, mode: "signup", terms: true, _gotcha: gotcha, elapsed: Date.now() - shownAt.current } });
+      setState("sent");
+    } catch (err) {
+      setError((err as Error).message);
+      setState("");
+    }
+  }
+
+  return (
+    <div className="bz-ask-layer">
+      <div className="bz-ask-scrim" onClick={onClose} aria-hidden="true" />
+      <div className="bz-ask" role="dialog" aria-modal="true" aria-labelledby="bz-ask-title">
+        <button type="button" className="bz-ask-x" onClick={onClose} aria-label="Close">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+        {state === "sent" ? (
+          <>
+            <h2 id="bz-ask-title">Check your email</h2>
+            <p>
+              We sent a link to <strong>{email}</strong>. Click it and you'll come back here signed in, ready to save{" "}
+              <em>{f.title}</em> to Watch Later.
+            </p>
+            <div className="bz-ask-actions">
+              <button type="button" className="btn" onClick={onClose}>
+                Keep browsing
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 id="bz-ask-title">Save films for later</h2>
+            <p>
+              Watch Later needs a free watchmyfilm account, so your list is waiting for you on any device. It also keeps
+              every film you rent or buy in one library.
+            </p>
+            <p className="bz-ask-fine">No password needed: we email you a sign-in link. Already have an account? Use the same email.</p>
+            <form onSubmit={submit}>
+              <label htmlFor="bz-ask-email">Your email</label>
+              <input
+                ref={input}
+                id="bz-ask-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <input type="text" name="_gotcha" tabIndex={-1} autoComplete="off" className="hp" aria-hidden="true" />
+              {error && <p className="bz-ask-err" role="alert">{error}</p>}
+              <div className="bz-ask-actions">
+                <button className="btn" disabled={state === "sending"}>
+                  {state === "sending" ? "Sending…" : "Create my free account"}
+                </button>
+                <button type="button" className="bz-ghost bz-ask-notnow" onClick={onClose}>
+                  Not now
+                </button>
+              </div>
+              <p className="bz-ask-fine">
+                By creating an account you agree to our <a href={`${home}terms/`} target="_blank" rel="noopener">Terms</a> and{" "}
+                <a href={`${home}privacy/`} target="_blank" rel="noopener">Privacy Policy</a>.
+              </p>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
