@@ -40,7 +40,13 @@ function Watch() {
     <div className="sample" style={pageTheme(film)}>
       {film.hidden ? <HoldingPage film={film} /> : <WatchPage film={film} mode="public" />}
       <footer className="watch-foot">
-        <a href={MAIN_SITE}>Sell your film from your own website · watchmyfilm.online</a>
+        <a className="watch-foot-brand" href={MAIN_SITE} aria-label="Powered by WatchMyFilm.Online">
+          <span>Powered by</span>
+          <img src="/brand/watchmyfilm-logo-white.png" alt="WatchMyFilm.Online" width={600} height={163} />
+        </a>
+        <p className="watch-foot-copy">
+          © {new Date().getFullYear()} {film.title}. All rights reserved.
+        </p>
       </footer>
     </div>
   );

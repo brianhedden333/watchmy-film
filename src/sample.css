@@ -744,20 +744,48 @@
 
 /* ---------- Live watch page (/watch/ at a film's address) ---------- */
 
+/* Our footer on every live film page. Always a black band, so the white logo shows whatever the film's colors are. */
 .watch-foot {
-  padding: 28px var(--gutter) 40px;
+  margin-top: 48px;
+  padding: 32px var(--gutter) 36px;
+  background: #000;
+  color: #a39e95;
   text-align: center;
   font-size: 13px;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
 }
 
-.watch-foot a {
-  color: var(--s-faint);
+.watch-foot-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #a39e95;
   text-decoration: none;
+  letter-spacing: 0.02em;
 }
 
-.watch-foot a:hover {
-  color: var(--s-soft);
-  text-decoration: underline;
+.watch-foot-brand img {
+  display: block;
+  width: auto;
+  height: 36px;
+  opacity: 0.92;
+}
+
+.watch-foot-brand:hover img,
+.watch-foot-brand:focus-visible img {
+  opacity: 1;
+}
+
+.watch-foot-brand:hover span {
+  color: #ede8df;
+}
+
+.watch-foot-copy {
+  margin: 0;
+  color: #6f6a63;
+  font-size: 12px;
 }
 
 .watch-404 {
