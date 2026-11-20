@@ -214,7 +214,7 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
             Sell your film from your own website.
           </h1>
           <p className="film-tagline">
-            You keep up to {Math.floor((1 - pricing.tiers.standard.percent - pricing.stripePercent) * 100)}% of every ticket sale.
+            You keep up to {keepPercentAt(19.99)}% of every ticket sale.
           </p>
           <div className="watch-buttons" aria-hidden="true">
             <span className="wbtn wbtn-rent">
@@ -601,6 +601,15 @@ function Pricing() {
 
 // Every number in this section. Change them here; the percentages and dollar amounts are computed from these.
 // Our own fees come from `pricing` in config.ts so this section always agrees with the calculator above.
+// What a filmmaker keeps of one ticket after our fee and Stripe's card fee, as a whole percent.
+// The hero quotes it at $19.99: Stripe's flat 30¢ makes cheaper tickets keep less, so this is an honest "up to".
+function keepPercentAt(price: number) {
+  const t = pricing.tiers.standard;
+  const ours = Math.max(price * t.percent, t.minimum);
+  const card = price * pricing.stripePercent + pricing.stripeFixed;
+  return Math.round(((price - ours - card) / price) * 100);
+}
+
 const KEEP = {
   ticket: 5.99, // the example rental price
   tubi: { platformShare: 0.5, perStream: 0.004, perStreamRange: [0.002, 0.008] }, // filmmaker's estimated take per stream
