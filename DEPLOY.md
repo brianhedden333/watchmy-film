@@ -1,6 +1,8 @@
 # Deploying watchmyfilm.online
 
-The site and API run on the DigitalOcean droplet (`root@164.92.121.73`, same box as Fracking the System and Stump).
+The site and API run on the DigitalOcean droplet `root@165.232.58.191` (Ubuntu 24.04, shared with Fracking the System).
+Moved there 2026-11-20 from `164.92.121.73`. The API runs under PM2 as the unprivileged `web` user:
+on the server use `sudo -u web HOME=/home/web pm2 …` (e.g. `pm2 ls`, `pm2 logs watchmyfilm`).
 
 | Piece | Where |
 |---|---|
@@ -24,19 +26,19 @@ The script never copies `.env`, the database or uploads.
 
 ## First-time setup (once)
 
-1. DNS at the registrar: `A` records for `watchmyfilm.online` and `www` → `164.92.121.73`.
+1. DNS at the registrar: `A` records for `watchmyfilm.online` and `www` → `165.232.58.191`.
 2. On the droplet: `mkdir -p /var/www/watchmyfilm/{site,server,deploy}`.
 3. Create `/var/www/watchmyfilm/server/.env` from `server/.env.example` with:
    `NODE_ENV=production`, `APP_URL=https://watchmyfilm.online`, Stripe keys (FTS account), SendGrid key,
    `FROM_EMAIL` on the authenticated domain, `ADMIN_EMAILS`, `NOTIFY_EMAIL`.
-4. From the Mac: `./deploy/deploy.sh` (starts the PM2 process), then on the droplet `pm2 save`.
+4. From the Mac: `./deploy/deploy.sh` (starts the PM2 process), then on the droplet `sudo -u web HOME=/home/web pm2 save`.
 5. nginx: copy `deploy/nginx-watchmyfilm.conf` to `/etc/nginx/sites-available/watchmyfilm`, symlink into
    `sites-enabled`, `nginx -t && systemctl reload nginx`.
 6. HTTPS: `certbot --nginx -d watchmyfilm.online -d www.watchmyfilm.online`.
 7. Stripe dashboard (FTS account) → Developers → Webhooks → add endpoint
    `https://watchmyfilm.online/api/stripe/webhook`, events `checkout.session.completed` and
    `checkout.session.async_payment_succeeded`. Put its signing secret in `.env` as `STRIPE_WEBHOOK_SECRET`, then
-   `pm2 restart watchmyfilm --update-env`.
+   `sudo -u web HOME=/home/web pm2 restart watchmyfilm --update-env`.
 8. SendGrid: authenticate the domain `watchmyfilm.online` (adds DNS records) so sign-in emails don't land in spam.
 
 ## Film addresses (<name>.watchmyfilm.online), once
@@ -48,7 +50,7 @@ Nothing is done per film: one wildcard covers them all.
    (`chmod 600` the key).
 2. Copy `deploy/cloudflare-realip.conf` to `/etc/nginx/snippets/`, and `deploy/nginx-watchmyfilm-films.conf` to
    `/etc/nginx/sites-available/watchmyfilm-films`, symlink it into `sites-enabled`, `nginx -t && systemctl reload nginx`.
-3. Cloudflare DNS: `A` record, name `*`, value `164.92.121.73`, proxied.
+3. Cloudflare DNS: `A` record, name `*`, value `165.232.58.191`, proxied.
 4. The API serves the page at `/api/watch/page` from the built site's `watch/index.html` (`SITE_DIR`, default
    `../site` next to the server). Films own domains (watch.theirfilm.com) need Cloudflare for SaaS later.
 
