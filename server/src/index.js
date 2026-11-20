@@ -8,6 +8,7 @@ import { filmsRouter } from "./films.js";
 import { adminRouter } from "./admin.js";
 import { libraryRouter } from "./library.js";
 import { watchRouter } from "./watch.js";
+import { browseRouter } from "./browse.js";
 import { stripeWebhook } from "./payments.js";
 import { connectRouter } from "./connect.js";
 import { filmmakerSalesRouter, salesRouter } from "./sales.js";
@@ -27,6 +28,7 @@ app.use("/api", (req, res, next) => {
 });
 
 app.use("/api/watch", watchRouter); // public, no sign-in
+app.use("/api/browse", browseRouter); // public catalog of opted-in live films
 app.use("/api", loadUser);
 app.use("/api/watch", salesRouter); // buying and watching on a film's own address (knows who's signed in there)
 app.use("/api/auth", authRouter);

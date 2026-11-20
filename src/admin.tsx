@@ -11,7 +11,7 @@ import "./dashboard.css";
 
 const home = import.meta.env.BASE_URL;
 
-type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; sales_cents: number; sales_count: number; submitted_at: string | null; updated_at: string };
+type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; staff_pick: number; sales_cents: number; sales_count: number; submitted_at: string | null; updated_at: string };
 type Code = { id: number; code: string; max_uses: number | null; uses: number; expires_at: string | null; active: number; note: string | null; used_by: string | null; created_at: string };
 type StripeCols = { stripe_has_account: number | null; stripe_email: string | null; stripe_account_id: string | null; stripe_country: string | null };
 type AdminUser = StripeCols & { id: number; email: string; name: string | null; created_at: string; last_login_at: string | null; email_verified_at: string | null; has_password: number; films: number };
@@ -90,13 +90,14 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
   const [status, setStatus] = useState(film.status);
   const [note, setNote] = useState(film.admin_note || "");
   const [notify, setNotify] = useState(true);
+  const [staffPick, setStaffPick] = useState(!!film.staff_pick);
   const [msg, setMsg] = useState("");
 
   async function save(e: FormEvent) {
     e.preventDefault();
     setMsg("Saving…");
     try {
-      const r = await api<{ emailed: boolean }>(`/admin/films/${film.id}`, { method: "PATCH", body: { status, admin_note: note, notify } });
+      const r = await api<{ emailed: boolean }>(`/admin/films/${film.id}`, { method: "PATCH", body: { status, admin_note: note, notify, staff_pick: staffPick } });
       setMsg(r.emailed ? "Saved and emailed the filmmaker." : "Saved.");
       reload();
     } catch (err) {
@@ -186,6 +187,10 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <label className="check">
               <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
               Email them if the status changes
+            </label>
+            <label className="check">
+              <input type="checkbox" checked={staffPick} onChange={(e) => setStaffPick(e.target.checked)} />
+              Staff pick (featured under Staff Picks in Browse, if they've opted in to Browse)
             </label>
             <div className="save-bar">
               <button className="btn btn-small">Save</button>

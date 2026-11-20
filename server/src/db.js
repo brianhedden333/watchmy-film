@@ -220,6 +220,10 @@ const MIGRATIONS = [
   -- Stripe's processing fee on a viewer sale (charged to the filmmaker), for their sales list.
   ALTER TABLE payments ADD COLUMN stripe_fee_cents INTEGER;
   `,
+  `
+  -- Browse: films we feature under "Staff Picks". Set by an admin.
+  ALTER TABLE films ADD COLUMN staff_pick INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });
