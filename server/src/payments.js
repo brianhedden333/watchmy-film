@@ -109,7 +109,10 @@ export async function stripeWebhook(req, res) {
       lastError = e;
     }
   }
-  if (!event) return res.status(400).send(`Webhook error: ${lastError?.message}`);
+  if (!event) {
+    console.warn("Stripe webhook rejected (signature):", lastError?.message?.slice(0, 160));
+    return res.status(400).send(`Webhook error: ${lastError?.message}`);
+  }
   const obj = event.data.object;
   try {
     // event.account is set for events from a connected account (a filmmaker's): viewer sales, refunds, disputes.
