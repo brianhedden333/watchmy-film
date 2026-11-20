@@ -1,7 +1,7 @@
 # Deploying watchmyfilm.online
 
 The site and API run on the DigitalOcean droplet `root@165.232.58.191` (Ubuntu 24.04, shared with Fracking the System).
-Moved there 2026-11-20 from `165.232.58.191`. The API runs under PM2 as the unprivileged `web` user:
+Moved there 2026-11-20 from `164.92.121.73`. The API runs under PM2 as the unprivileged `web` user:
 on the server use `sudo -u web HOME=/home/web pm2 …` (e.g. `pm2 ls`, `pm2 logs watchmyfilm`).
 
 | Piece | Where |
