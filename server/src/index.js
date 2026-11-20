@@ -10,7 +10,7 @@ import { libraryRouter } from "./library.js";
 import { watchRouter } from "./watch.js";
 import { stripeWebhook } from "./payments.js";
 import { connectRouter } from "./connect.js";
-import { salesRouter } from "./sales.js";
+import { filmmakerSalesRouter, salesRouter } from "./sales.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -34,6 +34,7 @@ app.use("/api/films", filmsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/library", libraryRouter);
 app.use("/api/connect", connectRouter);
+app.use("/api/sales", filmmakerSalesRouter); // the filmmaker's own sales list
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api", (_req, res) => res.status(404).json({ error: "Not found." }));
 

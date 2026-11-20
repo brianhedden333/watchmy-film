@@ -133,6 +133,7 @@ export async function settleSale(session, account) {
   })();
 
   if (result.isNew) {
+    recordStripeFee(result.payment).catch((e) => console.error("Stripe fee lookup failed:", e.message));
     const t = createLoginToken(result.payment.user_id, 7 * 24 * 60);
     purchaseEmail(email, { title: film.title, access, link: `${filmOrigin(film)}${PAGE}?signin=${t}`, days: rentalDays(film), watchDays: watchDays(film) })
       .catch((e) => console.error("Purchase email failed:", e.message));
@@ -142,6 +143,74 @@ export async function settleSale(session, account) {
   }
   return result.payment;
 }
+
+// Stripe's processing fee on a sale, read from the charge's balance transaction on the filmmaker's account.
+// On a direct charge that transaction's fee includes our application fee too, so only 'stripe_fee' parts count.
+async function recordStripeFee(payment) {
+  if (!stripe || !payment.stripe_payment_intent || !payment.connect_account) return null;
+  const pi = await stripe.paymentIntents.retrieve(
+    payment.stripe_payment_intent,
+    { expand: ["latest_charge.balance_transaction"] },
+    { stripeAccount: payment.connect_account }
+  );
+  const bt = pi.latest_charge?.balance_transaction;
+  if (!bt || typeof bt === "string") return null; // not settled into the balance yet; try again later
+  const fee = (bt.fee_details || []).filter((d) => d.type === "stripe_fee").reduce((sum, d) => sum + d.amount, 0);
+  db.prepare("UPDATE payments SET stripe_fee_cents = ? WHERE id = ?").run(fee, payment.id);
+  return fee;
+}
+
+// ---------- the filmmaker's sales list (main site, signed in; mounted at /api/sales) ----------
+
+export const filmmakerSalesRouter = Router();
+
+filmmakerSalesRouter.get("/", async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Please sign in." });
+  const rows = db
+    .prepare(
+      `SELECT p.*, f.title AS film_title FROM payments p JOIN films f ON f.id = p.film_id
+       WHERE f.user_id = ? AND p.sale_kind IS NOT NULL ORDER BY p.created_at DESC LIMIT 500`
+    )
+    .all(req.user.id);
+  // Fill in Stripe's fee for recent sales that don't have it yet (a few per load, so the page stays quick).
+  for (const r of rows.filter((x) => x.stripe_fee_cents == null).slice(0, 10)) {
+    try {
+      r.stripe_fee_cents = await recordStripeFee(r);
+    } catch (e) {
+      console.error("Stripe fee lookup failed:", e.message);
+    }
+  }
+  const sales = rows.map((r) => ({
+    id: r.id,
+    date: r.created_at,
+    film_id: r.film_id,
+    film_title: r.film_title,
+    kind: r.sale_kind,
+    amount: r.amount_cents,
+    stripe_fee: r.stripe_fee_cents ?? null,
+    our_fee: r.application_fee_cents ?? 0,
+    setup_part: r.setup_surcharge_cents ?? 0,
+    net: r.stripe_fee_cents == null ? null : r.amount_cents - r.stripe_fee_cents - (r.application_fee_cents ?? 0),
+  }));
+  const sum = (k) => sales.reduce((t, s) => t + (s[k] ?? 0), 0);
+  const films = db
+    .prepare("SELECT id, title, setup_status, setup_recovered_cents FROM films WHERE user_id = ? AND setup_status = 'deferred'")
+    .all(req.user.id)
+    .map((f) => ({ id: f.id, title: f.title, recovered: f.setup_recovered_cents, setup_fee: config.setupFeeCents }));
+  res.json({
+    sales,
+    totals: {
+      count: sales.length,
+      amount: sum("amount"),
+      stripe_fee: sum("stripe_fee"),
+      our_fee: sum("our_fee"),
+      setup_part: sum("setup_part"),
+      net: sum("net"),
+      pending: sales.filter((s) => s.net == null).length, // sales whose Stripe fee isn't known yet
+    },
+    setup: films,
+  });
+});
 
 // ---------- routes (on the film's own address; mounted at /api/watch after loadUser) ----------
 

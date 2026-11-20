@@ -113,10 +113,132 @@ function Dashboard() {
                 })}
               </ul>
             )}
+            {films.length > 0 && <Sales />}
           </>
         )}
       </main>
     </div>
+  );
+}
+
+// ---------- Sales: every viewer sale across their films, with Stripe's fee, ours, and what they earned ----------
+
+type Sale = {
+  id: number;
+  date: string;
+  film_id: number;
+  film_title: string;
+  kind: "rent" | "buy" | "pwyw";
+  amount: number;
+  stripe_fee: number | null;
+  our_fee: number;
+  setup_part: number;
+  net: number | null;
+};
+type SalesResponse = {
+  sales: Sale[];
+  totals: { count: number; amount: number; stripe_fee: number; our_fee: number; setup_part: number; net: number; pending: number };
+  setup: { id: number; title: string; recovered: number; setup_fee: number }[];
+};
+
+const money = (c: number | null) => (c == null ? "…" : `$${(c / 100).toFixed(2)}`);
+const KIND = { rent: "Rental", buy: "Purchase", pwyw: "Pay what you want" } as const;
+const saleDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+function Sales() {
+  const [data, setData] = useState<SalesResponse | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api<SalesResponse>("/sales").then(setData).catch((e) => setError((e as Error).message));
+  }, []);
+
+  if (error) return <p className="dash-alert" role="alert">{error}</p>;
+  if (!data) return null;
+  const { sales, totals, setup } = data;
+  const several = new Set(sales.map((s) => s.film_id)).size > 1;
+
+  return (
+    <section className="sales" aria-labelledby="sales-h">
+      <h2 id="sales-h">Sales</h2>
+      {sales.length === 0 ? (
+        <p className="settings-hint">No sales yet. Rentals, purchases and pay-what-you-want sales show up here as they happen.</p>
+      ) : (
+        <>
+          <div className="sales-totals">
+            <div>
+              <span>You earned</span>
+              <strong className="sales-earned">{money(totals.net)}</strong>
+            </div>
+            <div>
+              <span>Sales</span>
+              <strong>{money(totals.amount)}</strong>
+              <em>{totals.count} {totals.count === 1 ? "sale" : "sales"}</em>
+            </div>
+            <div>
+              <span>Stripe fees</span>
+              <strong>{money(totals.stripe_fee)}</strong>
+            </div>
+            <div>
+              <span>Our fees</span>
+              <strong>{money(totals.our_fee)}</strong>
+              {totals.setup_part > 0 && <em>incl. {money(totals.setup_part)} toward setup</em>}
+            </div>
+          </div>
+          {totals.pending > 0 && (
+            <p className="settings-hint">
+              Stripe's fee isn't in yet for {totals.pending} recent {totals.pending === 1 ? "sale" : "sales"}, so "You earned" leaves
+              {totals.pending === 1 ? " it" : " them"} out for now.
+            </p>
+          )}
+
+          <div className="sales-table-wrap">
+            <table className="sales-table">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  {several && <th scope="col">Film</th>}
+                  <th scope="col">Type</th>
+                  <th scope="col" className="num">Paid</th>
+                  <th scope="col" className="num">Stripe fee</th>
+                  <th scope="col" className="num">Our fee</th>
+                  <th scope="col" className="num">You earned</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sales.map((s) => (
+                  <tr key={s.id}>
+                    <td>{saleDate(s.date)}</td>
+                    {several && <td>{s.film_title}</td>}
+                    <td>{KIND[s.kind] ?? s.kind}</td>
+                    <td className="num">{money(s.amount)}</td>
+                    <td className="num">{money(s.stripe_fee)}</td>
+                    <td className="num" title={s.setup_part ? `${money(s.setup_part)} of this went toward your setup cost` : undefined}>
+                      {money(s.our_fee)}
+                      {s.setup_part > 0 && <span className="sales-setup"> incl. {money(s.setup_part)} setup</span>}
+                    </td>
+                    <td className="num sales-net">{money(s.net)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {setup.map((f) => (
+        <p key={f.id} className="settings-hint sales-setup-line">
+          {setup.length > 1 ? `${f.title}: ` : ""}Setup cost: {money(Math.min(f.recovered, f.setup_fee))} of {money(f.setup_fee)} recovered.
+          {f.recovered >= f.setup_fee ? " All paid off: from now on only our regular fee applies." : " Up to $1 of our fee on each sale goes toward it until it's covered."}
+        </p>
+      ))}
+      <p className="settings-hint">
+        Money from sales goes straight to your Stripe account and is paid out to your bank on Stripe's schedule.{" "}
+        <a href="https://dashboard.stripe.com/" target="_blank" rel="noopener">
+          Open your Stripe Dashboard
+        </a>
+      </p>
+    </section>
   );
 }
 
