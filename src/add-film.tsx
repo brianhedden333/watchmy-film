@@ -1032,14 +1032,139 @@ const COLORS: [ColorKey, string, string][] = [
   ["color_button", "Button", "Rent and buy buttons"],
 ];
 
+// ----- Color picker -----
+// Our own small picker instead of <input type="color">: in Firefox on macOS that opens the system Colors window,
+// which stays open when you click elsewhere. This one is a panel on the page that closes on an outside click or Esc.
+
+const HEX6 = /^#[0-9a-f]{6}$/i;
+
+function hexToHsv(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, max ? d / max : 0, max];
+}
+
+function hsvToHex(h: number, s: number, v: number) {
+  const f = (k: number) => {
+    const x = (k + h / 60) % 6;
+    return Math.round((v - v * s * Math.max(0, Math.min(x, 4 - x, 1))) * 255);
+  };
+  return `#${[f(5), f(3), f(1)].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Quick picks: the site's palette and a few neutrals.
+const SWATCHES = ["#000000", "#1f1d1b", "#ede8df", "#ffffff", "#a39e95", "#fceb7e", "#8c1c3a", "#b8405c", "#1c3a5e", "#2f5d3a"];
+
+function ColorPopover({ value, onChange, onClose, label }: { value: string; onChange: (v: string) => void; onClose: () => void; label: string }) {
+  const [hsv, setHsv] = useState(() => hexToHsv(HEX6.test(value) ? value : "#000000"));
+  const area = useRef<HTMLDivElement>(null);
+  const [h, s, v] = hsv;
+
+  const set = (next: [number, number, number]) => {
+    setHsv(next);
+    onChange(hsvToHex(...next));
+  };
+
+  // Drag in the square: left-right is saturation, top-bottom is brightness.
+  function pick(e: React.PointerEvent<HTMLDivElement>) {
+    const r = area.current!.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    set([h, x, 1 - y]);
+  }
+
+  return (
+    <div className="cp-pop" role="dialog" aria-label={`${label} color`}>
+      <div
+        ref={area}
+        className="cp-area"
+        style={{ backgroundColor: `hsl(${h} 100% 50%)` }}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          pick(e);
+        }}
+        onPointerMove={(e) => e.buttons && pick(e)}
+      >
+        <span className="cp-dot" style={{ left: `${s * 100}%`, top: `${(1 - v) * 100}%`, background: hsvToHex(h, s, v) }} />
+      </div>
+      <input
+        type="range"
+        className="cp-hue"
+        min={0}
+        max={359}
+        value={Math.round(h)}
+        aria-label="Hue"
+        onChange={(e) => set([Number(e.target.value), s || 0.8, v || 0.8])}
+      />
+      <div className="cp-swatches">
+        {SWATCHES.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className="cp-swatch"
+            style={{ background: c }}
+            aria-label={c}
+            onClick={() => {
+              setHsv(hexToHsv(c));
+              onChange(c);
+            }}
+          />
+        ))}
+      </div>
+      <button type="button" className="link-btn cp-done" onClick={onClose}>
+        Done
+      </button>
+    </div>
+  );
+}
+
 function ColorField({ label, hint, value, fallback, onChange, disabled, error }: {
   label: string; hint: string; value: string; fallback: string; onChange: (v: string) => void; disabled?: boolean; error?: string;
 }) {
   const id = useId();
-  const shown = value || fallback;
+  const shown = HEX6.test(value) ? value : fallback;
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const swatch = useRef<HTMLButtonElement>(null);
+
+  // Close on a click anywhere outside the field, or on Esc (focus goes back to the swatch).
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        swatch.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div className={`color-field${error ? " has-err" : ""}`}>
-      <input type="color" id={id} value={shown} disabled={disabled} onChange={(e) => onChange(e.target.value)} aria-describedby={`${id}-h`} />
+    <div className={`color-field${error ? " has-err" : ""}`} ref={wrap}>
+      <button
+        ref={swatch}
+        type="button"
+        id={id}
+        className="cp-swatch-btn"
+        style={{ background: shown }}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-describedby={`${id}-h`}
+        aria-label={`${label}: ${shown}. Choose a color`}
+        onClick={() => setOpen((o) => !o)}
+      />
+      {open && <ColorPopover value={shown} label={label} onChange={onChange} onClose={() => setOpen(false)} />}
       <div className="color-text">
         <label htmlFor={id}>{label}</label>
         <input
