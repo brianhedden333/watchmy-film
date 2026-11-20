@@ -8,7 +8,7 @@
 # throttles new SSH connections, so opening a fresh login for every step used to fail halfway through a deploy.
 # The first connection is retried (up to ~10 minutes) until the droplet lets us in.
 set -euo pipefail
-HOST=root@164.92.121.73
+HOST=root@165.232.58.191   # new Ubuntu 24.04 droplet since 2026-11-20 (old: 164.92.121.73)
 APP=/var/www/watchmyfilm
 cd "$(dirname "$0")/.."
 
@@ -38,12 +38,21 @@ echo "Backing up the database on the droplet…"
 
 echo "Copying site…"
 rsync -az --delete -e "$RSH" dist/ $HOST:$APP/site/
+# Public files: root-owned and world-readable for nginx (the Mac's rsync can't set owners itself).
+"${SSH[@]}" $HOST "chown -R root:root $APP/site && chmod -R u=rwX,go=rX $APP/site"
 
 if [[ "${1:-all}" != "site" ]]; then
   echo "Copying API…"
   rsync -az --delete -e "$RSH" --exclude node_modules --exclude .env --exclude data --exclude uploads server/ $HOST:$APP/server/
   rsync -az -e "$RSH" deploy/ $HOST:$APP/deploy/
-  "${SSH[@]}" $HOST "cd $APP/server && npm ci --omit=dev --no-audit --no-fund && (pm2 restart watchmyfilm --update-env || pm2 start ecosystem.config.cjs) && pm2 save"
+  # The API runs as the unprivileged "web" user: code is root-owned and group-readable by web;
+  # only data/ (SQLite) and uploads/ are writable by web.
+  "${SSH[@]}" $HOST "cd $APP/server && npm ci --omit=dev --no-audit --no-fund \
+    && chown -R root:web $APP/server && chmod -R u=rwX,g=rX,o= $APP/server \
+    && chown -R web:web $APP/server/data $APP/server/uploads \
+    && chown -R root:root $APP/deploy \
+    && (sudo -u web HOME=/home/web pm2 restart watchmyfilm --update-env || sudo -u web HOME=/home/web pm2 start ecosystem.config.cjs) \
+    && sudo -u web HOME=/home/web pm2 save"
 fi
 
 echo "Checking…"
