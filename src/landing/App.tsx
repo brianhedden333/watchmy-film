@@ -214,7 +214,7 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
             Sell your film from your own website.
           </h1>
           <p className="film-tagline">
-            Filmmakers keep up to {Math.floor((1 - pricing.tiers.standard.percent - pricing.stripePercent) * 100)}% of every ticket sale.
+            You keep up to {Math.floor((1 - pricing.tiers.standard.percent - pricing.stripePercent) * 100)}% of every ticket sale.
           </p>
           <div className="watch-buttons" aria-hidden="true">
             <span className="wbtn wbtn-rent">
