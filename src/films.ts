@@ -41,7 +41,7 @@ export type Film = {
   tip_zelle: string | null;
   free_watch: boolean;
   rental_days: number | null;
-  rental_hours: number | null;
+  rental_watch_days: number | null; // days to finish once a rental is started
   tier: "standard" | "secure";
   address_type: "sub" | "own";
   subdomain: string | null;

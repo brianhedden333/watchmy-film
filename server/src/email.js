@@ -120,11 +120,11 @@ const money = (cents) => `$${(cents / 100).toFixed(2)}`;
 const small = (s) => `<p style="margin:0;font-size:13px;color:#a39e95;line-height:1.5">${esc(s)}</p>`;
 
 // To the viewer after paying. The link signs them in on the film's own address (works once, for 7 days).
-export function purchaseEmail(to, { title, access, link, days, hours }) {
+export function purchaseEmail(to, { title, access, link, days, watchDays }) {
   const what =
     access === "buy"
       ? `You own ${title}. Watch it any time on its page.`
-      : `You rented ${title}. Start watching within ${days} days; once you press play you have ${hours} hours to finish.`;
+      : `You rented ${title}. Start watching within ${days} days; once you press play you have ${watchDays} ${watchDays === 1 ? "day" : "days"} to finish.`;
   return sendEmail({
     to,
     subject: `Your film: ${title}`,

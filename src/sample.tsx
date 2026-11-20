@@ -66,7 +66,7 @@ function Sample() {
             <div className="s-box">
               <p className="s-box-title">Viewing period</p>
               <p>Start watching within 30 days</p>
-              <p>72 hours to finish once started</p>
+              <p>3 days to finish once started</p>
             </div>
             <a className="s-btn" href={`${FILM_SITE}/rent-now`} target="_blank" rel="noopener">
               ▶ Rent Now

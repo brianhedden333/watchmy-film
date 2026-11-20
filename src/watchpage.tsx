@@ -16,6 +16,19 @@ type Access = {
 const when = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// Time left on a started rental: "2 days 5 hours", "5 hours 12 minutes", "12 minutes".
+function timeLeft(iso: string) {
+  const ms = Math.max(0, Date.parse(iso) - Date.now());
+  const d = Math.floor(ms / 86_400_000);
+  const h = Math.floor((ms % 86_400_000) / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  if (d) return h ? `${plural(d, "day")} ${plural(h, "hour")}` : plural(d, "day");
+  if (h) return m ? `${plural(h, "hour")} ${plural(m, "minute")}` : plural(h, "hour");
+  return plural(Math.max(m, 1), "minute");
+}
+
 /* The watch page itself, shared by /preview/ (the filmmaker's and admin's preview) and /watch/ (the live page
    at the film's own address). Styles live in sample.css. */
 
@@ -73,7 +86,7 @@ export function HoldingPage({ film: f, onShowFull }: { film: Film; onShowFull?: 
 }
 
 // Pay what you want: Stripe checkout for any amount from the filmmaker's minimum. Unlocks the film.
-function PayWhatYouWant({ film: f, days, hours, onWatch, tried, note, busy }: { film: Film; days: number; hours: number; onWatch: (cents: number) => void; tried: boolean; note: string; busy?: boolean }) {
+function PayWhatYouWant({ film: f, days, finish, onWatch, tried, note, busy }: { film: Film; days: number; finish: string; onWatch: (cents: number) => void; tried: boolean; note: string; busy?: boolean }) {
   const min = f.pwyw_min_cents / 100;
   const [amount, setAmount] = useState(((f.pwyw_suggested_cents ?? f.pwyw_min_cents) / 100).toFixed(2));
   const [error, setError] = useState("");
@@ -93,7 +106,7 @@ function PayWhatYouWant({ film: f, days, hours, onWatch, tried, note, busy }: { 
       <div className="s-pwyw-text">
         <h3>Pay what you want</h3>
         <p className="s-sub">
-          {f.pwyw_access === "buy" ? "Yours to keep, any amount" : `Rent for ${days} days (${hours} hours once started)`} · from{" "}
+          {f.pwyw_access === "buy" ? "Yours to keep, any amount" : `Rent for ${days} days (${finish} once started)`} · from{" "}
           {dollars(f.pwyw_min_cents)}
         </p>
       </div>
@@ -233,7 +246,14 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
   const rent = f.rent_price_cents;
   const buy = f.buy_price_cents;
   const days = f.rental_days ?? 30;
-  const hours = f.rental_hours ?? 72;
+  const finish = plural(f.rental_watch_days ?? 3, "day"); // time to finish once a rental is started
+  // While a started rental is on screen, refresh the time-left text every minute.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!acc?.started) return;
+    const t = setInterval(() => tick((n) => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, [acc?.started]);
   const trailer = embedUrl(f.trailer_url);
   const hero = f.banner_url || f.still_url; // banner across the top; the wide image if there's no banner
   const credits = f.credits.filter((c) => c.names.length);
@@ -325,8 +345,8 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
                 {acc.access === "buy"
                   ? "Watch it any time on this page."
                   : acc.started && acc.ends_at
-                    ? `Your rental ends ${when(acc.ends_at)}.`
-                    : `Start by ${acc.start_by ? when(acc.start_by) : "the end of your rental window"}. Once you press play you have ${hours} hours to finish.`}
+                    ? `${timeLeft(acc.ends_at)} left to watch (your rental ends ${when(acc.ends_at)}).`
+                    : `Start by ${acc.start_by ? when(acc.start_by) : "the end of your rental window"}. Once you press play you have ${finish} to finish.`}
               </p>
             </div>
             <button type="button" className="s-btn" onClick={watchBought}>
@@ -340,7 +360,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
             kind={watching}
             admin={canWatch}
             days={days}
-            hours={hours}
+            finish={finish}
             endsAt={live ? acc?.ends_at ?? null : null}
             onSwitch={setWatching}
             onClose={() => setWatching(null)}
@@ -360,7 +380,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
               <div className="s-box">
                 <p className="s-box-title">Viewing period</p>
                 <p>Start watching within {days} days</p>
-                <p>{hours} hours to finish once started</p>
+                <p>{finish} to finish once started</p>
               </div>
               {rentBonus && (
                 <div className="s-box">
@@ -397,7 +417,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
                 <PayWhatYouWant
                   film={f}
                   days={days}
-                  hours={hours}
+                  finish={finish}
                   onWatch={(cents) => (canWatch ? open(f.pwyw_access) : live ? checkout("pwyw", cents) : setTried("pwyw"))}
                   tried={tried === "pwyw"}
                   note={note}
@@ -521,8 +541,8 @@ function AlreadyPaid() {
 
 // What a viewer gets after paying: the film in a large player where the poster and price boxes were,
 // their access terms, and the bonus features for what they bought, playable in the same player.
-function ScreeningRoom({ film: f, kind, admin, days, hours, endsAt, onSwitch, onClose }: {
-  film: Film; kind: "rent" | "buy" | "free"; admin: boolean; days: number; hours: number; endsAt?: string | null; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
+function ScreeningRoom({ film: f, kind, admin, days, finish, endsAt, onSwitch, onClose }: {
+  film: Film; kind: "rent" | "buy" | "free"; admin: boolean; days: number; finish: string; endsAt?: string | null; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
 }) {
   // Free viewing is the film alone: bonus features come with a rental or purchase.
   const items = [{ title: "The film", url: f.vimeo_url || "" }, ...(kind === "free" ? [] : f.bonus[kind].videos)];
@@ -577,8 +597,8 @@ function ScreeningRoom({ film: f, kind, admin, days, hours, endsAt, onSwitch, on
               ? "Free to watch, thanks to the filmmaker."
               : kind === "rent"
                 ? endsAt
-                  ? `Rented. Your rental ends ${when(endsAt)}.`
-                  : `Rented. Start within ${days} days, then you have ${hours} hours to finish.`
+                  ? `Rented: ${timeLeft(endsAt)} left (ends ${when(endsAt)}).`
+                  : `Rented. Start within ${days} days, then you have ${finish} to finish.`
                 : "Yours to keep. Watch any time on this website."}{" "}
             {kind !== "free" && `On another device? Open this page and choose "Already paid? Watch now" with the email you paid with.`}
           </p>

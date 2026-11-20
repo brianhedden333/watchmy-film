@@ -33,25 +33,32 @@ const stripe = config.stripeSecretKey ? new Stripe(config.stripeSecretKey) : nul
 
 // ---------- money ----------
 
-// Our application fee for a sale of `amount` cents on this film.
+// Stripe's card fee on a US card (2.9% + 30¢), charged to the filmmaker on direct charges. Only used to keep room
+// for it when sizing our fee on tiny tickets; the real fee is read back from Stripe after the sale.
+const stripeFeeEstimate = (amount) => Math.round(amount * 0.029) + 30;
+
+// Our application fee for a sale of `amount` cents on this film: the platform fee (8%, min 50¢), plus up to
+// SETUP_SURCHARGE_CENTS toward the setup cost while it isn't recovered. On small tickets the surcharge shrinks
+// to what fits after Stripe's fee, so the filmmaker never ends up below zero on a sale. Whatever surcharge we
+// take is credited to the film's setup cost.
 export function feeFor(film, amount) {
-  const base = Math.max(Math.round((amount * config.platformFeePercent) / 100), config.platformFeeMinCents);
+  const base = Math.min(Math.max(Math.round((amount * config.platformFeePercent) / 100), config.platformFeeMinCents), amount);
   let surcharge = 0;
   if (film.setup_status === "deferred") {
     const left = Math.max(0, config.setupFeeCents - (film.setup_recovered_cents || 0));
-    // Only on tickets of $5 or more, so small pay-what-you-want amounts aren't swallowed by fees.
-    if (amount >= 500) surcharge = Math.min(config.setupSurchargeCents, left);
+    const room = Math.max(0, amount - stripeFeeEstimate(amount) - base);
+    surcharge = Math.min(config.setupSurchargeCents, left, room);
   }
-  return { fee: Math.min(base + surcharge, amount), surcharge };
+  return { fee: base + surcharge, surcharge };
 }
 
 // ---------- access ----------
 
 const rentalDays = (film) => film.rental_days ?? 30;
-const rentalHours = (film) => film.rental_hours ?? 72;
+const watchDays = (film) => film.rental_watch_days ?? 3;
 
 // What this person may watch of this film right now: owned beats rented; a rental must be started within
-// rental_days of paying, and then lasts rental_hours from the first play. null = nothing.
+// rental_days of paying, and then lasts rental_watch_days from the first play. null = nothing.
 export function entitlement(userId, film) {
   if (!userId) return null;
   const rows = db
@@ -65,7 +72,7 @@ export function entitlement(userId, film) {
       const startBy = Date.parse(r.created_at) + rentalDays(film) * DAY;
       if (t < startBy) return { access: "rent", payment: r, started: false, start_by: new Date(startBy).toISOString() };
     } else {
-      const ends = Date.parse(r.started_at) + rentalHours(film) * HOUR;
+      const ends = Date.parse(r.started_at) + watchDays(film) * DAY;
       if (t < ends) return { access: "rent", payment: r, started: true, ends_at: new Date(ends).toISOString() };
     }
   }
@@ -127,7 +134,7 @@ export async function settleSale(session, account) {
 
   if (result.isNew) {
     const t = createLoginToken(result.payment.user_id, 7 * 24 * 60);
-    purchaseEmail(email, { title: film.title, access, link: `${filmOrigin(film)}${PAGE}?signin=${t}`, days: rentalDays(film), hours: rentalHours(film) })
+    purchaseEmail(email, { title: film.title, access, link: `${filmOrigin(film)}${PAGE}?signin=${t}`, days: rentalDays(film), watchDays: watchDays(film) })
       .catch((e) => console.error("Purchase email failed:", e.message));
     saleEmail(owner.email, { title: film.title, kind: session.metadata.kind, amountCents: session.amount_total, feeCents: fee, dashboard: "https://dashboard.stripe.com/" })
       .catch((e) => console.error("Sale email failed:", e.message));
@@ -155,7 +162,7 @@ const originOf = (req) => `${req.protocol}://${req.headers.host}`;
 function accessPayload(film, ent) {
   const f = publicFilm(film);
   const out = { access: ent.access, vimeo_url: f.vimeo_url, bonus: f.bonus[ent.access].videos };
-  if (ent.access === "rent") Object.assign(out, { started: ent.started, start_by: ent.start_by || null, ends_at: ent.ends_at || null, rental_hours: rentalHours(film) });
+  if (ent.access === "rent") Object.assign(out, { started: ent.started, start_by: ent.start_by || null, ends_at: ent.ends_at || null, watch_days: watchDays(film) });
   return out;
 }
 
@@ -184,7 +191,7 @@ salesRouter.post("/checkout", rateLimit({ windowMs: 10 * 60_000, max: 20 }), asy
 
   const { fee, surcharge } = feeFor(film, amount);
   const name =
-    access === "buy" ? `${film.title} (yours to keep)` : `${film.title} (rental: ${rentalDays(film)} days to start, ${rentalHours(film)} hours to finish)`;
+    access === "buy" ? `${film.title} (yours to keep)` : `${film.title} (rental: ${rentalDays(film)} days to start, ${watchDays(film)} ${watchDays(film) === 1 ? "day" : "days"} to finish)`;
   const meta = { app: APP, purpose: "viewer_sale", film_id: String(film.id), kind, access, fee: String(fee), surcharge: String(surcharge) };
   const origin = originOf(req);
   try {

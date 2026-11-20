@@ -213,6 +213,13 @@ const MIGRATIONS = [
   ALTER TABLE films ADD COLUMN setup_recovered_cents INTEGER NOT NULL DEFAULT 0;
   CREATE INDEX payments_user_film ON payments(user_id, film_id);
   `,
+  `
+  -- Rentals: time to finish once started is set in whole days now (rental_hours is kept but unused).
+  ALTER TABLE films ADD COLUMN rental_watch_days INTEGER;
+  UPDATE films SET rental_watch_days = MAX(1, (rental_hours + 23) / 24) WHERE rental_hours IS NOT NULL;
+  -- Stripe's processing fee on a viewer sale (charged to the filmmaker), for their sales list.
+  ALTER TABLE payments ADD COLUMN stripe_fee_cents INTEGER;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

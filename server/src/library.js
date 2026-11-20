@@ -14,7 +14,7 @@ const DAY = 86_400_000;
 libraryRouter.get("/", (req, res) => {
   const rows = db
     .prepare(
-      `SELECT p.purpose, p.created_at AS paid_at, p.started_at, f.id, f.title, f.year, f.poster_path, f.rental_days, f.rental_hours,
+      `SELECT p.purpose, p.created_at AS paid_at, p.started_at, f.id, f.title, f.year, f.poster_path, f.rental_days, f.rental_watch_days,
               f.status, f.hidden, f.address_type, f.subdomain, f.own_domain
        FROM payments p JOIN films f ON f.id = p.film_id
        WHERE p.user_id = ? AND p.purpose IN ('rent', 'buy')
@@ -33,14 +33,14 @@ libraryRouter.get("/", (req, res) => {
       r.status !== "live" || r.hidden ? null : r.address_type === "own" && r.own_domain ? `watch.${r.own_domain}` : r.subdomain ? `${r.subdomain}.${config.siteName}` : null;
     const base = { id: r.id, title: r.title, year: r.year, poster_url: r.poster_path ? `/uploads/${r.poster_path}` : null, address, paid_at: r.paid_at };
     if (r.purpose === "buy") return { ...base, access: "owned" };
-    const hours = r.rental_hours ?? 72;
+    const watchDays = r.rental_watch_days ?? 3;
     const startBy = new Date(new Date(r.paid_at).getTime() + (r.rental_days ?? 30) * DAY).toISOString();
-    // Once started, a rental lasts rental_hours from the first play (same rule as sales.js entitlement()).
+    // Once started, a rental lasts rental_watch_days from the first play (same rule as sales.js entitlement()).
     if (r.started_at) {
-      const endsAt = new Date(new Date(r.started_at).getTime() + hours * 3_600_000).toISOString();
-      return { ...base, access: endsAt > new Date().toISOString() ? "rented" : "expired", start_by: startBy, ends_at: endsAt, rental_hours: hours };
+      const endsAt = new Date(new Date(r.started_at).getTime() + watchDays * DAY).toISOString();
+      return { ...base, access: endsAt > new Date().toISOString() ? "rented" : "expired", start_by: startBy, ends_at: endsAt, watch_days: watchDays };
     }
-    return { ...base, access: startBy > new Date().toISOString() ? "rented" : "expired", start_by: startBy, rental_hours: hours };
+    return { ...base, access: startBy > new Date().toISOString() ? "rented" : "expired", start_by: startBy, watch_days: watchDays };
   });
   res.json({ films });
 });

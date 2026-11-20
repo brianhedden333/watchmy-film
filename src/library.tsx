@@ -18,14 +18,24 @@ type LibraryFilm = {
   paid_at: string;
   access: "owned" | "rented" | "expired";
   start_by?: string;
-  rental_hours?: number;
+  ends_at?: string; // set once a rental has been started
+  watch_days?: number;
 };
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
+function left(iso: string) {
+  const ms = Math.max(0, Date.parse(iso) - Date.now());
+  const d = Math.floor(ms / 86_400_000);
+  const h = Math.floor((ms % 86_400_000) / 3_600_000);
+  if (d) return `${d} ${d === 1 ? "day" : "days"}${h ? ` ${h} ${h === 1 ? "hour" : "hours"}` : ""}`;
+  return h ? `${h} ${h === 1 ? "hour" : "hours"}` : "under an hour";
+}
+
 function accessLine(f: LibraryFilm) {
   if (f.access === "owned") return "Owned";
-  if (f.access === "expired") return `Rental ended ${day(f.start_by!)}`;
+  if (f.access === "expired") return `Rental ended ${day(f.ends_at || f.start_by!)}`;
+  if (f.ends_at) return `Rented · ${left(f.ends_at)} left to watch`;
   return `Rented · start by ${day(f.start_by!)}`;
 }
 

@@ -229,7 +229,8 @@ const FIELDS = {
   discoverable: flag,
   tags,
   rental_days: int(1, 365),
-  rental_hours: int(1, 720),
+  // Days to finish once a rental is started (replaced rental_hours, which is no longer used).
+  rental_watch_days: int(1, 30),
   // Only one plan for now: Secure (hosting we pay for) is paused, so every film is Standard.
   tier: () => "standard",
   address_type: oneOf("sub", "own"),

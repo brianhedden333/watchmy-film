@@ -65,7 +65,7 @@ function viewerFilm(row) {
     rent_price_cents: f.rent_price_cents,
     buy_price_cents: f.buy_price_cents,
     rental_days: f.rental_days,
-    rental_hours: f.rental_hours,
+    rental_watch_days: f.rental_watch_days,
     pwyw_enabled: f.pwyw_enabled,
     pwyw_min_cents: f.pwyw_min_cents,
     pwyw_suggested_cents: f.pwyw_suggested_cents,

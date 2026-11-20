@@ -276,7 +276,7 @@ const samples: SampleFilm[] = [
     logline:
       "An investigative documentary about climate justice activism in Colorado and the oil and gas industry's tactics to undermine democracy.",
     meta: "Documentary, 2024, 93 minutes",
-    rent: { price: "$4.99", terms: "30 days to start watching, 72 hours to finish" },
+    rent: { price: "$4.99", terms: "30 days to start watching, 3 days to finish" },
     buy: { price: "$14.99", terms: "Watch any time, plus bonus Q&A recordings" },
   },
   {

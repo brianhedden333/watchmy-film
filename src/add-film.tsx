@@ -21,7 +21,7 @@ const startAdding = new URLSearchParams(location.search).has("new");
 // Form fields kept as strings while editing; prices are typed in dollars.
 const TEXT_FIELDS = [
   "title", "logline", "synopsis", "year", "runtime_minutes", "languages", "genre", "trailer_url", "vimeo_url",
-  "rental_days", "rental_hours", "tier", "address_type", "subdomain", "own_domain", "contact_name", "contact_phone", "notes",
+  "rental_days", "rental_watch_days", "tier", "address_type", "subdomain", "own_domain", "contact_name", "contact_phone", "notes",
   "color_background", "color_primary", "color_secondary", "color_button",
   "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle",
 ] as const;
@@ -459,7 +459,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                   </div>
                   <div className="row-2">
                     {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
-                    {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
+                    {field("rental_watch_days", "Days to finish once started", { inputMode: "numeric", placeholder: "3" })}
                   </div>
                 </>
               )}
@@ -508,14 +508,14 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                     value={form.pwyw_access}
                     onChange={set("pwyw_access")}
                     options={[
-                      ["rent", `A rental (${form.rental_days || "30"} days to start, ${form.rental_hours || "72"} hours to finish)`],
+                      ["rent", `A rental (${form.rental_days || "30"} days to start, ${form.rental_watch_days || "3"} days to finish)`],
                       ["buy", "Theirs to keep, like a purchase"],
                     ]}
                   />
                   {!form.rent_enabled && form.pwyw_access === "rent" && (
                     <div className="row-2">
                       {field("rental_days", "Days to start watching", { inputMode: "numeric", placeholder: "30" })}
-                      {field("rental_hours", "Hours to finish once started", { inputMode: "numeric", placeholder: "72" })}
+                      {field("rental_watch_days", "Days to finish once started", { inputMode: "numeric", placeholder: "3" })}
                     </div>
                   )}
                 </>
@@ -1064,7 +1064,7 @@ function DesignPreview({ form }: { form: FormState }) {
   const buy = form.buy_enabled ? form.buy_price.trim() : "";
   const rent = (form.rent_enabled ? form.rent_price.trim() : "") || (buy ? "" : "4.99");
   const days = form.rental_days.trim() || "30";
-  const hours = form.rental_hours.trim() || "72";
+  const watchDays = form.rental_watch_days.trim() || "3";
   return (
     <div className="design-preview sample" style={pageTheme(form)} aria-label="Preview of your colors on your watch page's sales box">
       <div className="s-card dp-card" aria-hidden="true">
@@ -1075,7 +1075,7 @@ function DesignPreview({ form }: { form: FormState }) {
             <div className="s-box">
               <p className="s-box-title">Viewing period</p>
               <p>Start watching within {days} days</p>
-              <p>{hours} hours to finish once started</p>
+              <p>{watchDays} {watchDays === "1" ? "day" : "days"} to finish once started</p>
             </div>
             <span className="s-btn">▶ Rent Now</span>
           </>
