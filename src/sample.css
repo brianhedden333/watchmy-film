@@ -72,7 +72,7 @@
 }
 
 .s-hero p {
-  font-size: clamp(18px, 2vw, 22px);
+  font-size: clamp(15px, 1.5vw, 17px);
   line-height: 1.45;
   color: #d6d3d1;
   margin: 0;
