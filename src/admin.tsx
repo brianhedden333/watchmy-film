@@ -91,13 +91,27 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
   const [note, setNote] = useState(film.admin_note || "");
   const [notify, setNotify] = useState(true);
   const [staffPick, setStaffPick] = useState(!!film.staff_pick);
+  const [pickMsg, setPickMsg] = useState("");
   const [msg, setMsg] = useState("");
+
+  // Staff pick saves on its own, straight away.
+  async function togglePick() {
+    const next = !staffPick;
+    setStaffPick(next);
+    setPickMsg("");
+    try {
+      await api(`/admin/films/${film.id}`, { method: "PATCH", body: { staff_pick: next } });
+    } catch (err) {
+      setStaffPick(!next);
+      setPickMsg((err as Error).message);
+    }
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
     setMsg("Saving…");
     try {
-      const r = await api<{ emailed: boolean }>(`/admin/films/${film.id}`, { method: "PATCH", body: { status, admin_note: note, notify, staff_pick: staffPick } });
+      const r = await api<{ emailed: boolean }>(`/admin/films/${film.id}`, { method: "PATCH", body: { status, admin_note: note, notify } });
       setMsg(r.emailed ? "Saved and emailed the filmmaker." : "Saved.");
       reload();
     } catch (err) {
@@ -135,6 +149,25 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
           <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" />
         </svg>
       </button>
+      <div className="admin-pick">
+        <button
+          type="button"
+          className={`admin-pick-btn${staffPick ? " is-on" : ""}`}
+          aria-pressed={staffPick}
+          onClick={togglePick}
+          title="Feature this film under Staff Picks in Browse"
+        >
+          {staffPick ? "★ Staff pick" : "☆ Make staff pick"}
+        </button>
+        <span className="admin-pick-note">
+          {pickMsg ||
+            (staffPick && !(film.discoverable && film.status === "live" && !film.hidden)
+              ? "Shows in Browse once the film is live and the filmmaker lists it in Browse."
+              : staffPick
+                ? "Featured under Staff Picks in Browse."
+                : "")}
+        </span>
+      </div>
 
       {open && (
         <div className="admin-film-body">
@@ -187,10 +220,6 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <label className="check">
               <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
               Email them if the status changes
-            </label>
-            <label className="check">
-              <input type="checkbox" checked={staffPick} onChange={(e) => setStaffPick(e.target.checked)} />
-              Staff pick (featured under Staff Picks in Browse, if they've opted in to Browse)
             </label>
             <div className="save-bar">
               <button className="btn btn-small">Save</button>
