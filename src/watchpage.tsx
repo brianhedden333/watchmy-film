@@ -271,6 +271,16 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
 
           {extras && (
             <div className="s-extras">
+              {f.pwyw_enabled && (
+                <PayWhatYouWant
+                  film={f}
+                  days={days}
+                  hours={hours}
+                  onWatch={() => (canWatch ? open(f.pwyw_access) : setTried("pwyw"))}
+                  tried={tried === "pwyw"}
+                  note={note}
+                />
+              )}
               {f.free_watch && (
                 <div className="s-card s-free">
                   <h3>Watch for free</h3>
@@ -284,16 +294,6 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
                     </p>
                   )}
                 </div>
-              )}
-              {f.pwyw_enabled && (
-                <PayWhatYouWant
-                  film={f}
-                  days={days}
-                  hours={hours}
-                  onWatch={() => (canWatch ? open(f.pwyw_access) : setTried("pwyw"))}
-                  tried={tried === "pwyw"}
-                  note={note}
-                />
               )}
               {hasTips && <TipJar film={f} />}
             </div>
