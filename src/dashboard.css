@@ -1957,4 +1957,57 @@ a.library-poster:focus-visible {
 
 .connect-embed {
   margin: 16px 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Stripe's onboarding form needs more room than the 340px sidebar gives it: widen the sidebar while it's open. */
+@media (min-width: 961px) {
+  .film-grid:has(.connect-embed) {
+    grid-template-columns: minmax(0, 1fr) 500px;
+  }
+
+  .setup-card:has(.connect-embed) {
+    padding: 24px 20px;
+  }
+}
+
+.setup-card {
+  overflow-x: hidden;
+}
+
+/* Trust note above the Stripe onboarding form. */
+.connect-secure {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid #b4e89a;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.connect-secure svg {
+  flex: none;
+  margin-top: 2px;
+  color: #b4e89a;
+}
+
+.connect-secure p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+.connect-secure p:last-child {
+  margin-bottom: 0;
+}
+
+.connect-secure .connect-secure-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text, #ede8df);
 }

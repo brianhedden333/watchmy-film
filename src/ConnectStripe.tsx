@@ -84,9 +84,24 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
     try {
       const r = await api<{ connect: ConnectInfo }>("/connect");
       update(r.connect);
+      return r.connect;
     } catch {
-      /* keep what we have */
+      return null; /* keep what we have */
     }
+  }
+
+  // Stripe verifies the details in the background for a little while after onboarding is submitted,
+  // so keep re-checking for up to a minute and a half instead of showing "isn't finished".
+  const [checking, setChecking] = useState(false);
+  async function afterOnboarding() {
+    setMode("");
+    setChecking(true);
+    for (let i = 0; i < 18; i++) {
+      const c = await refresh();
+      if (c?.canAcceptPayments) break;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    setChecking(false);
   }
 
   if (info === undefined) return <p className="small-print">Checking your Stripe account…</p>;
@@ -96,8 +111,11 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
 
   return (
     <div className="connect-stripe">
+      {!active && <SecureNote />}
       {active ? (
         <p className="setup-paid">✓ Stripe connected. Sales are charged on your own Stripe account.</p>
+      ) : checking ? (
+        <p role="status">Stripe is checking your details. This usually takes less than a minute…</p>
       ) : started ? (
         <p>
           {info?.cardPayments === "pending"
@@ -117,12 +135,7 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
           {active && <ConnectNotificationBanner />}
           {mode === "onboarding" && (
             <div className="connect-embed">
-              <ConnectAccountOnboarding
-                onExit={() => {
-                  setMode("");
-                  refresh();
-                }}
-              />
+              <ConnectAccountOnboarding onExit={afterOnboarding} />
             </div>
           )}
           {mode === "manage" && (
@@ -134,7 +147,7 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
       )}
 
       <div className="stripe-actions">
-        {!active && mode !== "onboarding" && (
+        {!active && !checking && mode !== "onboarding" && (
           <button type="button" className="btn btn-small" onClick={() => start("onboarding")} disabled={busy}>
             {busy ? "Opening Stripe…" : started ? "Continue Stripe setup" : "Connect Stripe"}
           </button>
@@ -163,6 +176,33 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
         )}
       </div>
       {error && <p className="field-err" role="alert">{error}</p>}
+    </div>
+  );
+}
+
+// Shown above the Stripe form: people enter their Social Security number and bank details here, so say plainly where that goes.
+function SecureNote() {
+  return (
+    <div className="connect-secure">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+        <path
+          fill="currentColor"
+          d="M12 1a5 5 0 0 0-5 5v4H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5Zm-3 9V6a3 3 0 0 1 6 0v4H9Zm3 4a2 2 0 0 1 1 3.73V20h-2v-2.27A2 2 0 0 1 12 14Z"
+        />
+      </svg>
+      <div>
+        <p className="connect-secure-title">Secure, and handled by Stripe</p>
+        <p>
+          The form below is Stripe's own, running inside this page. Your ID, Social Security number and bank details go
+          straight to Stripe over an encrypted connection. watchmyfilm never sees or stores your full Social Security
+          number or bank account number.
+        </p>
+        <p>
+          Stripe processes payments for millions of businesses and is certified to the payment industry's highest
+          security standard (PCI Level 1). It asks for these details because US law requires payment companies to
+          verify who they pay.
+        </p>
+      </div>
     </div>
   );
 }

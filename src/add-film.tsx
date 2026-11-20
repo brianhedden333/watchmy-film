@@ -1331,7 +1331,10 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
 
   // Once the fee is in, they can tell us where to be paid while we review.
   // Only films that sell through Stripe (rent, buy or donations) need it; free-only films skip this.
-  const askStripe = needsStripe && film.setup_status !== "unpaid" && (film.status === "in_review" || film.status === "approved" || film.status === "changes_requested");
+  // Live films always show it: the server won't turn on sales for a live film until Stripe is connected.
+  const askStripe =
+    film.setup_status !== "unpaid" &&
+    (film.status === "live" || (needsStripe && (film.status === "in_review" || film.status === "approved" || film.status === "changes_requested")));
 
   return (
     <aside className="setup-card" id="setup-card" tabIndex={-1} aria-label="Setup">
@@ -1342,7 +1345,12 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
           <h2>Get paid</h2>
           <p>
             Every sale goes straight to your own Stripe account.{" "}
-            {film.status === "approved" ? "Connect it here before you go live." : "Connect it while we review your film, so you can go live as soon as it's approved."}
+            {film.status === "live"
+              ? stripe?.canAcceptPayments
+                ? "Your Stripe account is connected, so you can turn on Rent, Buy or donations any time."
+                : "Connect it to start selling. Until then, viewers see only your free and tip-jar options."
+              : film.status === "approved"
+              ? "Connect it here before you go live." : "Connect it while we review your film, so you can go live as soon as it's approved."}
           </p>
           <ConnectStripe initial={stripe} onChange={onStripe} />
         </section>
