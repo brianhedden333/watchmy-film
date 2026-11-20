@@ -139,12 +139,15 @@ function Terms() {
             whether to give a refund, except where the law requires one, and you issue it from your Stripe Dashboard.
           </li>
           <li>
-            <strong>Full refund:</strong> the viewer's access to that rental or purchase ends, and we return our platform
-            fee on that sale to you (any setup amount in it no longer counts toward the film's setup cost). Stripe doesn't
-            return its processing fee on refunds.
+            <strong>Fees on refunds:</strong> our platform fee on a sale (including any setup amount, which still counts
+            toward the film's setup cost) isn't returned when you refund it, and Stripe doesn't return its processing fee
+            either. A refund comes out of your Stripe balance.
           </li>
           <li>
-            <strong>Partial refund:</strong> the viewer keeps access, and our fee isn't returned.
+            <strong>Full refund:</strong> the viewer's access to that rental or purchase ends.
+          </li>
+          <li>
+            <strong>Partial refund:</strong> the viewer keeps access.
           </li>
           <li>
             <strong>Disputes (chargebacks):</strong> if a viewer disputes a charge with their bank, their access pauses while

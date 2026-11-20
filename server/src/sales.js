@@ -154,8 +154,8 @@ const saleForCharge = (charge, account) =>
   charge?.payment_intent &&
   db.prepare("SELECT * FROM payments WHERE stripe_payment_intent = ? AND connect_account = ?").get(String(charge.payment_intent), account);
 
-// charge.refunded: record how much was refunded. A full refund also ends the viewer's access and, if REFUND_OUR_FEE
-// is on (the default), gives our fee back to the filmmaker and takes its setup credit off the film.
+// charge.refunded: record how much was refunded. A full refund also ends the viewer's access. We keep our fee by
+// default (REFUND_OUR_FEE off); with REFUND_OUR_FEE=1 it goes back to the filmmaker and its setup credit comes off.
 export async function handleRefund(charge, account) {
   const sale = saleForCharge(charge, account);
   if (!sale) return;
