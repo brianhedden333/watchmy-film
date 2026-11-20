@@ -88,6 +88,9 @@ export function filmOrigin(film) {
   return `https://${film.subdomain}.${config.siteDomain}`;
 }
 
+// The film's watch page (with the dev-server path when running locally).
+export const filmPageUrl = (film) => `${filmOrigin(film)}${PAGE}`;
+
 // ---------- recording a sale ----------
 
 const getUser = (id) => db.prepare("SELECT * FROM users WHERE id = ?").get(id);

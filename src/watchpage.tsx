@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { api, dollars } from "./api";
 import type { Film } from "./films";
 
@@ -17,6 +17,10 @@ const when = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// The main site, from a film's own address: watchmyfilm.online in production, localhost:<port> on the dev server.
+const mainSite = () =>
+  location.hostname.endsWith(".localhost") ? `${location.protocol}//localhost${location.port ? `:${location.port}` : ""}` : "https://watchmyfilm.online";
 
 // Time left on a started rental: "2 days 5 hours", "5 hours 12 minutes", "12 minutes".
 function timeLeft(iso: string) {
@@ -182,9 +186,15 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
   const [busy, setBusy] = useState("");
   const [flash, setFlash] = useState("");
   const [error, setError] = useState("");
+  const [justBought, setJustBought] = useState(false); // show the "no account needed" note
+  const [askEmail, setAskEmail] = useState(false); // an emailed link was used up: open "Email me a new link"
 
+  // Runs once per page load. (React's dev mode runs effects twice; a second pass would race the first and could
+  // overwrite a fresh sign-in with "no access".)
+  const loaded = useRef(false);
   useEffect(() => {
-    if (!live) return;
+    if (!live || loaded.current) return;
+    loaded.current = true;
     const q = new URLSearchParams(location.search);
     const paid = q.get("paid");
     const signin = q.get("signin");
@@ -199,8 +209,17 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
             setAcc(r);
             setFlash("Thanks for your purchase! Enjoy the film.");
           }
+          setJustBought(true);
         } else if (signin) {
-          setAcc(await api<Access>("/watch/signin/verify", { body: { token: signin } }));
+          try {
+            setAcc(await api<Access>("/watch/signin/verify", { body: { token: signin } }));
+          } catch {
+            // Emailed links work once. Coming back later is normal: offer a fresh one right away.
+            setFlash("That link has already been used. Enter the email you paid with and we'll send you a new one.");
+            setAskEmail(true);
+            api<Access>("/watch/access").then(setAcc).catch(() => {});
+          }
+          return;
         } else {
           setAcc(await api<Access>("/watch/access"));
         }
@@ -337,6 +356,23 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
             {error || flash}
           </p>
         )}
+        {live && justBought && !watching && (
+          <div className="s-card s-noacct">
+            <h3>No account needed</h3>
+            <p>
+              We've emailed you a receipt with a <strong>Watch now</strong> link. Use it any time, on any device, to come back
+              to this film. If a link has been used, open this page and choose <strong>Already paid? Watch now</strong> to get a
+              new one.
+            </p>
+            <p className="s-fine">
+              Want all your films in one place? Sign in at{" "}
+              <a href={`${mainSite()}/library/`} target="_blank" rel="noopener">
+                watchmyfilm.online
+              </a>{" "}
+              with the same email and your free library keeps every rental and purchase.
+            </p>
+          </div>
+        )}
         {live && acc?.access && !watching && (
           <div className="s-card s-owned">
             <div>
@@ -441,7 +477,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
               {hasTips && <TipJar film={f} />}
             </div>
           )}
-          {live && !acc?.access && (offers > 0 || f.pwyw_enabled) && <AlreadyPaid />}
+          {live && !acc?.access && (offers > 0 || f.pwyw_enabled || askEmail) && <AlreadyPaid startOpen={askEmail} />}
         </div>
         )}
 
@@ -490,8 +526,11 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
 }
 
 // "Already paid? Watch now": emails a one-time link that signs the viewer in on this film's address.
-function AlreadyPaid() {
-  const [open, setOpen] = useState(false);
+function AlreadyPaid({ startOpen = false }: { startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen);
+  useEffect(() => {
+    if (startOpen) setOpen(true); // e.g. an emailed link turned out to be used up after the page loaded
+  }, [startOpen]);
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"" | "sending" | "sent">("");
   const [error, setError] = useState("");

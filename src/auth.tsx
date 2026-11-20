@@ -11,7 +11,20 @@ const home = import.meta.env.BASE_URL;
 // Sign-up and sign-in forms submitted sooner than this after appearing are treated as bots.
 const MIN_FILL_MS = 2500;
 
-const go = (next: string) => location.replace(`${home}${next.replace(/^\//, "")}`);
+// A page that sent someone here to sign in (e.g. Browse's "Watch later") can ask to be returned to:
+// localStorage "wmf_return" = { path: "/browse/?film=3", at: Date.now() }. Same-site paths only, for an hour.
+function returnPath() {
+  try {
+    const r = JSON.parse(localStorage.getItem("wmf_return") || "null");
+    localStorage.removeItem("wmf_return");
+    if (r && typeof r.path === "string" && /^\/[^/\\]/.test(r.path) && Date.now() - r.at < 3_600_000) return r.path;
+  } catch {
+    /* storage blocked or bad value: use the server's choice */
+  }
+  return null;
+}
+
+const go = (next: string) => location.replace(`${home}${(returnPath() || next).replace(/^\//, "")}`);
 
 export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
   const token = mode === "signin" ? new URLSearchParams(location.search).get("token") : null;

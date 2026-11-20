@@ -31,8 +31,9 @@ type Card = {
   banner_url: string | null;
   rent_price_cents: number | null;
   buy_price_cents: number | null;
-  rental_hours: number | null;
+  rental_watch_days: number | null;
   pwyw_enabled: boolean;
+  free_watch: boolean;
   pwyw_min_cents: number;
   tips: ("venmo" | "paypal" | "zelle")[];
   trailer_url: string | null;
@@ -47,11 +48,12 @@ type Card = {
 const NEW_MAX = 6; // spines in New Arrivals
 const DONATION = "Donation-based"; // the aisle for films that take pay-what-you-want or tips
 
-// Pay what you want, or a tip jar.
-const takesDonations = (f: Card) => f.pwyw_enabled || f.tips.length > 0;
+// Free to watch, pay what you want, or a tip jar.
+const takesDonations = (f: Card) => f.free_watch || f.pwyw_enabled || f.tips.length > 0;
 const TIP_NAMES = { venmo: "Venmo", paypal: "PayPal", zelle: "Zelle" };
 function donationLine(f: Card) {
   return [
+    f.free_watch && "Free to watch",
     f.pwyw_enabled && `Pay what you want, from $${(f.pwyw_min_cents / 100).toFixed(2)}`,
     f.tips.length > 0 && `Tips by ${f.tips.map((t) => TIP_NAMES[t]).join(", ")}`,
   ]
@@ -119,15 +121,49 @@ function Browse() {
   const [open, setOpen] = useState<Card | null>(null);
   const [peek, setPeek] = useState<Card | null>(null); // hovered or focused spine, shown in the panel on the right
   const lastSpine = useRef<HTMLButtonElement | null>(null);
+  // Watch Later: ids of the films this person saved (signed in only).
+  const [saved, setSaved] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     api<{ films: Card[] }>("/browse")
-      .then((r) => setFilms(r.films))
+      .then((r) => {
+        setFilms(r.films);
+        // Back from signing in to save a film: open it again.
+        const want = Number(new URLSearchParams(location.search).get("film"));
+        const f = want && r.films.find((x) => x.id === want);
+        if (f) setOpen(f);
+      })
       .catch(() => setError("The films didn't load. Refresh to try again."));
     getMe()
-      .then(setMe)
+      .then((u) => {
+        setMe(u);
+        if (u) api<{ films: { id: number }[] }>("/watchlist").then((r) => setSaved(new Set(r.films.map((x) => x.id)))).catch(() => {});
+      })
       .catch(() => {});
   }, []);
+
+  // Add or remove from Watch Later. Not signed in: sign in first, then come back to this film.
+  async function toggleSave(f: Card) {
+    if (!me) {
+      try {
+        localStorage.setItem("wmf_return", JSON.stringify({ path: `/browse/?film=${f.id}`, at: Date.now() }));
+      } catch {
+        /* private mode: they'll land on their library instead */
+      }
+      location.assign(`${import.meta.env.BASE_URL}signin/?why=watch-later`);
+      return;
+    }
+    const has = saved.has(f.id);
+    const next = new Set(saved);
+    if (has) next.delete(f.id);
+    else next.add(f.id);
+    setSaved(next);
+    try {
+      await api(`/watchlist/${f.id}`, { method: has ? "DELETE" : "PUT", body: {} });
+    } catch {
+      setSaved(saved); // put it back if the server said no
+    }
+  }
 
   useEffect(() => {
     const u = new URL(location.href);
@@ -390,7 +426,7 @@ function Browse() {
       </footer>
 
       {open &&
-        createPortal(<FilmPopup film={open} onClose={close} />, document.body)}
+        createPortal(<FilmPopup film={open} onClose={close} saved={saved.has(open.id)} onSave={() => toggleSave(open)} />, document.body)}
     </div>
   );
 }
@@ -511,7 +547,7 @@ function Peek({ film: f }: { film: Card | null }) {
 }
 
 // The film, taken off the stack: trailer, poster and synopsis, rent and buy above the fold; details and credits below.
-function FilmPopup({ film: f, onClose }: { film: Card; onClose: () => void }) {
+function FilmPopup({ film: f, onClose, saved, onSave }: { film: Card; onClose: () => void; saved: boolean; onSave: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const trailer = trailerSrc(f.trailer_url);
   const paragraphs = (f.synopsis || "")
@@ -533,8 +569,8 @@ function FilmPopup({ film: f, onClose }: { film: Card; onClose: () => void }) {
     ["Languages", f.languages || ""],
     [
       "Rental",
-      f.rent_price_cents && f.rental_hours
-        ? `${f.rental_hours} hours to watch once you start`
+      f.rent_price_cents && f.rental_watch_days
+        ? `${f.rental_watch_days} ${f.rental_watch_days === 1 ? "day" : "days"} to watch once you start`
         : "",
     ],
   ].filter((d): d is [string, string] => !!d[1]);
@@ -632,11 +668,19 @@ function FilmPopup({ film: f, onClose }: { film: Card; onClose: () => void }) {
                 Buy {money(f.buy_price_cents)}
               </a>
             )}
+            {f.free_watch && (
+              <a className={f.rent_price_cents != null || f.buy_price_cents != null ? "btn btn-outline" : "btn"} href={href(f)}>
+                Watch free
+              </a>
+            )}
             {f.pwyw_enabled && (
               <a className="bz-ghost" href={href(f)}>
                 Or pay what you want
               </a>
             )}
+            <button type="button" className={`bz-later${saved ? " is-saved" : ""}`} onClick={onSave} aria-pressed={saved}>
+              {saved ? "✓ In Watch Later" : "+ Watch later"}
+            </button>
           </div>
 
           <div className="bz-pop-more">

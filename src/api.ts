@@ -29,7 +29,7 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
 
 export type StripeInfo = { hasAccount: boolean; email: string | null; accountId: string | null; country: string | null; updatedAt: string };
 export type ConnectInfo = { accountId: string | null; cardPayments: string | null; payouts: string | null; canAcceptPayments: boolean; checkedAt: string | null };
-export type User = { id: number; email: string; name: string | null; isAdmin: boolean; hasPassword: boolean; home: string; stripe: StripeInfo | null; connect: ConnectInfo };
+export type User = { id: number; email: string; name: string | null; isAdmin: boolean; hasPassword: boolean; home: string; stripe: StripeInfo | null; connect: ConnectInfo; hasFilms: boolean };
 
 export const getMe = () => api<{ user: User | null }>("/auth/me").then((r) => r.user);
 export const signOut = () => api("/auth/logout", { method: "POST", body: {} });

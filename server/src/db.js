@@ -224,6 +224,15 @@ const MIGRATIONS = [
   -- Browse: films we feature under "Staff Picks". Set by an admin.
   ALTER TABLE films ADD COLUMN staff_pick INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  -- Watch Later: films a viewer saved from Browse to watch later.
+  CREATE TABLE watchlist (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    film_id INTEGER NOT NULL REFERENCES films(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    PRIMARY KEY (user_id, film_id)
+  );
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

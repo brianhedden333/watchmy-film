@@ -30,8 +30,9 @@ function card(f) {
     banner_url: upload(f.banner_path),
     rent_price_cents: f.rent_price_cents,
     buy_price_cents: f.buy_price_cents,
-    rental_hours: f.rental_hours,
+    rental_watch_days: f.rental_watch_days,
     pwyw_enabled: !!f.pwyw_enabled,
+    free_watch: !!f.free_watch,
     pwyw_min_cents: f.pwyw_min_cents,
     // Which tip jars it has (the handles themselves are on the film's own page).
     tips: ["venmo", "paypal", "zelle"].filter((k) => f[`tip_${k}`]),

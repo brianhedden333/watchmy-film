@@ -1601,19 +1601,36 @@ a.library-poster:focus-visible {
   opacity: 0.45;
 }
 
-.dash .library-item h2 {
+.dash .library-item h2,
+.dash .library-item h3 {
   margin: 12px 0 4px;
   font-size: 17px;
   line-height: 1.25;
 }
 
-.library-item h2 a {
+.library-item h2 a,
+.library-item h3 a {
   color: var(--screen);
   text-decoration: none;
 }
 
-.library-item h2 a:hover {
+.library-item h2 a:hover,
+.library-item h3 a:hover {
   text-decoration: underline;
+}
+
+/* My Library: "Rented and bought" and "Watch Later" sections */
+.library-section + .library-section {
+  margin-top: 48px;
+}
+
+.dash .library-section h2 {
+  margin: 0 0 16px;
+}
+
+.library-remove {
+  margin-top: 4px;
+  font-size: 13px;
 }
 
 .library-access {

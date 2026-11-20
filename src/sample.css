@@ -846,6 +846,18 @@
   flex: none;
 }
 
+.s-card.s-noacct {
+  margin-bottom: 24px;
+}
+
+.s-card.s-noacct h3 {
+  margin: 0 0 6px;
+}
+
+.s-card.s-noacct p {
+  margin: 0 0 8px;
+}
+
 .s-already {
   grid-column: 1 / -1;
   margin: 4px 0 0;

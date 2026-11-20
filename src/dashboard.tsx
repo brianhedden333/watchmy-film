@@ -54,7 +54,7 @@ function Dashboard() {
         {films && (
           <>
             <div className="list-head">
-              <h1>Your films</h1>
+              <h1>My Films</h1>
               <a className="btn btn-small" href={films.length ? `${home}add-a-film/?new=1` : `${home}add-a-film/`}>
                 Add a film
               </a>

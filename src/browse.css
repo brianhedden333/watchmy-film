@@ -777,6 +777,27 @@ html.bz-locked {
   text-underline-offset: 4px;
 }
 
+/* Watch Later toggle in the film pop-up */
+.bz-later {
+  padding: 10px 16px;
+  border: 1px solid var(--seam);
+  border-radius: 999px;
+  background: none;
+  color: var(--type);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bz-later:hover {
+  border-color: var(--type);
+}
+
+.bz-later.is-saved {
+  border-color: #b4e89a;
+  color: #b4e89a;
+}
+
 .bz-pop-more {
   margin-top: 30px;
   padding-top: 24px;

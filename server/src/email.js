@@ -128,12 +128,13 @@ export function purchaseEmail(to, { title, access, link, days, watchDays }) {
   return sendEmail({
     to,
     subject: `Your film: ${title}`,
-    text: `${what}\n\nWatch now (this link signs you in on this device):\n${link}\n\nOn another device? Open the film's page and choose "Already paid? Watch now" with this email address.`,
+    text: `${what}\n\nNo account needed. Watch now:\n${link}\n\nKeep this email: it's your way back to the film. If the link has been used, it opens the film's page, where "Already paid? Watch now" emails you a fresh one. Want all your films in one place? Sign in at https://watchmyfilm.online/library/ with this email.`,
     html: layout(
       `Thanks for watching ${title}`,
       para(what) +
+        para("No account needed. Keep this email: it's your way back to the film, on any device.") +
         button(link, "Watch now") +
-        small(`This button signs you in on this device. On another device, open the film's page and choose "Already paid? Watch now" with this email address.`)
+        small(`If the button has been used, it opens the film's page, where "Already paid? Watch now" emails you a fresh link. Want all your films in one place? Sign in at watchmyfilm.online with this email to see your library.`)
     ),
   });
 }

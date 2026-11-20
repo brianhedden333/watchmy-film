@@ -6,7 +6,7 @@ import "./db.js";
 import { authRouter, loadUser, purgeExpired } from "./auth.js";
 import { filmsRouter } from "./films.js";
 import { adminRouter } from "./admin.js";
-import { libraryRouter } from "./library.js";
+import { libraryRouter, watchlistRouter } from "./library.js";
 import { watchRouter } from "./watch.js";
 import { browseRouter } from "./browse.js";
 import { stripeWebhook } from "./payments.js";
@@ -35,6 +35,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/films", filmsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/library", libraryRouter);
+app.use("/api/watchlist", watchlistRouter);
 app.use("/api/connect", connectRouter);
 app.use("/api/sales", filmmakerSalesRouter); // the filmmaker's own sales list
 app.get("/api/health", (_req, res) => res.json({ ok: true }));

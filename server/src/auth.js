@@ -53,10 +53,19 @@ function passwordError(pw) {
 
 // Where to land after signing in: admins go to /admin/; filmmakers to the films list once one is published,
 // otherwise the add-a-film onboarding.
+// Viewers (people who've bought or saved films but have no films of their own) go to My Library.
 export function homeFor(user) {
   if (isAdmin(user)) return "/admin/";
   const live = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND status = 'live' LIMIT 1").get(user.id);
-  return live ? "/dashboard/" : "/add-a-film/";
+  if (live) return "/dashboard/";
+  const ownsFilms = db.prepare("SELECT 1 FROM films WHERE user_id = ? LIMIT 1").get(user.id);
+  if (!ownsFilms) {
+    const viewer =
+      db.prepare("SELECT 1 FROM payments WHERE user_id = ? AND purpose IN ('rent', 'buy') LIMIT 1").get(user.id) ||
+      db.prepare("SELECT 1 FROM watchlist WHERE user_id = ? LIMIT 1").get(user.id);
+    if (viewer) return "/library/";
+  }
+  return "/add-a-film/";
 }
 
 export function startSession(res, userId) {
@@ -237,7 +246,8 @@ authRouter.get("/me", (req, res) => {
   if (!req.user) return res.json({ user: null });
   const { id, email, name } = req.user;
   res.json({
-    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user), stripe: stripeInfo(req.user), connect: connectInfo(req.user) },
+    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user), stripe: stripeInfo(req.user), connect: connectInfo(req.user),
+      hasFilms: !!db.prepare("SELECT 1 FROM films WHERE user_id = ? LIMIT 1").get(req.user.id) },
   });
 });
 
