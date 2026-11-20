@@ -44,8 +44,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 300px;
-  padding: 72px 0 40px;
+  min-height: 190px;
+  padding: 40px 0 32px;
   background-size: cover;
   background-position: center;
 }
@@ -68,11 +68,12 @@
   font-size: clamp(30px, 4vw, 48px);
   line-height: 1.1;
   color: #fff; /* always on the dark scrim over the image */
-  margin: 0 0 20px;
+  margin: 0 0 12px;
 }
 
 .s-hero p {
-  font-size: clamp(22px, 2.6vw, 30px);
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.45;
   color: #d6d3d1;
   margin: 0;
 }
