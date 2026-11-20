@@ -154,6 +154,18 @@ export function viewerSignInEmail(to, { title, link }) {
   });
 }
 
+// To a filmmaker whose Stripe account stopped taking payments (Stripe needs more information).
+export function stripeNeedsInfoEmail(to, accountLink) {
+  const line =
+    "Stripe needs a little more information about your account, and until it's done your films can't take rentals or purchases. Free viewing and tip jars still work.";
+  return sendEmail({
+    to,
+    subject: `Action needed: your Stripe account on ${config.siteName}`,
+    text: `${line}\n\nSign in and open Account, then Payouts, to see what Stripe needs:\n${accountLink}`,
+    html: layout("Stripe needs more information", para(line) + button(accountLink, "See what Stripe needs")),
+  });
+}
+
 // To the filmmaker for each sale.
 export function saleEmail(to, { title, kind, amountCents, feeCents, dashboard }) {
   const label = kind === "buy" ? "purchase" : kind === "pwyw" ? "pay-what-you-want sale" : "rental";

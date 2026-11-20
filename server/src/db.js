@@ -233,6 +233,16 @@ const MIGRATIONS = [
     PRIMARY KEY (user_id, film_id)
   );
   `,
+  `
+  -- Refunds and disputes on viewer sales (reported by the Connect webhook).
+  ALTER TABLE payments ADD COLUMN refunded_cents INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE payments ADD COLUMN refunded_at TEXT;
+  -- Our application fee returned to the filmmaker (full refunds only).
+  ALTER TABLE payments ADD COLUMN fee_refunded_cents INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE payments ADD COLUMN disputed_at TEXT;
+  -- Set when the viewer loses access (full refund, or a dispute). Cleared if a dispute is won.
+  ALTER TABLE payments ADD COLUMN revoked_at TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

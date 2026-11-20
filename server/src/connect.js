@@ -8,7 +8,7 @@ import Stripe from "stripe";
 import { config } from "./config.js";
 import { db, now } from "./db.js";
 import { requireUser } from "./auth.js";
-import { notifyAdmin } from "./email.js";
+import { notifyAdmin, stripeNeedsInfoEmail } from "./email.js";
 
 const stripe = config.stripeSecretKey ? new Stripe(config.stripeSecretKey) : null;
 
@@ -38,6 +38,19 @@ export async function refreshConnect(user) {
     notifyAdmin("Stripe connected", `${user.email} can now take payments (${user.connect_account_id}).`);
   }
   return getUser(user.id);
+}
+
+// account.updated webhook: refresh the cached status. If the account could take payments and now can't (Stripe
+// wants more information), tell the filmmaker, since their films' Rent/Buy stop working until it's fixed.
+export async function handleAccountUpdated(accountId) {
+  const user = accountId && db.prepare("SELECT * FROM users WHERE connect_account_id = ?").get(String(accountId));
+  if (!user) return;
+  const before = user.connect_card_payments;
+  const after = (await refreshConnect(user)).connect_card_payments;
+  if (before === "active" && after !== "active") {
+    stripeNeedsInfoEmail(user.email, `${config.appUrl}/account/`).catch((e) => console.error("Stripe notice email failed:", e.message));
+    notifyAdmin("Stripe account restricted", `${user.email}'s Stripe account can't take payments right now (${after}).`);
+  }
 }
 
 // True when this user's films may sell: re-checked with Stripe (not just the cache).

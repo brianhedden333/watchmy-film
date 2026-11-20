@@ -21,7 +21,7 @@ adminRouter.get("/overview", (_req, res) => {
          (SELECT group_concat(c.code, ', ') FROM promo_redemptions r JOIN promo_codes c ON c.id = r.promo_code_id WHERE r.film_id = f.id) AS codes_used,
          (SELECT sum(amount_cents) FROM payments p WHERE p.film_id = f.id AND p.purpose = 'setup_fee') AS paid_cents,
          -- Viewer sales (purpose 'rent' or 'buy'), once watch page checkout records them.
-         (SELECT ifnull(sum(amount_cents), 0) FROM payments p WHERE p.film_id = f.id AND p.purpose IN ('rent', 'buy')) AS sales_cents,
+         (SELECT ifnull(sum(amount_cents - refunded_cents), 0) FROM payments p WHERE p.film_id = f.id AND p.purpose IN ('rent', 'buy')) AS sales_cents,
          (SELECT count(*) FROM payments p WHERE p.film_id = f.id AND p.purpose IN ('rent', 'buy')) AS sales_count
        FROM films f JOIN users u ON u.id = f.user_id
        ORDER BY CASE f.status WHEN 'in_review' THEN 0 ELSE 1 END, f.updated_at DESC`

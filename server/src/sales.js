@@ -62,7 +62,7 @@ const watchDays = (film) => film.rental_watch_days ?? 3;
 export function entitlement(userId, film) {
   if (!userId) return null;
   const rows = db
-    .prepare("SELECT * FROM payments WHERE user_id = ? AND film_id = ? AND purpose IN ('rent', 'buy') ORDER BY created_at DESC")
+    .prepare("SELECT * FROM payments WHERE user_id = ? AND film_id = ? AND purpose IN ('rent', 'buy') AND revoked_at IS NULL ORDER BY created_at DESC")
     .all(userId, film.id);
   const owned = rows.find((r) => r.purpose === "buy");
   if (owned) return { access: "buy", payment: owned };
@@ -147,6 +147,54 @@ export async function settleSale(session, account) {
   return result.payment;
 }
 
+// ---------- refunds and disputes (from the Connect webhook) ----------
+// Filmmakers refund from their own Stripe Dashboard; Stripe tells us, and we act on it here.
+
+const saleForCharge = (charge, account) =>
+  charge?.payment_intent &&
+  db.prepare("SELECT * FROM payments WHERE stripe_payment_intent = ? AND connect_account = ?").get(String(charge.payment_intent), account);
+
+// charge.refunded: record how much was refunded. A full refund also ends the viewer's access and, if REFUND_OUR_FEE
+// is on (the default), gives our fee back to the filmmaker and takes its setup credit off the film.
+export async function handleRefund(charge, account) {
+  const sale = saleForCharge(charge, account);
+  if (!sale) return;
+  const full = charge.refunded === true || charge.amount_refunded >= sale.amount_cents;
+  db.prepare("UPDATE payments SET refunded_cents = ?, refunded_at = coalesce(refunded_at, ?) WHERE id = ?").run(charge.amount_refunded, now(), sale.id);
+  if (!full) return;
+  if (!sale.revoked_at) db.prepare("UPDATE payments SET revoked_at = ? WHERE id = ?").run(now(), sale.id);
+
+  if (config.refundOurFee && !sale.fee_refunded_cents && charge.application_fee && stripe) {
+    const feeId = typeof charge.application_fee === "string" ? charge.application_fee : charge.application_fee.id;
+    try {
+      // Application fees live on our platform account. Idempotent per fee, so a retried webhook can't refund twice.
+      await stripe.applicationFees.createRefund(feeId, {}, { idempotencyKey: `wmf-fee-refund-${feeId}` });
+    } catch (e) {
+      if (!/already been refunded|exceeds/i.test(e.message)) throw e; // Stripe retries the webhook on other errors
+    }
+    db.transaction(() => {
+      db.prepare("UPDATE payments SET fee_refunded_cents = application_fee_cents WHERE id = ?").run(sale.id);
+      if (sale.setup_surcharge_cents) {
+        db.prepare("UPDATE films SET setup_recovered_cents = MAX(0, setup_recovered_cents - ?) WHERE id = ?").run(sale.setup_surcharge_cents, sale.film_id);
+      }
+    })();
+  }
+  notifyAdmin("Refund", `Sale ${sale.id} (film ${sale.film_id}) fully refunded: $${(charge.amount_refunded / 100).toFixed(2)}. Access removed.`);
+}
+
+// charge.dispute.created: the viewer told their bank the charge was wrong, so access stops while it's decided.
+// charge.dispute.closed: if the filmmaker won, access comes back (unless the sale was also fully refunded).
+export function handleDispute(dispute, account, closed) {
+  const sale = saleForCharge(dispute, account);
+  if (!sale) return;
+  if (!closed) {
+    db.prepare("UPDATE payments SET disputed_at = coalesce(disputed_at, ?), revoked_at = coalesce(revoked_at, ?) WHERE id = ?").run(now(), now(), sale.id);
+    notifyAdmin("Dispute", `Sale ${sale.id} (film ${sale.film_id}) is disputed. Access paused.`);
+  } else if (dispute.status === "won" && sale.refunded_cents < sale.amount_cents) {
+    db.prepare("UPDATE payments SET revoked_at = NULL WHERE id = ?").run(sale.id);
+  }
+}
+
 // Stripe's processing fee on a sale, read from the charge's balance transaction on the filmmaker's account.
 // On a direct charge that transaction's fee includes our application fee too, so only 'stripe_fee' parts count.
 async function recordStripeFee(payment) {
@@ -183,18 +231,27 @@ filmmakerSalesRouter.get("/", async (req, res) => {
       console.error("Stripe fee lookup failed:", e.message);
     }
   }
-  const sales = rows.map((r) => ({
-    id: r.id,
-    date: r.created_at,
-    film_id: r.film_id,
-    film_title: r.film_title,
-    kind: r.sale_kind,
-    amount: r.amount_cents,
-    stripe_fee: r.stripe_fee_cents ?? null,
-    our_fee: r.application_fee_cents ?? 0,
-    setup_part: r.setup_surcharge_cents ?? 0,
-    net: r.stripe_fee_cents == null ? null : r.amount_cents - r.stripe_fee_cents - (r.application_fee_cents ?? 0),
-  }));
+  // After a refund the filmmaker has given back `refunded`; our fee comes back to them on full refunds
+  // (fee_refunded); Stripe keeps its processing fee.
+  const sales = rows.map((r) => {
+    const ourFee = (r.application_fee_cents ?? 0) - (r.fee_refunded_cents ?? 0);
+    const status =
+      r.disputed_at && r.revoked_at ? "disputed" : r.refunded_cents >= r.amount_cents ? "refunded" : r.refunded_cents > 0 ? "partly_refunded" : null;
+    return {
+      id: r.id,
+      date: r.created_at,
+      film_id: r.film_id,
+      film_title: r.film_title,
+      kind: r.sale_kind,
+      amount: r.amount_cents,
+      refunded: r.refunded_cents ?? 0,
+      status,
+      stripe_fee: r.stripe_fee_cents ?? null,
+      our_fee: ourFee,
+      setup_part: r.fee_refunded_cents ? 0 : r.setup_surcharge_cents ?? 0,
+      net: r.stripe_fee_cents == null ? null : r.amount_cents - (r.refunded_cents ?? 0) - r.stripe_fee_cents - ourFee,
+    };
+  });
   const sum = (k) => sales.reduce((t, s) => t + (s[k] ?? 0), 0);
   const films = db
     .prepare("SELECT id, title, setup_status, setup_recovered_cents FROM films WHERE user_id = ? AND setup_status = 'deferred'")
@@ -205,6 +262,7 @@ filmmakerSalesRouter.get("/", async (req, res) => {
     totals: {
       count: sales.length,
       amount: sum("amount"),
+      refunded: sum("refunded"),
       stripe_fee: sum("stripe_fee"),
       our_fee: sum("our_fee"),
       setup_part: sum("setup_part"),

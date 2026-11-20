@@ -42,6 +42,9 @@ export const config = {
   // Second signing secret for the Connect webhook endpoint (events from filmmakers' accounts). Locally, `stripe listen`
   // uses one secret for both, so this can stay empty.
   stripeConnectWebhookSecret: env.STRIPE_CONNECT_WEBHOOK_SECRET || "",
+  // On a full refund of a viewer sale, give our application fee back to the filmmaker (and undo its setup credit).
+  // Set REFUND_OUR_FEE=0 to keep the fee instead.
+  refundOurFee: env.REFUND_OUR_FEE !== "0",
   sendgridKey: env.SENDGRID_API_KEY || "",
   fromEmail: env.FROM_EMAIL || "hello@watchmyfilm.online",
   fromName: env.FROM_NAME || "watchmyfilm", // a plain name: domain-looking sender names can trip spam filters

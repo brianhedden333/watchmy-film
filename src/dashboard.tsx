@@ -130,6 +130,8 @@ type Sale = {
   film_title: string;
   kind: "rent" | "buy" | "pwyw";
   amount: number;
+  refunded: number;
+  status: "refunded" | "partly_refunded" | "disputed" | null;
   stripe_fee: number | null;
   our_fee: number;
   setup_part: number;
@@ -137,12 +139,13 @@ type Sale = {
 };
 type SalesResponse = {
   sales: Sale[];
-  totals: { count: number; amount: number; stripe_fee: number; our_fee: number; setup_part: number; net: number; pending: number };
+  totals: { count: number; amount: number; refunded: number; stripe_fee: number; our_fee: number; setup_part: number; net: number; pending: number };
   setup: { id: number; title: string; recovered: number; setup_fee: number }[];
 };
 
 const money = (c: number | null) => (c == null ? "…" : `$${(c / 100).toFixed(2)}`);
 const KIND = { rent: "Rental", buy: "Purchase", pwyw: "Pay what you want" } as const;
+const STATUS = { refunded: "Refunded", partly_refunded: "Partly refunded", disputed: "Disputed" } as const;
 const saleDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
 function Sales() {
@@ -173,7 +176,10 @@ function Sales() {
             <div>
               <span>Sales</span>
               <strong>{money(totals.amount)}</strong>
-              <em>{totals.count} {totals.count === 1 ? "sale" : "sales"}</em>
+              <em>
+                {totals.count} {totals.count === 1 ? "sale" : "sales"}
+                {totals.refunded > 0 && ` · ${money(totals.refunded)} refunded`}
+              </em>
             </div>
             <div>
               <span>Stripe fees</span>
@@ -210,7 +216,15 @@ function Sales() {
                   <tr key={s.id}>
                     <td>{saleDate(s.date)}</td>
                     {several && <td>{s.film_title}</td>}
-                    <td>{KIND[s.kind] ?? s.kind}</td>
+                    <td>
+                      {KIND[s.kind] ?? s.kind}
+                      {s.status && (
+                        <span className={`sales-status is-${s.status}`}>
+                          {STATUS[s.status]}
+                          {s.status === "partly_refunded" && ` (${money(s.refunded)})`}
+                        </span>
+                      )}
+                    </td>
                     <td className="num">{money(s.amount)}</td>
                     <td className="num">{money(s.stripe_fee)}</td>
                     <td className="num" title={s.setup_part ? `${money(s.setup_part)} of this went toward your setup cost` : undefined}>

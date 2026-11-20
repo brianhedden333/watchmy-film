@@ -6,7 +6,8 @@ import Stripe from "stripe";
 import { config } from "./config.js";
 import { db, now } from "./db.js";
 import { filmSubmittedEmail, notifyAdmin } from "./email.js";
-import { settleSale } from "./sales.js";
+import { handleDispute, handleRefund, settleSale } from "./sales.js";
+import { handleAccountUpdated } from "./connect.js";
 
 const APP_TAG = "watchmyfilm";
 const stripe = config.stripeSecretKey ? new Stripe(config.stripeSecretKey) : null;
@@ -109,15 +110,32 @@ export async function stripeWebhook(req, res) {
     }
   }
   if (!event) return res.status(400).send(`Webhook error: ${lastError?.message}`);
-  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
-    try {
-      // event.account is set for events from a connected account: a viewer's purchase of a film.
-      if (event.account) await settleSale(event.data.object, event.account);
-      else await settleCheckout(event.data.object);
-    } catch (e) {
-      console.error("Webhook settle failed:", e.message);
-      return res.status(500).end(); // Stripe retries
+  const obj = event.data.object;
+  try {
+    // event.account is set for events from a connected account (a filmmaker's): viewer sales, refunds, disputes.
+    switch (event.type) {
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded":
+        if (event.account) await settleSale(obj, event.account);
+        else await settleCheckout(obj);
+        break;
+      case "charge.refunded":
+        if (event.account) await handleRefund(obj, event.account);
+        break;
+      case "charge.dispute.created":
+        if (event.account) handleDispute(obj, event.account, false);
+        break;
+      case "charge.dispute.closed":
+        if (event.account) handleDispute(obj, event.account, true);
+        break;
+      case "account.updated":
+        // A filmmaker's account changed (e.g. Stripe needs a new document): refresh our cached status.
+        await handleAccountUpdated(event.account || obj.id);
+        break;
     }
+  } catch (e) {
+    console.error(`Webhook ${event.type} failed:`, e.message);
+    return res.status(500).end(); // Stripe retries
   }
   res.json({ received: true });
 }

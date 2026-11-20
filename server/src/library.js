@@ -28,7 +28,7 @@ libraryRouter.get("/", (req, res) => {
       `SELECT p.purpose, p.created_at AS paid_at, p.started_at, f.id, f.title, f.year, f.poster_path, f.rental_days, f.rental_watch_days,
               f.status, f.hidden, f.address_type, f.subdomain, f.own_domain
        FROM payments p JOIN films f ON f.id = p.film_id
-       WHERE p.user_id = ? AND p.purpose IN ('rent', 'buy')
+       WHERE p.user_id = ? AND p.purpose IN ('rent', 'buy') AND p.revoked_at IS NULL
        ORDER BY p.created_at DESC`
     )
     .all(req.user.id);
