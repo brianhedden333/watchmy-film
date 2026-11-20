@@ -963,6 +963,11 @@ main section.tight {
   color: var(--keep-green);
 }
 
+.split .you dt {
+  color: var(--keep-green);
+  font-weight: 600;
+}
+
 .split small {
   font-size: 15px;
   color: var(--aisle);
