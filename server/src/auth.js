@@ -19,7 +19,7 @@ const SESSION_DAYS = 30;
 const hash = (s) => createHash("sha256").update(s).digest("hex");
 const token = () => randomBytes(32).toString("base64url");
 const later = (ms) => new Date(Date.now() + ms).toISOString();
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 200;
 
@@ -59,7 +59,7 @@ export function homeFor(user) {
   return live ? "/dashboard/" : "/add-a-film/";
 }
 
-function startSession(res, userId) {
+export function startSession(res, userId) {
   const sid = token();
   db.prepare("INSERT INTO sessions (id_hash, user_id, expires_at) VALUES (?, ?, ?)").run(
     hash(sid),
@@ -68,6 +68,21 @@ function startSession(res, userId) {
   );
   db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run(now(), userId);
   setSessionCookie(res, sid, SESSION_DAYS * 86_400);
+}
+
+// One-time sign-in link tokens (also used by film pages for viewers: see sales.js).
+export function createLoginToken(userId, minutes) {
+  const t = token();
+  db.prepare("INSERT INTO login_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)").run(hash(t), userId, later(minutes * 60_000));
+  return t;
+}
+
+// Uses up a token. Returns the user, or null if it's unknown, used or expired.
+export function useLoginToken(t) {
+  const row = t && db.prepare("SELECT * FROM login_tokens WHERE token_hash = ?").get(hash(String(t)));
+  if (!row || row.used_at || row.expires_at < now()) return null;
+  db.prepare("UPDATE login_tokens SET used_at = ? WHERE token_hash = ?").run(now(), row.token_hash);
+  return db.prepare("SELECT * FROM users WHERE id = ?").get(row.user_id);
 }
 
 export const isAdmin = (user) => !!user && config.adminEmails.includes(user.email.toLowerCase());

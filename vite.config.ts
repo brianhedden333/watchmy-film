@@ -33,7 +33,12 @@ export default defineConfig({
   ],
   // Dev: the API runs separately (cd server && npm run dev). API_URL points at another copy, e.g. for testing.
   server: {
-    proxy: { "/api": process.env.API_URL || "http://127.0.0.1:5050", "/uploads": process.env.API_URL || "http://127.0.0.1:5050" },
+    // changeOrigin: false keeps the browser's Host (e.g. frackingthesystem.localhost:5173), which the API uses to
+    // find the film on a film's address, as nginx does in production. (The string shorthand would rewrite it.)
+    proxy: {
+      "/api": { target: process.env.API_URL || "http://127.0.0.1:5050", changeOrigin: false },
+      "/uploads": { target: process.env.API_URL || "http://127.0.0.1:5050", changeOrigin: false },
+    },
   },
   build: {
     rollupOptions: {

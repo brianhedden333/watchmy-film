@@ -1,6 +1,20 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
-import { dollars } from "./api";
+import { api, dollars } from "./api";
 import type { Film } from "./films";
+
+// What a viewer has bought on the live page (from /api/watch/access, /claim or /signin/verify).
+type Access = {
+  access: "rent" | "buy" | null;
+  vimeo_url?: string | null;
+  bonus?: { title: string; url: string }[];
+  started?: boolean;
+  start_by?: string | null;
+  ends_at?: string | null;
+  signedIn?: boolean;
+};
+
+const when = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /* The watch page itself, shared by /preview/ (the filmmaker's and admin's preview) and /watch/ (the live page
    at the film's own address). Styles live in sample.css. */
@@ -59,7 +73,7 @@ export function HoldingPage({ film: f, onShowFull }: { film: Film; onShowFull?: 
 }
 
 // Pay what you want: Stripe checkout for any amount from the filmmaker's minimum. Unlocks the film.
-function PayWhatYouWant({ film: f, days, hours, onWatch, tried, note }: { film: Film; days: number; hours: number; onWatch: () => void; tried: boolean; note: string }) {
+function PayWhatYouWant({ film: f, days, hours, onWatch, tried, note, busy }: { film: Film; days: number; hours: number; onWatch: (cents: number) => void; tried: boolean; note: string; busy?: boolean }) {
   const min = f.pwyw_min_cents / 100;
   const [amount, setAmount] = useState(((f.pwyw_suggested_cents ?? f.pwyw_min_cents) / 100).toFixed(2));
   const [error, setError] = useState("");
@@ -69,8 +83,9 @@ function PayWhatYouWant({ film: f, days, hours, onWatch, tried, note }: { film: 
     e.preventDefault();
     const n = Number(amount.replace(/[$,\s]/g, ""));
     if (!Number.isFinite(n) || n < min) return setError(`The minimum is ${dollars(f.pwyw_min_cents)}.`);
+    if (n > 1000) return setError("The most you can pay here is $1,000.");
     setError("");
-    onWatch();
+    onWatch(Math.round(n * 100));
   }
 
   return (
@@ -90,7 +105,7 @@ function PayWhatYouWant({ film: f, days, hours, onWatch, tried, note }: { film: 
           <span aria-hidden="true">$</span>
           <input id={id} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-describedby={`${id}-n`} />
         </span>
-        <button className="s-btn">▶ Watch now</button>
+        <button className="s-btn" disabled={busy}>{busy ? "Opening checkout…" : "▶ Watch now"}</button>
       </div>
       <p id={`${id}-n`} className={error ? "s-fine s-pwyw-err" : "s-fine"} role={error ? "alert" : undefined}>
         {error || (tried ? note : "Secure payment powered by Stripe")}
@@ -147,6 +162,74 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
     setWatching(kind);
     requestAnimationFrame(() => document.querySelector(".s-main")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
+
+  // ----- Live page: buying and watching -----
+  const live = mode === "public";
+  const [acc, setAcc] = useState<Access | null>(null);
+  const [busy, setBusy] = useState("");
+  const [flash, setFlash] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!live) return;
+    const q = new URLSearchParams(location.search);
+    const paid = q.get("paid");
+    const signin = q.get("signin");
+    if (paid || signin) history.replaceState(null, "", location.pathname); // don't leave tokens in the address bar
+    (async () => {
+      try {
+        if (paid) {
+          const r = await api<Access & { pending?: boolean; signIn?: boolean }>("/watch/claim", { body: { session_id: paid } });
+          if (r.pending) setFlash("Thanks! Your payment is still being confirmed. We'll email you a link to watch as soon as it clears.");
+          else if (r.signIn) setFlash("Thanks for your purchase! We've emailed you a link to watch on this device.");
+          else {
+            setAcc(r);
+            setFlash("Thanks for your purchase! Enjoy the film.");
+          }
+        } else if (signin) {
+          setAcc(await api<Access>("/watch/signin/verify", { body: { token: signin } }));
+        } else {
+          setAcc(await api<Access>("/watch/access"));
+        }
+      } catch (e) {
+        setError((e as Error).message);
+        if (paid || signin) api<Access>("/watch/access").then(setAcc).catch(() => {});
+      }
+    })();
+  }, [live]);
+
+  async function checkout(kind: "rent" | "buy" | "pwyw", amountCents?: number) {
+    setBusy(kind);
+    setError("");
+    try {
+      const r = await api<{ url: string }>("/watch/checkout", { body: { kind, amount_cents: amountCents } });
+      location.assign(r.url);
+      await new Promise(() => {}); // keep the button busy while the browser leaves for Stripe
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy("");
+    }
+  }
+
+  // Open what they bought. A rental's hours start on the first play.
+  async function watchBought() {
+    if (!acc?.access) return;
+    if (acc.access === "rent" && !acc.started) {
+      try {
+        setAcc(await api<Access>("/watch/start", { body: {} }));
+      } catch (e) {
+        setError((e as Error).message);
+        return;
+      }
+    }
+    open(acc.access);
+  }
+
+  // The film as the screening room needs it: on the live page, the links come from the viewer's access.
+  const roomFilm: Film =
+    live && acc?.access
+      ? { ...f, vimeo_url: acc.vimeo_url ?? null, bonus: { ...f.bonus, [acc.access]: { ...f.bonus[acc.access], videos: acc.bonus || [] } } }
+      : f;
   const rent = f.rent_price_cents;
   const buy = f.buy_price_cents;
   const days = f.rental_days ?? 30;
@@ -183,10 +266,18 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
   };
   const rentBonus = bonusLine("rent");
   const buyBonus = bonusLine("buy");
+  // Owned covers everything; a rental covers renting again.
+  const covers = (kind: "rent" | "buy") => acc?.access === "buy" || acc?.access === kind;
+  const onBuy = (label: string, kind: "rent" | "buy") => {
+    if (canWatch) return open(kind);
+    if (!live) return setTried(label);
+    if (covers(kind)) return watchBought();
+    checkout(kind);
+  };
   const buyBtn = (label: string, kind: "rent" | "buy") => (
     <>
-      <button type="button" className="s-btn" onClick={() => (canWatch ? open(kind) : setTried(label))}>
-        {label}
+      <button type="button" className="s-btn" onClick={() => onBuy(label, kind)} disabled={busy === kind}>
+        {busy === kind ? "Opening checkout…" : live && covers(kind) ? "▶ Watch now" : label}
       </button>
       {tried === label && (
         <p className="s-fine preview-note" role="status">
@@ -221,8 +312,39 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
       </section>
 
       <main className="s-wrap s-main">
+        {live && (flash || error) && (
+          <p className={error ? "s-flash s-flash-err" : "s-flash"} role={error ? "alert" : "status"}>
+            {error || flash}
+          </p>
+        )}
+        {live && acc?.access && !watching && (
+          <div className="s-card s-owned">
+            <div>
+              <h3>{acc.access === "buy" ? "You own this film" : "You rented this film"}</h3>
+              <p className="s-sub">
+                {acc.access === "buy"
+                  ? "Watch it any time on this page."
+                  : acc.started && acc.ends_at
+                    ? `Your rental ends ${when(acc.ends_at)}.`
+                    : `Start by ${acc.start_by ? when(acc.start_by) : "the end of your rental window"}. Once you press play you have ${hours} hours to finish.`}
+              </p>
+            </div>
+            <button type="button" className="s-btn" onClick={watchBought}>
+              ▶ Watch now
+            </button>
+          </div>
+        )}
         {watching ? (
-          <ScreeningRoom film={f} kind={watching} admin={canWatch} days={days} hours={hours} onSwitch={setWatching} onClose={() => setWatching(null)} />
+          <ScreeningRoom
+            film={canWatch ? f : roomFilm}
+            kind={watching}
+            admin={canWatch}
+            days={days}
+            hours={hours}
+            endsAt={live ? acc?.ends_at ?? null : null}
+            onSwitch={setWatching}
+            onClose={() => setWatching(null)}
+          />
         ) : (
         <div className={`s-buy offers-${offers}${extras ? " has-extras" : ""}`}>
           {f.poster_url ? (
@@ -276,9 +398,10 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
                   film={f}
                   days={days}
                   hours={hours}
-                  onWatch={() => (canWatch ? open(f.pwyw_access) : setTried("pwyw"))}
+                  onWatch={(cents) => (canWatch ? open(f.pwyw_access) : live ? checkout("pwyw", cents) : setTried("pwyw"))}
                   tried={tried === "pwyw"}
                   note={note}
+                  busy={busy === "pwyw"}
                 />
               )}
               {f.free_watch && (
@@ -298,6 +421,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
               {hasTips && <TipJar film={f} />}
             </div>
           )}
+          {live && !acc?.access && (offers > 0 || f.pwyw_enabled) && <AlreadyPaid />}
         </div>
         )}
 
@@ -345,10 +469,60 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
   );
 }
 
+// "Already paid? Watch now": emails a one-time link that signs the viewer in on this film's address.
+function AlreadyPaid() {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"" | "sending" | "sent">("");
+  const [error, setError] = useState("");
+  const id = useId();
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setState("sending");
+    setError("");
+    try {
+      await api("/watch/signin", { body: { email } });
+      setState("sent");
+    } catch (err) {
+      setError((err as Error).message);
+      setState("");
+    }
+  }
+
+  if (!open) {
+    return (
+      <p className="s-already">
+        <button type="button" className="link-btn" onClick={() => setOpen(true)}>
+          Already paid? Watch now
+        </button>
+      </p>
+    );
+  }
+  return (
+    <form className="s-already s-already-form" onSubmit={submit}>
+      {state === "sent" ? (
+        <p role="status">If {email} has bought or rented this film, a link to watch is on its way. Check your inbox.</p>
+      ) : (
+        <>
+          <label htmlFor={id}>The email you paid with</label>
+          <div className="s-already-row">
+            <input id={id} type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <button className="s-btn" disabled={state === "sending"}>
+              {state === "sending" ? "Sending…" : "Email me a link"}
+            </button>
+          </div>
+          {error && <p className="s-fine s-pwyw-err" role="alert">{error}</p>}
+        </>
+      )}
+    </form>
+  );
+}
+
 // What a viewer gets after paying: the film in a large player where the poster and price boxes were,
 // their access terms, and the bonus features for what they bought, playable in the same player.
-function ScreeningRoom({ film: f, kind, admin, days, hours, onSwitch, onClose }: {
-  film: Film; kind: "rent" | "buy" | "free"; admin: boolean; days: number; hours: number; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
+function ScreeningRoom({ film: f, kind, admin, days, hours, endsAt, onSwitch, onClose }: {
+  film: Film; kind: "rent" | "buy" | "free"; admin: boolean; days: number; hours: number; endsAt?: string | null; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
 }) {
   // Free viewing is the film alone: bonus features come with a rental or purchase.
   const items = [{ title: "The film", url: f.vimeo_url || "" }, ...(kind === "free" ? [] : f.bonus[kind].videos)];
@@ -361,18 +535,19 @@ function ScreeningRoom({ film: f, kind, admin, days, hours, onSwitch, onClose }:
   return (
     <section className="s-screen" aria-label={`Watching ${f.title}`}>
       <div className="s-screen-admin">
-        {kind === "free" ? (
-          admin && <span>Admin view: what anyone sees when they watch free.</span>
-        ) : (
-          <span>Admin view: what a {kind === "rent" ? "renter" : "buyer"} sees after paying.</span>
-        )}
-        {both && kind !== "free" && (
+        {admin &&
+          (kind === "free" ? (
+            <span>Admin view: what anyone sees when they watch free.</span>
+          ) : (
+            <span>Admin view: what a {kind === "rent" ? "renter" : "buyer"} sees after paying.</span>
+          ))}
+        {admin && both && kind !== "free" && (
           <button type="button" className="link-btn" onClick={() => onSwitch(kind === "rent" ? "buy" : "rent")}>
             Show the {kind === "rent" ? "buyer" : "renter"} view
           </button>
         )}
         <button type="button" className="link-btn" onClick={onClose}>
-          {kind === "free" ? "Back to the film page" : "Back to Rent and Buy"}
+          {kind === "free" || !admin ? "Back to the film page" : "Back to Rent and Buy"}
         </button>
       </div>
 
@@ -401,9 +576,11 @@ function ScreeningRoom({ film: f, kind, admin, days, hours, onSwitch, onClose }:
             {kind === "free"
               ? "Free to watch, thanks to the filmmaker."
               : kind === "rent"
-                ? `Rented. Start within ${days} days, then you have ${hours} hours to finish.`
+                ? endsAt
+                  ? `Rented. Your rental ends ${when(endsAt)}.`
+                  : `Rented. Start within ${days} days, then you have ${hours} hours to finish.`
                 : "Yours to keep. Watch any time on this website."}{" "}
-            {kind !== "free" && "On another device? Sign in with the email you paid with."}
+            {kind !== "free" && `On another device? Open this page and choose "Already paid? Watch now" with the email you paid with.`}
           </p>
         </div>
       </div>

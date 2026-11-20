@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { config } from "./config.js";
 import { db, now } from "./db.js";
 import { filmSubmittedEmail, notifyAdmin } from "./email.js";
+import { settleSale } from "./sales.js";
 
 const APP_TAG = "watchmyfilm";
 const stripe = config.stripeSecretKey ? new Stripe(config.stripeSecretKey) : null;
@@ -96,15 +97,23 @@ export async function settleCheckout(sessionOrId) {
 // Mounted before express.json() because Stripe signs the raw body.
 export async function stripeWebhook(req, res) {
   if (!stripe || !config.stripeWebhookSecret) return res.status(503).end();
+  // Our own account's endpoint and the Connect endpoint (events from filmmakers' accounts) have different secrets.
   let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, req.headers["stripe-signature"], config.stripeWebhookSecret);
-  } catch (e) {
-    return res.status(400).send(`Webhook error: ${e.message}`);
+  let lastError;
+  for (const secret of [config.stripeWebhookSecret, config.stripeConnectWebhookSecret].filter(Boolean)) {
+    try {
+      event = stripe.webhooks.constructEvent(req.body, req.headers["stripe-signature"], secret);
+      break;
+    } catch (e) {
+      lastError = e;
+    }
   }
+  if (!event) return res.status(400).send(`Webhook error: ${lastError?.message}`);
   if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
     try {
-      await settleCheckout(event.data.object);
+      // event.account is set for events from a connected account: a viewer's purchase of a film.
+      if (event.account) await settleSale(event.data.object, event.account);
+      else await settleCheckout(event.data.object);
     } catch (e) {
       console.error("Webhook settle failed:", e.message);
       return res.status(500).end(); // Stripe retries

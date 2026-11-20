@@ -115,3 +115,52 @@ export function filmStatusEmail(to, film) {
     html: layout(m[0], para(m[1]) + (film.admin_note ? para(`Note from us: ${film.admin_note}`) : "") + button(dash, "Open your film")),
   });
 }
+
+const money = (cents) => `$${(cents / 100).toFixed(2)}`;
+const small = (s) => `<p style="margin:0;font-size:13px;color:#a39e95;line-height:1.5">${esc(s)}</p>`;
+
+// To the viewer after paying. The link signs them in on the film's own address (works once, for 7 days).
+export function purchaseEmail(to, { title, access, link, days, hours }) {
+  const what =
+    access === "buy"
+      ? `You own ${title}. Watch it any time on its page.`
+      : `You rented ${title}. Start watching within ${days} days; once you press play you have ${hours} hours to finish.`;
+  return sendEmail({
+    to,
+    subject: `Your film: ${title}`,
+    text: `${what}\n\nWatch now (this link signs you in on this device):\n${link}\n\nOn another device? Open the film's page and choose "Already paid? Watch now" with this email address.`,
+    html: layout(
+      `Thanks for watching ${title}`,
+      para(what) +
+        button(link, "Watch now") +
+        small(`This button signs you in on this device. On another device, open the film's page and choose "Already paid? Watch now" with this email address.`)
+    ),
+  });
+}
+
+// To a returning viewer who asked for a link on the film's page.
+export function viewerSignInEmail(to, { title, link }) {
+  return sendEmail({
+    to,
+    subject: `Watch ${title}`,
+    text: `Here's your link to watch ${title}. It works once and expires in 30 minutes.\n${link}\n\nIf you didn't ask for this, you can ignore this email.`,
+    html: layout(
+      `Watch ${title}`,
+      para("Click the button to sign in and watch. The link works once and expires in 30 minutes.") +
+        button(link, "Watch now") +
+        small("If you didn't ask for this, you can ignore this email.")
+    ),
+  });
+}
+
+// To the filmmaker for each sale.
+export function saleEmail(to, { title, kind, amountCents, feeCents, dashboard }) {
+  const label = kind === "buy" ? "purchase" : kind === "pwyw" ? "pay-what-you-want sale" : "rental";
+  const line = `New ${label} of ${title}: ${money(amountCents)}. Our fee: ${money(feeCents)}. Stripe's card fee comes out in your Stripe account.`;
+  return sendEmail({
+    to,
+    subject: `New ${label}: ${title} (${money(amountCents)})`,
+    text: `${line}\n\nSee it in your Stripe Dashboard:\n${dashboard}`,
+    html: layout(`New ${label}`, para(line) + button(dashboard, "Open your Stripe Dashboard")),
+  });
+}

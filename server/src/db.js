@@ -198,6 +198,21 @@ const MIGRATIONS = [
   ALTER TABLE users ADD COLUMN connect_checked_at TEXT;
   CREATE UNIQUE INDEX users_connect_account ON users(connect_account_id) WHERE connect_account_id IS NOT NULL;
   `,
+  `
+  -- Viewer sales (rent / buy / pay what you want), charged directly on the filmmaker's connected account.
+  -- payments.purpose is the access bought ('rent' or 'buy'); sale_kind is the button used ('rent', 'buy', 'pwyw').
+  ALTER TABLE payments ADD COLUMN sale_kind TEXT;
+  ALTER TABLE payments ADD COLUMN connect_account TEXT;
+  ALTER TABLE payments ADD COLUMN application_fee_cents INTEGER;
+  -- Part of application_fee_cents that recovers the setup cost ($1 per sale until SETUP_FEE_CENTS is covered).
+  ALTER TABLE payments ADD COLUMN setup_surcharge_cents INTEGER NOT NULL DEFAULT 0;
+  -- Rentals: when the viewer first pressed play (the rental_hours clock starts then).
+  ALTER TABLE payments ADD COLUMN started_at TEXT;
+  -- The Checkout return link signs the buyer in once; after that they use an emailed link.
+  ALTER TABLE payments ADD COLUMN claimed_at TEXT;
+  ALTER TABLE films ADD COLUMN setup_recovered_cents INTEGER NOT NULL DEFAULT 0;
+  CREATE INDEX payments_user_film ON payments(user_id, film_id);
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

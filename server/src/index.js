@@ -10,6 +10,7 @@ import { libraryRouter } from "./library.js";
 import { watchRouter } from "./watch.js";
 import { stripeWebhook } from "./payments.js";
 import { connectRouter } from "./connect.js";
+import { salesRouter } from "./sales.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -27,6 +28,7 @@ app.use("/api", (req, res, next) => {
 
 app.use("/api/watch", watchRouter); // public, no sign-in
 app.use("/api", loadUser);
+app.use("/api/watch", salesRouter); // buying and watching on a film's own address (knows who's signed in there)
 app.use("/api/auth", authRouter);
 app.use("/api/films", filmsRouter);
 app.use("/api/admin", adminRouter);

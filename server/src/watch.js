@@ -11,8 +11,8 @@ import { publicFilm } from "./films.js";
 
 export const watchRouter = Router();
 
-// The film for a hostname, or null. Hidden films come back with hidden: true (the page shows a holding page).
-export function filmForHost(rawHost) {
+// The films row for a hostname (any status), or null. Used by sales.js too.
+export function filmRowForHost(rawHost) {
   const host = String(rawHost || "").toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
   if (!host || host.length > 253) return null;
   let row = null;
@@ -26,6 +26,12 @@ export function filmForHost(rawHost) {
   }
   // Their own domain: watch.theirfilm.com -> own_domain theirfilm.com
   if (!row && host.startsWith("watch.")) row = db.prepare("SELECT * FROM films WHERE own_domain = ?").get(host.slice(6));
+  return row || null;
+}
+
+// The film for a hostname as viewers may see it, or null. Hidden films come back with hidden: true (holding page).
+export function filmForHost(rawHost) {
+  const row = filmRowForHost(rawHost);
   if (!row || row.status !== "live") return null;
   return viewerFilm(row);
 }

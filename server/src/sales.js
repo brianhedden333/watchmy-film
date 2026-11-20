@@ -1,0 +1,291 @@
+// Viewer sales on a film's own page (<name>.watchmyfilm.online): rent, buy, or pay what you want.
+//
+// Each sale is a Stripe Checkout Session created ON the filmmaker's connected account (a direct charge: they are
+// the merchant of record and pay Stripe's card fee). Our cut is application_fee_amount: PLATFORM_FEE_PERCENT
+// (min PLATFORM_FEE_MIN_CENTS) plus, for films with setup_status 'deferred', SETUP_SURCHARGE_CENTS per sale until
+// SETUP_FEE_CENTS has been recovered.
+//
+// Viewers don't need an account first: Checkout collects their email, and we make a viewer account for it.
+// Sessions are per address (cookies are host-only), so buyers are signed in on the film's own address:
+//   - right after paying, the Checkout return link (?paid=cs_…) signs them in once;
+//   - the receipt email and "Already paid? Watch now" send a one-time sign-in link to that address.
+// Sales are recorded by settleSale(), from the return link or the Connect webhook, whichever comes first.
+
+import { Router } from "express";
+import Stripe from "stripe";
+import { config } from "./config.js";
+import { db, now } from "./db.js";
+import { createLoginToken, EMAIL_RE, startSession, useLoginToken } from "./auth.js";
+import { notifyAdmin, purchaseEmail, saleEmail, viewerSignInEmail } from "./email.js";
+import { rateLimit } from "./limits.js";
+import { canSell } from "./connect.js";
+import { filmRowForHost } from "./watch.js";
+import { publicFilm } from "./films.js";
+
+const APP = "watchmyfilm";
+const DAY = 86_400_000;
+const HOUR = 3_600_000;
+const MAX_CENTS = 100_000; // $1,000, same ceiling as film prices
+const CLAIM_HOURS = 24; // the Checkout return link can sign the buyer in once, within this window
+// Where the watch page lives on a film's address: "/" in production (nginx), "/watch/" on the Vite dev server.
+const PAGE = config.production ? "/" : "/watch/";
+const stripe = config.stripeSecretKey ? new Stripe(config.stripeSecretKey) : null;
+
+// ---------- money ----------
+
+// Our application fee for a sale of `amount` cents on this film.
+export function feeFor(film, amount) {
+  const base = Math.max(Math.round((amount * config.platformFeePercent) / 100), config.platformFeeMinCents);
+  let surcharge = 0;
+  if (film.setup_status === "deferred") {
+    const left = Math.max(0, config.setupFeeCents - (film.setup_recovered_cents || 0));
+    // Only on tickets of $5 or more, so small pay-what-you-want amounts aren't swallowed by fees.
+    if (amount >= 500) surcharge = Math.min(config.setupSurchargeCents, left);
+  }
+  return { fee: Math.min(base + surcharge, amount), surcharge };
+}
+
+// ---------- access ----------
+
+const rentalDays = (film) => film.rental_days ?? 30;
+const rentalHours = (film) => film.rental_hours ?? 72;
+
+// What this person may watch of this film right now: owned beats rented; a rental must be started within
+// rental_days of paying, and then lasts rental_hours from the first play. null = nothing.
+export function entitlement(userId, film) {
+  if (!userId) return null;
+  const rows = db
+    .prepare("SELECT * FROM payments WHERE user_id = ? AND film_id = ? AND purpose IN ('rent', 'buy') ORDER BY created_at DESC")
+    .all(userId, film.id);
+  const owned = rows.find((r) => r.purpose === "buy");
+  if (owned) return { access: "buy", payment: owned };
+  const t = Date.now();
+  for (const r of rows) {
+    if (!r.started_at) {
+      const startBy = Date.parse(r.created_at) + rentalDays(film) * DAY;
+      if (t < startBy) return { access: "rent", payment: r, started: false, start_by: new Date(startBy).toISOString() };
+    } else {
+      const ends = Date.parse(r.started_at) + rentalHours(film) * HOUR;
+      if (t < ends) return { access: "rent", payment: r, started: true, ends_at: new Date(ends).toISOString() };
+    }
+  }
+  return null;
+}
+
+// The film's address, for emails. Production: https://<name>.<domain> (or watch.<own domain>);
+// local dev: http://<name>.localhost:<port> next to APP_URL.
+export function filmOrigin(film) {
+  const app = new URL(config.appUrl);
+  if (app.hostname === "localhost" || app.hostname === "127.0.0.1") return `${app.protocol}//${film.subdomain}.localhost${app.port ? `:${app.port}` : ""}`;
+  if (film.address_type === "own" && film.own_domain) return `https://watch.${film.own_domain}`;
+  return `https://${film.subdomain}.${config.siteDomain}`;
+}
+
+// ---------- recording a sale ----------
+
+const getUser = (id) => db.prepare("SELECT * FROM users WHERE id = ?").get(id);
+
+// Records a paid Checkout Session from a filmmaker's account. Safe to call any number of times (return link and
+// webhook). Returns the payments row, or null if this isn't a finished viewer sale of ours.
+export async function settleSale(session, account) {
+  if (session.metadata?.app !== APP || session.metadata?.purpose !== "viewer_sale") return null;
+  if (session.payment_status !== "paid") return null; // async methods: wait for checkout.session.async_payment_succeeded
+  const existing = db.prepare("SELECT * FROM payments WHERE stripe_session_id = ?").get(session.id);
+  if (existing) return existing;
+
+  const film = db.prepare("SELECT * FROM films WHERE id = ?").get(Number(session.metadata.film_id));
+  const owner = film && getUser(film.user_id);
+  if (!owner || owner.connect_account_id !== account) {
+    console.error(`Sale ${session.id} doesn't match its film's Stripe account (${account}); not recorded.`);
+    return null;
+  }
+  const email = String(session.customer_details?.email || session.customer_email || "").trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) throw new Error(`Sale ${session.id} has no usable email`);
+
+  const access = session.metadata.access === "buy" ? "buy" : "rent";
+  const fee = Number(session.metadata.fee) || 0;
+  const surcharge = Number(session.metadata.surcharge) || 0;
+
+  const result = db.transaction(() => {
+    const again = db.prepare("SELECT * FROM payments WHERE stripe_session_id = ?").get(session.id);
+    if (again) return { payment: again, isNew: false };
+    let viewer = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+    if (!viewer) viewer = { id: db.prepare("INSERT INTO users (email) VALUES (?)").run(email).lastInsertRowid };
+    const info = db
+      .prepare(
+        `INSERT INTO payments (film_id, user_id, purpose, stripe_session_id, stripe_payment_intent, amount_cents,
+                               sale_kind, connect_account, application_fee_cents, setup_surcharge_cents)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(film.id, viewer.id, access, session.id, String(session.payment_intent || ""), session.amount_total,
+           session.metadata.kind, account, fee, surcharge);
+    if (surcharge) {
+      db.prepare("UPDATE films SET setup_recovered_cents = MIN(?, setup_recovered_cents + ?) WHERE id = ?").run(config.setupFeeCents, surcharge, film.id);
+    }
+    return { payment: db.prepare("SELECT * FROM payments WHERE id = ?").get(info.lastInsertRowid), isNew: true };
+  })();
+
+  if (result.isNew) {
+    const t = createLoginToken(result.payment.user_id, 7 * 24 * 60);
+    purchaseEmail(email, { title: film.title, access, link: `${filmOrigin(film)}${PAGE}?signin=${t}`, days: rentalDays(film), hours: rentalHours(film) })
+      .catch((e) => console.error("Purchase email failed:", e.message));
+    saleEmail(owner.email, { title: film.title, kind: session.metadata.kind, amountCents: session.amount_total, feeCents: fee, dashboard: "https://dashboard.stripe.com/" })
+      .catch((e) => console.error("Sale email failed:", e.message));
+    notifyAdmin("Sale", `${film.title}: ${session.metadata.kind} $${(session.amount_total / 100).toFixed(2)}, fee $${(fee / 100).toFixed(2)} (setup ${surcharge}¢).`);
+  }
+  return result.payment;
+}
+
+// ---------- routes (on the film's own address; mounted at /api/watch after loadUser) ----------
+
+export const salesRouter = Router();
+
+// The live, visible film at this address, or a 404.
+function liveFilm(req, res) {
+  const film = filmRowForHost(req.headers.host);
+  if (!film || film.status !== "live" || film.hidden) {
+    res.status(404).json({ error: "No film here." });
+    return null;
+  }
+  return film;
+}
+const originOf = (req) => `${req.protocol}://${req.headers.host}`;
+
+// What the viewer gets once they have access: the film link and that tier's bonus videos.
+function accessPayload(film, ent) {
+  const f = publicFilm(film);
+  const out = { access: ent.access, vimeo_url: f.vimeo_url, bonus: f.bonus[ent.access].videos };
+  if (ent.access === "rent") Object.assign(out, { started: ent.started, start_by: ent.start_by || null, ends_at: ent.ends_at || null, rental_hours: rentalHours(film) });
+  return out;
+}
+
+// Start a purchase. Body: { kind: 'rent' | 'buy' | 'pwyw', amount_cents (pwyw only) }. Returns { url } for Checkout.
+salesRouter.post("/checkout", rateLimit({ windowMs: 10 * 60_000, max: 20 }), async (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  if (!stripe) return res.status(503).json({ error: "Checkout isn't available right now." });
+  const kind = req.body.kind;
+  let amount;
+  if (kind === "rent" && film.rent_price_cents) amount = film.rent_price_cents;
+  else if (kind === "buy" && film.buy_price_cents) amount = film.buy_price_cents;
+  else if (kind === "pwyw" && film.pwyw_enabled) {
+    amount = Math.round(Number(req.body.amount_cents));
+    if (!Number.isInteger(amount) || amount < film.pwyw_min_cents || amount > MAX_CENTS) {
+      return res.status(400).json({ error: `Choose an amount from $${(film.pwyw_min_cents / 100).toFixed(2)} to $1,000.` });
+    }
+  } else return res.status(400).json({ error: "That option isn't available for this film." });
+
+  const access = kind === "pwyw" ? (film.pwyw_access === "buy" ? "buy" : "rent") : kind;
+  const have = entitlement(req.user?.id, film);
+  if (have?.access === "buy") return res.status(409).json({ error: "You already own this film. Press Watch now." });
+
+  const owner = getUser(film.user_id);
+  if (!owner || !(await canSell(owner))) return res.status(503).json({ error: "This film isn't taking payments right now. Try again later." });
+
+  const { fee, surcharge } = feeFor(film, amount);
+  const name =
+    access === "buy" ? `${film.title} (yours to keep)` : `${film.title} (rental: ${rentalDays(film)} days to start, ${rentalHours(film)} hours to finish)`;
+  const meta = { app: APP, purpose: "viewer_sale", film_id: String(film.id), kind, access, fee: String(fee), surcharge: String(surcharge) };
+  const origin = originOf(req);
+  try {
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        line_items: [{ quantity: 1, price_data: { currency: "usd", unit_amount: amount, product_data: { name: name.slice(0, 250) } } }],
+        payment_intent_data: { application_fee_amount: fee, description: name.slice(0, 1000), metadata: meta },
+        metadata: meta,
+        ...(req.user ? { customer_email: req.user.email } : {}),
+        success_url: `${origin}${PAGE}?paid={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}${PAGE}`,
+      },
+      { stripeAccount: owner.connect_account_id }
+    );
+    res.json({ url: session.url });
+  } catch (e) {
+    console.error("Viewer checkout failed:", e.message);
+    res.status(502).json({ error: "We couldn't start checkout. Try again in a minute." });
+  }
+});
+
+// Back from Checkout: record the sale (if the webhook hasn't yet) and sign the buyer in here, once.
+salesRouter.post("/claim", rateLimit({ windowMs: 10 * 60_000, max: 30 }), async (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  const id = String(req.body.session_id || "");
+  if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(id) || !stripe) return res.status(400).json({ error: "That payment link isn't valid." });
+  const owner = getUser(film.user_id);
+  let session;
+  try {
+    // retrieve(id, params, options): the connected account goes in options.
+    session = await stripe.checkout.sessions.retrieve(id, {}, { stripeAccount: owner.connect_account_id });
+  } catch (e) {
+    console.error("Claim: couldn't retrieve", id, e.message);
+    return res.status(400).json({ error: "We couldn't find that payment." });
+  }
+  if (Number(session.metadata?.film_id) !== film.id) return res.status(400).json({ error: "That payment is for a different film." });
+  if (session.payment_status !== "paid") return res.json({ pending: true });
+
+  const payment = await settleSale(session, owner.connect_account_id);
+  if (!payment) return res.status(400).json({ error: "We couldn't confirm that payment." });
+
+  if (req.user?.id !== payment.user_id) {
+    const fresh = Date.now() - Date.parse(payment.created_at) < CLAIM_HOURS * HOUR;
+    if (payment.claimed_at || !fresh) return res.json({ signIn: true });
+    db.prepare("UPDATE payments SET claimed_at = ? WHERE id = ?").run(now(), payment.id);
+    startSession(res, payment.user_id);
+  }
+  const ent = entitlement(payment.user_id, film);
+  res.json({ ok: true, ...(ent ? accessPayload(film, ent) : { access: null }) });
+});
+
+// What the signed-in viewer can watch here.
+salesRouter.get("/access", (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  res.set("Cache-Control", "no-store");
+  const ent = entitlement(req.user?.id, film);
+  res.json(ent ? accessPayload(film, ent) : { access: null, signedIn: !!req.user });
+});
+
+// First press of play on a rental: the rental_hours clock starts.
+salesRouter.post("/start", (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  const ent = entitlement(req.user?.id, film);
+  if (!ent) return res.status(403).json({ error: "Your rental has ended, or you haven't rented this film." });
+  if (ent.access === "rent" && !ent.started) {
+    db.prepare("UPDATE payments SET started_at = ? WHERE id = ? AND started_at IS NULL").run(now(), ent.payment.id);
+  }
+  res.json(accessPayload(film, entitlement(req.user.id, film)));
+});
+
+// "Already paid? Watch now": email a one-time sign-in link for this address. Same answer whether or not the
+// email has bought anything, so the form can't be used to look up buyers.
+salesRouter.post("/signin", rateLimit({ windowMs: 15 * 60_000, max: 6 }), async (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  const email = String(req.body.email || "").trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 254) return res.status(400).json({ error: "Enter a valid email address." });
+  const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+  if (user && entitlement(user.id, film)) {
+    const t = createLoginToken(user.id, 30);
+    try {
+      await viewerSignInEmail(email, { title: film.title, link: `${originOf(req)}${PAGE}?signin=${t}` });
+    } catch (e) {
+      console.error("Viewer sign-in email failed:", e.message);
+      return res.status(502).json({ error: "We couldn't send the email. Try again in a minute." });
+    }
+  }
+  res.json({ ok: true });
+});
+
+// The emailed link lands on the film page, which posts the token here (a POST, so link scanners can't use it up).
+salesRouter.post("/signin/verify", rateLimit({ windowMs: 15 * 60_000, max: 30 }), (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  const user = useLoginToken(req.body.token);
+  if (!user) return res.status(400).json({ error: "That link has expired or was already used. Ask for a new one below." });
+  startSession(res, user.id);
+  const ent = entitlement(user.id, film);
+  res.json({ ok: true, ...(ent ? accessPayload(film, ent) : { access: null }) });
+});

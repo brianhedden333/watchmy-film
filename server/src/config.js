@@ -36,6 +36,12 @@ export const config = {
   // SETUP_UPFRONT=1 brings back the old flow: pay the setup fee by Stripe Checkout (or a waiver code) to submit.
   setupUpfront: env.SETUP_UPFRONT === "1",
   setupSurchargeCents: Number(env.SETUP_SURCHARGE_CENTS || 100),
+  // Our cut of each viewer sale (Standard plan; must match pricing.tiers.standard in src/config.ts).
+  platformFeePercent: Number(env.PLATFORM_FEE_PERCENT || 8),
+  platformFeeMinCents: Number(env.PLATFORM_FEE_MIN_CENTS || 50),
+  // Second signing secret for the Connect webhook endpoint (events from filmmakers' accounts). Locally, `stripe listen`
+  // uses one secret for both, so this can stay empty.
+  stripeConnectWebhookSecret: env.STRIPE_CONNECT_WEBHOOK_SECRET || "",
   sendgridKey: env.SENDGRID_API_KEY || "",
   fromEmail: env.FROM_EMAIL || "hello@watchmyfilm.online",
   fromName: env.FROM_NAME || "watchmyfilm", // a plain name: domain-looking sender names can trip spam filters
