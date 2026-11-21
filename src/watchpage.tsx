@@ -716,7 +716,7 @@ function ScreeningRoom({ film: f, kind, admin, days, finish, endsAt, onSwitch, o
           </button>
         )}
         <button type="button" className="link-btn" onClick={onClose}>
-          {kind === "free" || !admin ? "Back to the film page" : "Back to Rent and Buy"}
+          Show purchase options
         </button>
       </div>
 

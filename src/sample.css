@@ -1376,7 +1376,7 @@
 }
 
 /* Watching: the player fills the 16:9 screen exactly (edge to edge, top of the stage); "Now playing" and
-   "Back to the film page" sit under it. */
+   "Show purchase options" sit under it. */
 .s-stage.is-watching {
   padding: 0 0 clamp(18px, 3vw, 40px);
 }
