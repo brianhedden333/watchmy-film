@@ -315,7 +315,7 @@ function Browse() {
           />
           <div className="bz-hero-shade" aria-hidden="true" />
           <div className="bz-wrap bz-hero-in">
-            <h1 id="bz-title">Watch Our Films</h1>
+            <h1 id="bz-title">IndieFilm.club</h1>
             <p>
               Independent films, rented and bought straight from the people who
               made them.
