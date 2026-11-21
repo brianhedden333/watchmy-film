@@ -1470,6 +1470,24 @@
   background: var(--s-red-hover);
 }
 
+/* "The email you paid with": the field takes the room, the button keeps its own size. */
+.s-already-form {
+  width: 100%;
+}
+
+.s-already-row .s-btn {
+  flex: none;
+  width: auto;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+@media (max-width: 600px) {
+  .s-already-row .s-btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 680px) {
   .s-stage.is-watching .s-front:not(.is-collapsed) {
     grid-template-columns: minmax(0, 1fr);
