@@ -10,8 +10,9 @@ function Privacy() {
       title="Privacy Policy"
       intro={
         <p>
-          This explains what information watchmyfilm.online (operated by Brian Hedden, “we”, “us”) collects, why, who we
-          share it with, and your choices. We don't sell personal information, and we don't use advertising trackers.
+          This explains what information watchmyfilm.online and IndieFilm.club (indiefilm.club and its film pages), both
+          operated by Brian Hedden (“we”, “us”), collect, why, who we share it with, and your choices. The two sites share
+          one account system and one database; signing in on one signs you in on the other. We don't sell personal information, and we don't use advertising trackers.
         </p>
       }
     >
@@ -63,7 +64,9 @@ function Privacy() {
 
       <Section id="cookies" title="Cookies">
         <p>
-          We use one cookie, to keep you signed in (each film's watch page has its own, since it's a separate web address).
+          We use cookies only to keep you signed in: one on watchmyfilm.online, and one on indiefilm.club that also covers
+          its film pages (a film on the filmmaker's own web address has its own). When you sign in on one site, we sign
+          you in on the other by passing you through it once with a short-lived, single-use code.
           Your browser also remembers a few small things for convenience, such as which page to return to after you sign
           in. We don't use advertising or analytics cookies. Videos on watch pages play through Vimeo or YouTube, and
           checkout and Stripe account setup run through Stripe; each may set its own cookies under its own policies.

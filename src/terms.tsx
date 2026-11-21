@@ -16,9 +16,10 @@ function Terms() {
       title="Terms of Service"
       intro={
         <p>
-          These terms cover your use of watchmyfilm.online, operated by Brian Hedden (“we”, “us”). They apply to filmmakers
-          who create an account to sell a film, and to viewers who rent, buy or watch a film on a watch page we host, with
-          or without an account. By creating an account, paying, or using a watch page, you agree to them.
+          These terms cover your use of watchmyfilm.online and IndieFilm.club (indiefilm.club and the film pages at its
+          addresses), both operated by Brian Hedden (“we”, “us”); in these terms, “watchmyfilm.online” means both. They
+          apply to filmmakers who create an account to sell a film, and to viewers who rent, buy or watch a film on a
+          watch page we host, with or without an account. One account works on both sites. By creating an account, paying, or using a watch page, you agree to them.
         </p>
       }
     >

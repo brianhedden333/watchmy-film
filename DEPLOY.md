@@ -41,18 +41,56 @@ The script never copies `.env`, the database or uploads.
    `sudo -u web HOME=/home/web pm2 restart watchmyfilm --update-env`.
 8. SendGrid: authenticate the domain `watchmyfilm.online` (adds DNS records) so sign-in emails don't land in spam.
 
-## Film addresses (<name>.watchmyfilm.online), once
+## Two sites, one server (since 2026-11-21)
 
-Nothing is done per film: one wildcard covers them all.
+| Site | For | What's there |
+|---|---|---|
+| `watchmyfilm.online` | filmmakers | home page, sign-up, My Films, add-a-film, admin, account |
+| `indiefilm.club` | viewers | Browse (home page), My Library, viewer sign-in |
+| `<name>.indiefilm.club` | viewers | each film's watch page (or `watch.<their domain>`) |
 
-1. Cloudflare → SSL/TLS → Origin Server → Create Certificate for `watchmyfilm.online` and `*.watchmyfilm.online`
-   (15 years). On the droplet save them as `/etc/ssl/watchmyfilm/origin.pem` and `/etc/ssl/watchmyfilm/origin.key`
-   (`chmod 600` the key).
-2. Copy `deploy/cloudflare-realip.conf` to `/etc/nginx/snippets/`, and `deploy/nginx-watchmyfilm-films.conf` to
-   `/etc/nginx/sites-available/watchmyfilm-films`, symlink it into `sites-enabled`, `nginx -t && systemctl reload nginx`.
-3. Cloudflare DNS: `A` record, name `*`, value `165.232.58.191`, proxied.
-4. The API serves the page at `/api/watch/page` from the built site's `watch/index.html` (`SITE_DIR`, default
-   `../site` next to the server). Films own domains (watch.theirfilm.com) need Cloudflare for SaaS later.
+Same built site, same API, same database. One account and one sign-in: signing in on either site passes through the
+other with a one-time code (`/api/auth/hop` → `/api/auth/land`), and signing out of either ends both. An
+indiefilm.club sign-in can't use the filmmaker tools. Old `<name>.watchmyfilm.online` addresses forward to
+`<name>.indiefilm.club`.
+
+### indiefilm.club, once
+
+**Brian (Namecheap + Cloudflare):**
+
+1. Cloudflare dashboard → **Add a domain** → `indiefilm.club` → Free plan. Cloudflare shows two nameservers.
+2. Namecheap → Domain List → `indiefilm.club` → **Manage** → Nameservers → **Custom DNS** → enter the two Cloudflare
+   nameservers → save. Wait until Cloudflare says the domain is **Active** (minutes to a few hours).
+3. Cloudflare → indiefilm.club → **DNS** → add three `A` records, all **Proxied** (orange cloud), value
+   `165.232.58.191`: name `@`, name `www`, name `*`.
+4. Cloudflare → indiefilm.club → **SSL/TLS** → Overview → encryption mode **Full (strict)**.
+5. Cloudflare → indiefilm.club → **SSL/TLS → Origin Server → Create Certificate**: RSA, hostnames `indiefilm.club`
+   and `*.indiefilm.club`, 15 years. Keep the page open: the private key is shown only once.
+6. On the droplet, save them (paste each into nano; the key is a secret, never paste it in chat):
+   `mkdir -p /etc/ssl/indiefilm && nano /etc/ssl/indiefilm/origin.pem` (the certificate), then
+   `nano /etc/ssl/indiefilm/origin.key` (the private key), then `chmod 600 /etc/ssl/indiefilm/origin.key`.
+
+**Server (Claude, at deploy time):**
+
+7. `.env`: `CLUB_URL=https://indiefilm.club`; remove `SITE_DOMAIN` if it says `watchmyfilm.online` (films now
+   default to the club's domain).
+8. nginx: copy `deploy/nginx-indiefilm.conf` → `/etc/nginx/sites-available/indiefilm` and
+   `deploy/nginx-indiefilm-films.conf` → `/etc/nginx/sites-available/indiefilm-films`, symlink both into
+   `sites-enabled`; replace `/etc/nginx/sites-available/watchmyfilm-films` with the new
+   `deploy/nginx-watchmyfilm-films.conf` (forwards old film addresses).
+9. In the live `/etc/nginx/sites-available/watchmyfilm` (certbot edited it, so edit by hand), in the 443 block add:
+   `location ~ ^/(browse|library)(/|$) { return 302 /api/auth/hop?next=https://indiefilm.club/$1/; }`
+   (Browse is `https://indiefilm.club/`; the hop page maps `/browse/` there.) Then `nginx -t && systemctl reload nginx`.
+10. Deploy (runs database changes up to 22 with a backup first), then check: indiefilm.club shows Browse, a film
+    page at `<name>.indiefilm.club`, sign in on one site and open the other.
+11. Vimeo: each film's embed domain list needs `*.indiefilm.club` (or the film's own address) instead of
+    `*.watchmyfilm.online`.
+
+### Film addresses: how the wildcard works
+
+Nothing is done per film: one wildcard covers them all (`*.indiefilm.club`, DNS + origin certificate + one nginx
+block). The API serves the page at `/api/watch/page` from the built site's `watch/index.html` (`SITE_DIR`, default
+`../site` next to the server). Films on their own domains (watch.theirfilm.com) need Cloudflare for SaaS later.
 
 ## Notes
 
@@ -61,4 +99,5 @@ Nothing is done per film: one wildcard covers them all.
 - Card statements and Stripe receipts show the FTS account's business name.
 - Waiver codes are made on `/admin/` (only emails in `ADMIN_EMAILS`).
 - Local dev: `cd server && npm run dev` (API on :5050, sign-in links print to the terminal), and `npm run dev` in the
-  project root (site on :5173, proxies `/api`).
+  project root (site on :5173, proxies `/api`). Filmmaker site `http://localhost:5173`, viewer site
+  `http://indiefilm.localhost:5173` (Browse), films at `http://<name>.indiefilm.localhost:5173`.
