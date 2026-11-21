@@ -413,6 +413,7 @@ function Browse() {
                   ? pile(aisle || "Search", shown, "results")
                   : sections.map((sec) => pile(sec.title, sec.films, sec.key))}
               </div>
+              <NewArrivalsShow films={films.slice(0, NEW_MAX)} hidden={!!peek} />
               <Peek film={peek} />
             </div>
           )}
@@ -492,6 +493,33 @@ function Spine({
 
 // The panel on the right of the stack: the hovered film's poster and details. Just a preview (the spine opens the film),
 // so it isn't clickable. Hidden on phones, where there's no hover.
+// Top right while nothing is hovered: the New Arrivals posters, fading from one to the next. It steps aside
+// (fades out) whenever a spine's info box is showing in the same spot.
+const SHOW_EVERY_MS = 4000;
+function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) {
+  const posters = films.filter((f) => f.poster_url);
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (posters.length < 2 || hidden) return; // hold still while the info box is up
+    const t = setInterval(() => setI((v) => (v + 1) % posters.length), SHOW_EVERY_MS);
+    return () => clearInterval(t);
+  }, [posters.length, hidden]);
+  if (!posters.length) return null;
+  const now = posters[i % posters.length];
+  return (
+    <aside className={`bz-peek bz-show${hidden ? " is-hidden" : ""}`} aria-hidden="true">
+      <p className="bz-show-label">New Arrivals</p>
+      <div className="bz-show-frame">
+        {posters.map((f) => (
+          <img key={f.id} src={f.poster_url!} alt="" width={400} height={600} className={f === now ? "is-on" : undefined} />
+        ))}
+      </div>
+      <h3 className="bz-show-title">{now.title}</h3>
+      {now.director && <p className="bz-peek-who">{now.director}</p>}
+    </aside>
+  );
+}
+
 function Peek({ film: f }: { film: Card | null }) {
   // Nothing hovered: the panel fades away.
   if (!f) return <aside className="bz-peek is-empty" aria-hidden="true" />;
