@@ -402,7 +402,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--donate);
+  color: #fff;
 }
 
 /* The posters stacked in one frame; the current one fades in over the last. */
@@ -411,29 +411,44 @@
   width: min(100%, calc((100svh - 180px) * 2 / 3));
   min-width: 160px;
   aspect-ratio: 2 / 3;
-  border-radius: 3px;
-  overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-  background: #000;
+  perspective: 1100px; /* depth for the turn */
 }
 
+/* Each poster waits turned to the right and invisible; the current one turns left into place as it fades in,
+   and the one leaving keeps turning left as it fades out. The waiting ones snap back without animating. */
 .bz-show-frame img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   opacity: 0;
-  transition: opacity 1.2s ease;
+  transform: rotateY(40deg);
+  transform-origin: center;
+  backface-visibility: hidden;
 }
 
 .bz-show-frame img.is-on {
   opacity: 1;
+  transform: rotateY(0deg);
+  transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.bz-show-frame img.is-off {
+  opacity: 0;
+  transform: rotateY(-40deg);
+  /* Turns from the start, so the turn shows before it has faded away. */
+  transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bz-show-frame img {
-    transition: none;
+  .bz-show-frame img,
+  .bz-show-frame img.is-on,
+  .bz-show-frame img.is-off {
+    transform: none;
+    transition: opacity 0.6s ease;
   }
 }
 

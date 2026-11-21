@@ -498,21 +498,30 @@ function Spine({
 const SHOW_EVERY_MS = 4000;
 function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) {
   const posters = films.filter((f) => f.poster_url);
-  const [i, setI] = useState(0);
+  // The current poster, and the one leaving (it turns away to the left while the next turns in from the right).
+  const [{ i, prev }, setStep] = useState<{ i: number; prev: number | null }>({ i: 0, prev: null });
   useEffect(() => {
     if (posters.length < 2 || hidden) return; // hold still while the info box is up
-    const t = setInterval(() => setI((v) => (v + 1) % posters.length), SHOW_EVERY_MS);
+    const t = setInterval(() => setStep((s) => ({ i: (s.i + 1) % posters.length, prev: s.i })), SHOW_EVERY_MS);
     return () => clearInterval(t);
   }, [posters.length, hidden]);
   if (!posters.length) return null;
   const now = posters[i % posters.length];
+  const leaving = prev != null ? posters[prev % posters.length] : null;
   // Just the label and the poster (no panel, no details): the info box is what carries the details.
   return (
     <aside className={`bz-show${hidden ? " is-hidden" : ""}`} aria-hidden="true">
       <p className="bz-show-label">New Arrivals</p>
       <div className="bz-show-frame">
         {posters.map((f) => (
-          <img key={f.id} src={f.poster_url!} alt="" width={400} height={600} className={f === now ? "is-on" : undefined} />
+          <img
+            key={f.id}
+            src={f.poster_url!}
+            alt=""
+            width={400}
+            height={600}
+            className={f === now ? "is-on" : f === leaving ? "is-off" : undefined}
+          />
         ))}
       </div>
     </aside>
