@@ -46,10 +46,12 @@ if [[ "${1:-all}" != "site" ]]; then
   rsync -az --delete -e "$RSH" --exclude node_modules --exclude .env --exclude data --exclude uploads server/ $HOST:$APP/server/
   rsync -az -e "$RSH" deploy/ $HOST:$APP/deploy/
   # The API runs as the unprivileged "web" user: code is root-owned and group-readable by web;
-  # only data/ (SQLite) and uploads/ are writable by web.
+  # only data/ (SQLite) and uploads/ are writable by web. nginx (www-data) serves /uploads/ straight from disk, so
+  # it may pass through server/ (o+x: no listing) and read uploads/ (o+rX); .env, data and code stay closed to it.
   "${SSH[@]}" $HOST "cd $APP/server && npm ci --omit=dev --no-audit --no-fund \
     && chown -R root:web $APP/server && chmod -R u=rwX,g=rX,o= $APP/server \
     && chown -R web:web $APP/server/data $APP/server/uploads \
+    && chmod o+x $APP/server && chmod -R o+rX $APP/server/uploads \
     && chown -R root:root $APP/deploy \
     && (sudo -u web HOME=/home/web pm2 restart watchmyfilm --update-env || sudo -u web HOME=/home/web pm2 start ecosystem.config.cjs) \
     && sudo -u web HOME=/home/web pm2 save"

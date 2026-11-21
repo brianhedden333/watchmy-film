@@ -875,7 +875,10 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
   const subCheck = useAddressCheck("subdomain", sub, filmId, !!disabled);
   const ownCheck = useAddressCheck("domain", own, filmId, disabled || !ownMode || !own.trim());
   const full = `${sub.trim().toLowerCase() || "yourfilm"}.${CLUB_DOMAIN}`;
-  const ownHost = own.trim() ? `watch.${own.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "")}` : "watch.yourfilm.com";
+  // Same cleaning as the server: a "watch." or "www." typed in front is dropped (the film lives at watch.<domain>).
+  const ownHost = own.trim()
+    ? `watch.${own.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^(watch|www)\.(?=[^.]+\.)/, "")}`
+    : "watch.yourfilm.com";
 
   let status: ReactNode = null;
   if (errors.subdomain) status = <p className="field-err">Address {errors.subdomain}.</p>;

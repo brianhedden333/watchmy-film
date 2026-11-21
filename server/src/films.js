@@ -51,8 +51,10 @@ const oneOf = (...opts) => (v) => {
   if (!opts.includes(v)) throw new Error(`must be one of ${opts.join(", ")}`);
   return v;
 };
+// The filmmaker's own domain, stored bare (yourfilm.com): the film lives at watch.<domain>, so a "watch." or "www."
+// they type in front is dropped (otherwise it'd become watch.watch.yourfilm.com).
 const domain = (v) => {
-  const s = String(v ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const s = String(v ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^(watch|www)\.(?=[^.]+\.)/, "");
   if (!s) return null;
   if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s) || s.length > 253) throw new Error("must be a domain like yourfilm.com");
   return s;
