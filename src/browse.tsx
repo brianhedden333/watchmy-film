@@ -295,11 +295,14 @@ function Browse() {
               height={163}
             />
           </a>
+          {/* Signed in: straight to a new film; otherwise sign up first (it leads to add-a-film). */}
+          <a className="btn btn-small bz-add" href={me ? `${home}add-a-film/?new=1` : `${home}signup/`}>
+            Add your film
+          </a>
           <nav className="bz-nav" aria-label="Site">
             <a href={`${home}browse/`} aria-current="page">
               Browse
             </a>
-            <a href={home}>For filmmakers</a>
             {me ? (
               <a href={`${home}library/`}>My library</a>
             ) : (

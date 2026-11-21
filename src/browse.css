@@ -69,6 +69,23 @@
   text-decoration: none;
 }
 
+/* "Add your film" sits right after the logo; the nav keeps to the far right. */
+.bz-add {
+  margin-right: auto;
+  white-space: nowrap;
+}
+
+/* Phones: no room for everything, so drop "Powered by" and the Browse link (you're already on Browse). */
+@media (max-width: 560px) {
+  .bz-logo-by,
+  .bz-nav a[aria-current="page"] {
+    display: none;
+  }
+  .bz-head-in {
+    gap: 12px;
+  }
+}
+
 .bz-logo-by {
   font-size: 13px;
   color: rgba(237, 232, 223, 0.6);
@@ -1120,9 +1137,6 @@ html.bz-locked {
 }
 
 @media (max-width: 640px) {
-  .bz-nav a:nth-child(2) {
-    display: none;
-  }
 
   .bz-hero {
     min-height: 46svh;
