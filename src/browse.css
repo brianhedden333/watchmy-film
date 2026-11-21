@@ -369,6 +369,11 @@
   color: var(--aisle);
 }
 
+/* "Free to Watch" in our light green (same as the Free/Donate button and the spine dots). */
+.bz-peek-prices li.is-free {
+  color: var(--donate);
+}
+
 .bz-peek-prices {
   list-style: none;
   margin: 12px 0 0;

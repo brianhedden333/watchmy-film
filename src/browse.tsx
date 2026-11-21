@@ -509,7 +509,9 @@ function Peek({ film: f }: { film: Card | null }) {
           {prices.length > 0 && (
             <ul className="bz-peek-prices">
               {prices.map((p) => (
-                <li key={p}>{p}</li>
+                <li key={p} className={p === "Free to Watch" ? "is-free" : undefined}>
+                  {p}
+                </li>
               ))}
             </ul>
           )}
