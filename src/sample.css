@@ -1417,8 +1417,43 @@
    56.25% = the 16:9 screen's height), clear of the player's own controls. */
 .s-stage.is-watching .s-lights {
   top: 0;
-  right: clamp(18px, 3vw, 40px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
   margin-top: calc(56.25% + 14px);
+}
+
+/* Room under the player for the centred lights button. */
+.s-stage.is-watching .s-player {
+  margin-bottom: 64px;
+}
+
+/* The lights button: bulb + "Lights On" / "Lights Off", a subtle pill. */
+.s-stage .s-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  border-radius: 18px;
+  font: 600 13px/1 var(--body);
+  white-space: nowrap;
+}
+
+/* Lights off: the poster and the "See purchase options" outline dim too. */
+.lights-off .s-front .s-poster {
+  opacity: 0.3;
+}
+
+.lights-off .s-btn-quiet {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.s-front .s-poster,
+.s-btn-quiet {
+  transition: opacity 0.8s ease, border-color 0.8s ease, color 0.8s ease;
 }
 
 .watch-about h2 {

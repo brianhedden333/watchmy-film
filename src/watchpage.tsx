@@ -433,11 +433,10 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
                 type="button"
                 className={`s-lights${lightsOff ? "" : " is-on"}`}
                 onClick={() => setLightsOff((v) => !v)}
-                aria-pressed={!lightsOff}
-                title={lightsOff ? "Turn the lights back on" : "Dim the lights"}
               >
                 <BulbIcon on={!lightsOff} />
-                <span className="visually-hidden">{lightsOff ? "Turn the lights on" : "Dim the lights"}</span>
+                {/* Says what a click does: lights are off now → "Lights On". */}
+                <span>{lightsOff ? "Lights On" : "Lights Off"}</span>
               </button>
               <div className="s-stage-player">
                 <ScreeningRoom
