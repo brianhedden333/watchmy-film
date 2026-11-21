@@ -7,7 +7,7 @@ import "./legal.css";
 
 const home = import.meta.env.BASE_URL;
 export const CONTACT = "hello@watchmyfilm.online";
-export const EFFECTIVE = "November 19, 2026";
+export const EFFECTIVE = "November 20, 2026";
 
 export function LegalPage({ title, intro, children }: { title: string; intro: ReactNode; children: ReactNode }) {
   return (
