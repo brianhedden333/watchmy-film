@@ -390,11 +390,13 @@ p {
   position: relative;
   color: inherit;
   text-decoration: none;
+  /* Thin, and tucked up close under the letters ("indiefilm.club" has no descenders). */
+  --ul-gap: 0.1em; /* how far above the bottom of the line box the underline sits */
+  --ul-thick: 0.025em;
   background-image: linear-gradient(rgba(237, 232, 223, 0.35), rgba(237, 232, 223, 0.35));
-  background-size: 100% 0.05em;
-  background-position: 0 100%;
+  background-size: 100% var(--ul-thick);
+  background-position: 0 calc(100% - var(--ul-gap));
   background-repeat: no-repeat;
-  padding-bottom: 0.06em;
 }
 
 .headline-link::after {
@@ -402,8 +404,8 @@ p {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 0.05em;
+  bottom: var(--ul-gap);
+  height: var(--ul-thick);
   background: #fff;
   transform: scaleX(0);
   transform-origin: left center;
