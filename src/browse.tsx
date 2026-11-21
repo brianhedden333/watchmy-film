@@ -283,8 +283,11 @@ function Browse() {
           <a
             href={home}
             className="bz-logo"
-            aria-label="watchmyfilm.online home"
+            aria-label="Powered by watchmyfilm.online (home)"
           >
+            <span className="bz-logo-by" aria-hidden="true">
+              Powered by
+            </span>
             <img
               src={`${home}brand/watchmyfilm-logo-white.png`}
               alt=""

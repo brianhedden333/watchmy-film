@@ -61,6 +61,20 @@
   width: auto;
 }
 
+/* "Powered by" ahead of the logo: IndieFilm.club runs on watchmyfilm. */
+.bz-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.bz-logo-by {
+  font-size: 13px;
+  color: rgba(237, 232, 223, 0.6);
+  white-space: nowrap;
+}
+
 .bz-nav {
   display: flex;
   gap: clamp(14px, 3vw, 32px);
