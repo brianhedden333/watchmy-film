@@ -139,8 +139,15 @@
 .bz-hero p {
   font-size: clamp(18px, 1.6vw, 22px);
   line-height: 1.4;
-  max-width: 44ch;
+  max-width: none;
   margin: 0;
+}
+
+/* One line wherever it fits; phones are too narrow, so it wraps there. */
+@media (min-width: 700px) {
+  .bz-hero p {
+    white-space: nowrap;
+  }
 }
 
 .bz-tools {
