@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { money, pricing, site, splitSale, type TierKey } from "../config";
 import { getMe, type User } from "../api";
-import { cross } from "../sites";
+import { CLUB, cross } from "../sites";
 
 /* Landing page. The interface stays neutral, like a screening room; color comes only from the films. */
 
@@ -215,7 +215,12 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
           <h1 id="hero-title" className="film-title headline">
             <span className="headline-line">Sell your film</span>{" "}
             <span className="headline-line">from your website</span>{" "}
-            <span className="headline-line">and indiefilm.club</span>
+            <span className="headline-line">
+              and{" "}
+              <a className="headline-link" href={`${CLUB}/`}>
+                indiefilm.club
+              </a>
+            </span>
           </h1>
           <p className="film-tagline">
             You keep up to {keepPercentAt(19.99)}% of every ticket sale.

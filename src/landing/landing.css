@@ -380,6 +380,52 @@ p {
   display: block;
 }
 
+/* A little air between the three lines (the title font's line-height is very tight). */
+.headline-line + .headline-line {
+  margin-top: 0.12em;
+}
+
+/* "indiefilm.club": a faint underline; on hover a bright white one draws in from left to right over it. */
+.headline-link {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+  background-image: linear-gradient(rgba(237, 232, 223, 0.35), rgba(237, 232, 223, 0.35));
+  background-size: 100% 0.05em;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  padding-bottom: 0.06em;
+}
+
+.headline-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.05em;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.headline-link:hover::after,
+.headline-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.headline-link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .headline-link::after {
+    transition: none;
+  }
+}
+
 /* Under the headline, like a poster's tagline under the title. */
 .film-tagline {
   font-size: clamp(19px, 2cqw, 28px);
