@@ -228,6 +228,12 @@ const FIELDS = {
   free_watch: flag,
   discoverable: flag,
   hide_title: flag,
+  // The rights box: unticked → null; already ticked → keep the original date it was ticked; newly ticked → now.
+  rights_confirmed_at: (v) => {
+    if (!v) return null;
+    const d = typeof v === "string" ? new Date(v) : null;
+    return d && !isNaN(d) && d <= new Date() && v.length >= 20 ? d.toISOString() : new Date().toISOString();
+  },
   tags,
   rental_days: int(1, 365),
   // Days to finish once a rental is started (replaced rental_hours, which is no longer used).
@@ -254,6 +260,7 @@ const LABELS = {
   still_path: "Wide image",
   vimeo_url: "Film link (Vimeo or YouTube)",
   price: "A rent, buy or donation price, free viewing, or a tip jar",
+  rights_confirmed_at: "Confirm you have the rights to sell this film",
 };
 
 const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
@@ -261,7 +268,7 @@ const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
 // What still needs filling in before the film can go to review.
 export function missingFields(f) {
   const missing = [];
-  for (const k of ["title", "synopsis", "poster_path", "still_path", "vimeo_url"]) if (!f[k]) missing.push(LABELS[k]);
+  for (const k of ["title", "synopsis", "poster_path", "still_path", "vimeo_url", "rights_confirmed_at"]) if (!f[k]) missing.push(LABELS[k]);
   const hasTips = !!(f.tip_venmo || f.tip_paypal || f.tip_zelle);
   if (!f.rent_price_cents && !f.buy_price_cents && !f.pwyw_enabled && !f.free_watch && !hasTips) missing.push(LABELS.price);
   if (!f.subdomain) missing.push(LABELS.subdomain);

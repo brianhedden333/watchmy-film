@@ -371,8 +371,13 @@ p {
 }
 
 .film-title.headline {
-  font-size: clamp(48px, 7.4cqw, 112px);
-  max-width: 13ch;
+  font-size: clamp(40px, 6.4cqw, 100px);
+  max-width: none;
+}
+
+/* Three lines: Sell your film / from your website / and indiefilm.club */
+.headline-line {
+  display: block;
 }
 
 /* Under the headline, like a poster's tagline under the title. */

@@ -25,7 +25,7 @@ const TEXT_FIELDS = [
   "color_background", "color_primary", "color_secondary", "color_button",
   "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle",
 ] as const;
-type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable" | "hide_title", string>;
+type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable" | "hide_title" | "rights_confirmed_at", string>;
 
 function toForm(f: Film): FormState {
   const out = {} as FormState;
@@ -40,6 +40,7 @@ function toForm(f: Film): FormState {
   out.pwyw_suggested = f.pwyw_suggested_cents == null ? "" : (f.pwyw_suggested_cents / 100).toFixed(2);
   out.free_watch = f.free_watch ? "1" : "";
   out.hide_title = f.hide_title ? "1" : "";
+  out.rights_confirmed_at = f.rights_confirmed_at || "";
   out.discoverable = f.discoverable ? "1" : "";
   return out;
 }
@@ -73,6 +74,7 @@ function toBody(s: FormState, credits: Credit[], bonus: Bonus, tags: string[]) {
   body.pwyw_suggested_cents = cents(s.pwyw_suggested);
   body.free_watch = s.free_watch ? 1 : 0;
   body.hide_title = s.hide_title ? 1 : 0;
+  body.rights_confirmed_at = s.rights_confirmed_at || null;
   body.discoverable = s.discoverable ? 1 : 0;
   return body;
 }
@@ -412,6 +414,29 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               ),
             })}
             {field("trailer_url", "Trailer link (YouTube or Vimeo)", { placeholder: "https://youtube.com/watch?v=…" })}
+            <div className="pwyw" id="sec-rights">
+              <label className="pwyw-toggle">
+                <input
+                  type="checkbox"
+                  name="rights_confirmed_at"
+                  aria-required="true"
+                  checked={!!form.rights_confirmed_at}
+                  // Keep the original date if it was already ticked; "1" tells the server it's newly ticked.
+                  onChange={(e) => set("rights_confirmed_at")(e.target.checked ? film?.rights_confirmed_at || "1" : "")}
+                />
+                <span>
+                  <strong>I own or control all the rights needed to sell and stream this film</strong> (required)
+                  <span className="hint">
+                    Including the music, footage, artwork and anything else in it, for viewers in every country where it's
+                    offered. You're responsible for these rights, as set out in our{" "}
+                    <a href={`${import.meta.env.BASE_URL}terms/`} target="_blank" rel="noopener">
+                      Terms
+                    </a>
+                    .
+                  </span>
+                </span>
+              </label>
+            </div>
           </fieldset>
 
           <fieldset>
@@ -576,7 +601,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                   <strong>Allow the film to be watched for free</strong>
                   <span className="hint">
                     Anyone can watch without paying. Rent, Buy and donations stay available if they're on, and bonus features still
-                    come only with a rental or purchase. Shows as Donation-based in Browse.
+                    come only with a rental or purchase. Shows under Free/Donate in Browse.
                   </span>
                 </span>
               </label>
@@ -687,6 +712,7 @@ const MISSING_TARGETS: Record<string, string> = {
   "Wide image": "#img-still",
   "Film link (Vimeo or YouTube)": '[name="vimeo_url"]',
   "Web address": "#sec-address",
+  "Confirm you have the rights to sell this film": "#sec-rights",
 };
 const targetFor = (label: string) => MISSING_TARGETS[label] || (/price|free viewing|tip jar/i.test(label) ? "#sec-prices" : null);
 

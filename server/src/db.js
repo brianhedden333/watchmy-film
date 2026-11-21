@@ -260,6 +260,10 @@ const MIGRATIONS = [
   -- The buyer agreed (at checkout, on the watch page) that the filmmaker may contact them. 1 = yes, 0 = no.
   ALTER TABLE payments ADD COLUMN contact_ok INTEGER;
   `,
+  `
+  -- When the filmmaker ticked "I own or control all the rights needed to sell and stream this film" (null = not yet).
+  ALTER TABLE films ADD COLUMN rights_confirmed_at TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

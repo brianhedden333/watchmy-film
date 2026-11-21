@@ -204,7 +204,7 @@
   color: #000;
 }
 
-/* Donation-based: light-green outline and text, and the same green dot the spines wear. */
+/* Free/Donate: light-green outline and text, and the same green dot the spines wear. */
 .bz-aisles button.bz-aisle-donate {
   align-items: center;
   border-color: var(--donate);

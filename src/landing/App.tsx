@@ -211,7 +211,9 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
         <div className="scrim" aria-hidden="true" />
         <div className="watch-ui">
           <h1 id="hero-title" className="film-title headline">
-            Sell your film from your own website.
+            <span className="headline-line">Sell your film</span>{" "}
+            <span className="headline-line">from your website</span>{" "}
+            <span className="headline-line">and indiefilm.club</span>
           </h1>
           <p className="film-tagline">
             You keep up to {keepPercentAt(19.99)}% of every ticket sale.

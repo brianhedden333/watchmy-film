@@ -46,10 +46,12 @@ type Card = {
 };
 
 const NEW_MAX = 6; // spines in New Arrivals
-const DONATION = "Donation-based"; // the aisle for films that take pay-what-you-want or tips
+const DONATION = "Free/Donate"; // the aisle for films that take pay-what-you-want or tips
 
 // Free to watch, pay what you want, or a tip jar.
 const takesDonations = (f: Card) => f.free_watch || f.pwyw_enabled || f.tips.length > 0;
+// Actually takes money as a gift (pay what you want or a tip jar), for the "Accepts donations" marks.
+const acceptsDonations = (f: Card) => f.pwyw_enabled || f.tips.length > 0;
 const TIP_NAMES = { venmo: "Venmo", paypal: "PayPal", zelle: "Zelle" };
 function donationLine(f: Card) {
   return [
@@ -458,7 +460,7 @@ function Spine({
       <span className="bz-spine-who">{f.director}</span>
       <span className="bz-spine-title">
         {f.title}
-        {takesDonations(f) && (
+        {acceptsDonations(f) && (
           <span className="bz-dot bz-spine-dot" title="Accepts donations">
             <span className="visually-hidden">Accepts donations</span>
           </span>
@@ -469,9 +471,12 @@ function Spine({
       <span className="bz-spine-img" aria-hidden="true">
         {img && <img src={img} alt="" loading="lazy" />}
         <span className="bz-spine-cta">
-          <svg viewBox="0 0 10 10" width="10" height="10">
-            <path d="M2 1.5v7l6-3.5z" fill="currentColor" />
-          </svg>
+          {/* The play mark only when there's a trailer to play. */}
+          {f.trailer_url && (
+            <svg viewBox="0 0 10 10" width="10" height="10">
+              <path d="M2 1.5v7l6-3.5z" fill="currentColor" />
+            </svg>
+          )}
           {f.trailer_url ? "Click for trailer" : "Click for details"}
         </span>
       </span>
@@ -488,8 +493,9 @@ function Peek({ film: f }: { film: Card | null }) {
   const prices = [
     f.rent_price_cents != null && `Rent ${money(f.rent_price_cents)}`,
     f.buy_price_cents != null && `Buy ${money(f.buy_price_cents)}`,
+    f.free_watch && "Free to Watch",
   ].filter(Boolean) as string[];
-  const donations = takesDonations(f) ? donationLine(f) : "";
+  const donations = acceptsDonations(f) ? donationLine(f) : "";
   const paragraphs = (f.synopsis || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   const credits = f.credits.filter((c) => !/^directors?$/i.test(c.role)); // the director is already up top
   return (
