@@ -425,9 +425,11 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               placeholder: "https://vimeo.com/123456789",
               hint: (
                 <>
-                  <strong>Vimeo (recommended):</strong> set the film's privacy to <strong>Hide from Vimeo</strong> and embedding
-                  to <strong>Specific domains</strong>. We'll add your watch page's address there during setup, so the film only
-                  plays on your page. <strong>YouTube:</strong> set it to <strong>Unlisted</strong> (Private videos can't play
+                  <strong>Vimeo (recommended):</strong> under the film's privacy, set embedding to <strong>Specific domains</strong>{" "}
+                  and add <strong>indiefilm.club</strong> (that covers your film's address), so it only plays on your page. For
+                  who can watch, choose <strong>Hide from Vimeo</strong> if your plan offers it; otherwise choose{" "}
+                  <strong>Unlisted</strong> and paste the full private link here (it ends in a second code, like
+                  vimeo.com/123456789/abc123). <strong>YouTube:</strong> set it to <strong>Unlisted</strong> (Private videos can't play
                   on your page). An unlisted link plays anywhere it's shared, so it's less protected.
                 </>
               ),
