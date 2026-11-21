@@ -101,6 +101,13 @@
   resize: vertical;
 }
 
+/* Example text in empty fields: dim, so it reads as a hint and not as something already filled in. */
+.dash input::placeholder,
+.dash textarea::placeholder {
+  color: #625d56;
+  opacity: 1; /* Firefox otherwise fades it a second time */
+}
+
 .dash input:focus-visible,
 .dash textarea:focus-visible,
 .dash select:focus-visible,
