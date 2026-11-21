@@ -1373,11 +1373,9 @@
 
 /* ---------- Title hidden (Site design): the banner shows as a plain image ---------- */
 
-.s-hero.s-hero-clean {
-  min-height: 0;
-  aspect-ratio: 3 / 1;
-  max-height: 520px;
-  padding: 0;
+/* Same height as the banner with the title: an invisible copy of the title and line holds the space. */
+.s-hero-spacer {
+  visibility: hidden;
 }
 
 .s-hero.s-hero-clean::before {
@@ -1552,7 +1550,7 @@
 }
 
 @media (max-width: 680px) {
-  .s-hero:not(.s-hero-clean) {
+  .s-hero {
     padding-top: 64px; /* clear of the logo, top right */
   }
   .s-front.is-collapsed {

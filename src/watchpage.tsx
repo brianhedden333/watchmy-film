@@ -371,7 +371,14 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
       >
         <BrandMenu />
         {cleanHero ? (
-          <h1 className="visually-hidden">{f.title}</h1>
+          <>
+            <h1 className="visually-hidden">{f.title}</h1>
+            {/* Invisible copy of the title and line, so the banner is the same height as with the title shown. */}
+            <div className="s-wrap s-hero-spacer" aria-hidden="true">
+              <h1>{f.title}</h1>
+              <p>{f.logline || "Watch Now"}</p>
+            </div>
+          </>
         ) : (
           <div className="s-wrap">
             <h1>{f.title}</h1>
