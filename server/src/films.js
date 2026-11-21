@@ -84,9 +84,9 @@ export const slugify = (t) =>
     .replace(/-+$/, "");
 
 const subTaken = (name, filmId) =>
-  !!db.prepare("SELECT 1 FROM films WHERE subdomain = ? AND id != ?").get(name, filmId ?? 0);
+  !!db.prepare("SELECT 1 FROM films WHERE subdomain = ? AND id != ? AND deleted_at IS NULL").get(name, filmId ?? 0);
 const domainTaken = (name, filmId) =>
-  !!db.prepare("SELECT 1 FROM films WHERE own_domain = ? AND id != ?").get(name, filmId ?? 0);
+  !!db.prepare("SELECT 1 FROM films WHERE own_domain = ? AND id != ? AND deleted_at IS NULL").get(name, filmId ?? 0);
 
 // A free address close to the one asked for: name-film, name-<year>, name-2, name-3…
 function suggestSub(base, film) {
@@ -286,7 +286,7 @@ export const publicFilm = (f) => ({
   editable: EDITABLE.has(f.status),
 });
 
-const getOwnFilmById = (id, userId) => db.prepare("SELECT * FROM films WHERE id = ? AND user_id = ?").get(id, userId);
+const getOwnFilmById = (id, userId) => db.prepare("SELECT * FROM films WHERE id = ? AND user_id = ? AND deleted_at IS NULL").get(id, userId);
 const getOwnFilm = (req) => getOwnFilmById(Number(req.params.id), req.user.id);
 
 function clean(body, { requireTitle }) {
@@ -339,7 +339,7 @@ filmsRouter.get("/", async (req, res) => {
     .all(req.user.id);
   for (const p of pending) await settleCheckout(p.pending_checkout_id).catch((e) => console.error("Settle failed:", e.message));
 
-  const films = db.prepare("SELECT * FROM films WHERE user_id = ? ORDER BY created_at DESC").all(req.user.id);
+  const films = db.prepare("SELECT * FROM films WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC").all(req.user.id);
   res.json({
     films: films.map(publicFilm),
     setupFeeCents: config.setupFeeCents,
@@ -350,7 +350,7 @@ filmsRouter.get("/", async (req, res) => {
 });
 
 filmsRouter.post("/", (req, res) => {
-  const count = db.prepare("SELECT count(*) n FROM films WHERE user_id = ?").get(req.user.id).n;
+  const count = db.prepare("SELECT count(*) n FROM films WHERE user_id = ? AND deleted_at IS NULL").get(req.user.id).n;
   if (count >= 25) return res.status(400).json({ error: "That's a lot of films. Email us to add more." });
   const { out, errors } = clean(req.body, { requireTitle: true });
   if (Object.keys(errors).length) return res.status(400).json({ error: "Check the highlighted fields.", errors });
@@ -530,10 +530,11 @@ filmsRouter.post("/:id/go-live", async (req, res) => {
 });
 
 // Hide or show a live film. Hidden: the address shows a holding page instead of the film.
-// Delete a film for good. Only films with no viewer sales: people who rented or bought a film keep access to it
+// "Delete" a film: it's only marked deleted (deleted_at, deleted_by); the row and everything in it are kept for the
+// record and still show in the admin dashboard. It disappears for the filmmaker and the public, and its address
+// can be used again. Only films with no viewer sales: people who rented or bought a film keep access to it
 // (Terms: "for as long as the filmmaker keeps it available"), so those films can be hidden instead.
-// The body must repeat the film's title, as a guard against accidents. Its promo codes and Watch Later entries go
-// with it (ON DELETE CASCADE); older setup-fee payment records keep their amount but lose the link.
+// The body must repeat the film's title, as a guard against accidents.
 filmsRouter.delete("/:id", (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
@@ -547,7 +548,7 @@ filmsRouter.delete("/:id", (req, res) => {
   if (typed !== String(film.title || "").trim().toLowerCase()) {
     return res.status(400).json({ error: "Type the film's title exactly to confirm." });
   }
-  db.prepare("DELETE FROM films WHERE id = ?").run(film.id);
+  db.prepare("UPDATE films SET deleted_at = ?, deleted_by = ?, updated_at = ? WHERE id = ?").run(now(), req.user.id, now(), film.id);
   notifyAdmin("Film deleted", `${req.user.email} deleted "${film.title}" (status was ${film.status}).`);
   res.json({ ok: true });
 });

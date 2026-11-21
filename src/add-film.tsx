@@ -647,7 +647,8 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
   );
 }
 
-// Delete a film for good, after typing its title. The server refuses films with sales (buyers keep access).
+// Delete a film, after typing its title. The server only marks it deleted (kept for the record; admins still see it)
+// and refuses films with sales (buyers keep access).
 // Not a <form> of its own (it sits inside the film form), so Enter in the box doesn't submit anything.
 function DeleteFilm({ film }: { film: Film }) {
   const [open, setOpen] = useState(false);

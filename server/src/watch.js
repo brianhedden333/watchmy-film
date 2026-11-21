@@ -20,12 +20,12 @@ export function filmRowForHost(rawHost) {
   for (const suffix of [`.${config.siteDomain}`, ".localhost"]) {
     if (host.endsWith(suffix)) {
       const name = host.slice(0, -suffix.length);
-      if (name && !name.includes(".")) row = db.prepare("SELECT * FROM films WHERE subdomain = ?").get(name);
+      if (name && !name.includes(".")) row = db.prepare("SELECT * FROM films WHERE subdomain = ? AND deleted_at IS NULL").get(name);
       break;
     }
   }
   // Their own domain: watch.theirfilm.com -> own_domain theirfilm.com
-  if (!row && host.startsWith("watch.")) row = db.prepare("SELECT * FROM films WHERE own_domain = ?").get(host.slice(6));
+  if (!row && host.startsWith("watch.")) row = db.prepare("SELECT * FROM films WHERE own_domain = ? AND deleted_at IS NULL").get(host.slice(6));
   return row || null;
 }
 

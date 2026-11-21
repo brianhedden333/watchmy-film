@@ -243,6 +243,17 @@ const MIGRATIONS = [
   -- Set when the viewer loses access (full refund, or a dispute). Cleared if a dispute is won.
   ALTER TABLE payments ADD COLUMN revoked_at TEXT;
   `,
+  `
+  -- Deleting a film only marks it: the row and everything in it stay, for the record. Deleted films are hidden
+  -- everywhere except the admin dashboard. deleted_by is the user who deleted it.
+  ALTER TABLE films ADD COLUMN deleted_at TEXT;
+  ALTER TABLE films ADD COLUMN deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+  -- A deleted film's address can be used again, so uniqueness only counts films that aren't deleted.
+  DROP INDEX films_subdomain_unique;
+  DROP INDEX films_own_domain_unique;
+  CREATE UNIQUE INDEX films_subdomain_unique ON films(subdomain) WHERE subdomain IS NOT NULL AND deleted_at IS NULL;
+  CREATE UNIQUE INDEX films_own_domain_unique ON films(own_domain) WHERE own_domain IS NOT NULL AND deleted_at IS NULL;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

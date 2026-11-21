@@ -24,7 +24,8 @@ adminRouter.get("/overview", (_req, res) => {
          (SELECT ifnull(sum(amount_cents - refunded_cents), 0) FROM payments p WHERE p.film_id = f.id AND p.purpose IN ('rent', 'buy')) AS sales_cents,
          (SELECT count(*) FROM payments p WHERE p.film_id = f.id AND p.purpose IN ('rent', 'buy')) AS sales_count
        FROM films f JOIN users u ON u.id = f.user_id
-       ORDER BY CASE f.status WHEN 'in_review' THEN 0 ELSE 1 END, f.updated_at DESC`
+       -- Deleted films (kept for the record) go last.
+       ORDER BY (f.deleted_at IS NOT NULL), CASE f.status WHEN 'in_review' THEN 0 ELSE 1 END, f.updated_at DESC`
     )
     .all()
     .map(publicFilm);

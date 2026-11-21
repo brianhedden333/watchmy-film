@@ -254,7 +254,7 @@ filmmakerSalesRouter.get("/", async (req, res) => {
   });
   const sum = (k) => sales.reduce((t, s) => t + (s[k] ?? 0), 0);
   const films = db
-    .prepare("SELECT id, title, setup_status, setup_recovered_cents FROM films WHERE user_id = ? AND setup_status = 'deferred'")
+    .prepare("SELECT id, title, setup_status, setup_recovered_cents FROM films WHERE user_id = ? AND setup_status = 'deferred' AND deleted_at IS NULL")
     .all(req.user.id)
     .map((f) => ({ id: f.id, title: f.title, recovered: f.setup_recovered_cents, setup_fee: config.setupFeeCents }));
   res.json({

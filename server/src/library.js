@@ -14,7 +14,7 @@ libraryRouter.use(requireUser);
 // short one-time sign-in link (the film page uses it on load). Only for films they can still watch.
 libraryRouter.get("/go/:id", (req, res) => {
   const film = db.prepare("SELECT * FROM films WHERE id = ?").get(Number(req.params.id));
-  if (!film || film.status !== "live" || film.hidden) return res.redirect(302, `${config.appUrl}/library/`);
+  if (!film || film.status !== "live" || film.hidden || film.deleted_at) return res.redirect(302, `${config.appUrl}/library/`);
   if (!entitlement(req.user.id, film)) return res.redirect(302, filmPageUrl(film));
   const t = createLoginToken(req.user.id, 5);
   res.redirect(302, `${filmPageUrl(film)}?signin=${t}`);
@@ -28,7 +28,7 @@ libraryRouter.get("/", (req, res) => {
       `SELECT p.purpose, p.created_at AS paid_at, p.started_at, f.id, f.title, f.year, f.poster_path, f.rental_days, f.rental_watch_days,
               f.status, f.hidden, f.address_type, f.subdomain, f.own_domain
        FROM payments p JOIN films f ON f.id = p.film_id
-       WHERE p.user_id = ? AND p.purpose IN ('rent', 'buy') AND p.revoked_at IS NULL
+       WHERE p.user_id = ? AND p.purpose IN ('rent', 'buy') AND p.revoked_at IS NULL AND f.deleted_at IS NULL
        ORDER BY p.created_at DESC`
     )
     .all(req.user.id);
@@ -69,7 +69,7 @@ watchlistRouter.get("/", (req, res) => {
   const rows = db
     .prepare(
       `SELECT f.*, w.created_at AS saved_at FROM watchlist w JOIN films f ON f.id = w.film_id
-       WHERE w.user_id = ? AND f.status = 'live' AND f.hidden = 0 ORDER BY w.created_at DESC`
+       WHERE w.user_id = ? AND f.status = 'live' AND f.hidden = 0 AND f.deleted_at IS NULL ORDER BY w.created_at DESC`
     )
     .all(req.user.id);
   res.json({
@@ -88,8 +88,8 @@ watchlistRouter.get("/", (req, res) => {
 });
 
 watchlistRouter.put("/:id", (req, res) => {
-  const film = db.prepare("SELECT id, status, hidden FROM films WHERE id = ?").get(Number(req.params.id));
-  if (!film || film.status !== "live" || film.hidden) return res.status(404).json({ error: "That film isn't available." });
+  const film = db.prepare("SELECT id, status, hidden, deleted_at FROM films WHERE id = ?").get(Number(req.params.id));
+  if (!film || film.status !== "live" || film.hidden || film.deleted_at) return res.status(404).json({ error: "That film isn't available." });
   db.prepare("INSERT OR IGNORE INTO watchlist (user_id, film_id) VALUES (?, ?)").run(req.user.id, film.id);
   res.json({ ok: true });
 });

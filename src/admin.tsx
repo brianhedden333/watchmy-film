@@ -11,7 +11,7 @@ import "./dashboard.css";
 
 const home = import.meta.env.BASE_URL;
 
-type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; staff_pick: number; sales_cents: number; sales_count: number; submitted_at: string | null; updated_at: string };
+type AdminFilm = Film & StripeCols & { owner_email: string; owner_name: string | null; codes_used: string | null; paid_cents: number | null; staff_pick: number; sales_cents: number; sales_count: number; submitted_at: string | null; updated_at: string; deleted_at: string | null };
 type Code = { id: number; code: string; max_uses: number | null; uses: number; expires_at: string | null; active: number; note: string | null; used_by: string | null; created_at: string };
 type StripeCols = { stripe_has_account: number | null; stripe_email: string | null; stripe_account_id: string | null; stripe_country: string | null };
 type AdminUser = StripeCols & { id: number; email: string; name: string | null; created_at: string; last_login_at: string | null; email_verified_at: string | null; has_password: number; films: number };
@@ -144,11 +144,18 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             earned · {film.sales_count} {film.sales_count === 1 ? "sale" : "sales"}
           </span>
         </span>
-        <span className={pillClass(film)}>{statusLabel(film)}</span>
+        {film.deleted_at ? (
+          <span className="pill pill-deleted" title={`Was ${statusLabel(film)} when deleted`}>
+            Deleted {day(film.deleted_at)}
+          </span>
+        ) : (
+          <span className={pillClass(film)}>{statusLabel(film)}</span>
+        )}
         <svg className="admin-caret" width="14" height="14" viewBox="0 0 12 12" aria-hidden="true">
           <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" />
         </svg>
       </button>
+      {!film.deleted_at && (
       <div className="admin-pick">
         <button
           type="button"
@@ -168,6 +175,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
                 : "")}
         </span>
       </div>
+      )}
 
       {open && (
         <div className="admin-film-body">

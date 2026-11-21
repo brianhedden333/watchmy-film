@@ -51,7 +51,7 @@ browseRouter.get("/", (_req, res) => {
   const rows = db
     .prepare(
       `SELECT * FROM films
-       WHERE status = 'live' AND hidden = 0 AND discoverable = 1 AND poster_path IS NOT NULL
+       WHERE status = 'live' AND hidden = 0 AND discoverable = 1 AND poster_path IS NOT NULL AND deleted_at IS NULL
        ORDER BY coalesce(submitted_at, created_at) DESC`
     )
     .all();

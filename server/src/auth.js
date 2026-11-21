@@ -56,9 +56,9 @@ function passwordError(pw) {
 // Viewers (people who've bought or saved films but have no films of their own) go to My Library.
 export function homeFor(user) {
   if (isAdmin(user)) return "/admin/";
-  const live = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND status = 'live' LIMIT 1").get(user.id);
+  const live = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND status = 'live' AND deleted_at IS NULL LIMIT 1").get(user.id);
   if (live) return "/dashboard/";
-  const ownsFilms = db.prepare("SELECT 1 FROM films WHERE user_id = ? LIMIT 1").get(user.id);
+  const ownsFilms = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND deleted_at IS NULL LIMIT 1").get(user.id);
   if (!ownsFilms) {
     const viewer =
       db.prepare("SELECT 1 FROM payments WHERE user_id = ? AND purpose IN ('rent', 'buy') LIMIT 1").get(user.id) ||
@@ -247,7 +247,7 @@ authRouter.get("/me", (req, res) => {
   const { id, email, name } = req.user;
   res.json({
     user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user), stripe: stripeInfo(req.user), connect: connectInfo(req.user),
-      hasFilms: !!db.prepare("SELECT 1 FROM films WHERE user_id = ? LIMIT 1").get(req.user.id) },
+      hasFilms: !!db.prepare("SELECT 1 FROM films WHERE user_id = ? AND deleted_at IS NULL LIMIT 1").get(req.user.id) },
   });
 });
 
