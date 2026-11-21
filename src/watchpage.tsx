@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { api, dollars } from "./api";
 import type { Film } from "./films";
 
@@ -179,8 +179,6 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
   const [lightsOff, setLightsOff] = useState(true);
   // Watching: the buying options shrink to a "See purchase options" button.
   const [showOptions, setShowOptions] = useState(false);
-  // "The filmmaker may contact me", sent with checkout. Ticked by default.
-  const [contactOk, setContactOk] = useState(true);
   const open = (kind: "rent" | "buy" | "free") => {
     setWatching(kind);
     setLightsOff(true);
@@ -191,6 +189,31 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
     setWatching(null);
     setShowOptions(false);
   };
+
+  // The poster and the boxes sit inside the 16:9 screen. If the boxes would run past its bottom (narrow
+  // windows, phones, lots of options), switch to "stacked": the poster stays on the screen, the boxes go below.
+  const stageRef = useRef<HTMLElement>(null);
+  const offersRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const fit = () => {
+      const offers = offersRef.current;
+      delete stage.dataset.stacked;
+      if (!offers || stage.classList.contains("is-watching")) return;
+      if (offers.scrollHeight > offers.clientHeight + 1) stage.dataset.stacked = "";
+    };
+    fit();
+    let width = stage.offsetWidth;
+    const ro = new ResizeObserver(() => {
+      if (stage.offsetWidth === width) return; // only width changes matter (stacking changes the height)
+      width = stage.offsetWidth;
+      fit();
+    });
+    ro.observe(stage);
+    document.fonts?.ready.then(fit);
+    return () => ro.disconnect();
+  });
 
   // ----- Live page: buying and watching -----
   const live = mode === "public";
@@ -248,7 +271,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
     setBusy(kind);
     setError("");
     try {
-      const r = await api<{ url: string }>("/watch/checkout", { body: { kind, amount_cents: amountCents, contact_ok: contactOk } });
+      const r = await api<{ url: string }>("/watch/checkout", { body: { kind, amount_cents: amountCents } });
       location.assign(r.url);
       await new Promise(() => {}); // keep the button busy while the browser leaves for Stripe
     } catch (e) {
@@ -311,7 +334,6 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
 
   const offers = (rent ? 1 : 0) + (buy ? 1 : 0);
   const hasTips = !!(f.tip_venmo || f.tip_paypal || f.tip_zelle);
-  const extras = f.free_watch || f.pwyw_enabled || hasTips;
   // The filmmaker's own line for each box; if they left it blank but added videos, list the titles.
   const bonusLine = (k: "rent" | "buy") => {
     const b = f.bonus[k];
@@ -338,18 +360,6 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
           {note}
         </p>
       )}
-      <p className="s-fine">Secure payment powered by Stripe</p>
-      <p className="s-fine">
-        <em>For personal viewing only, not for public screenings.</em>
-      </p>
-      <div className="s-included">
-        <h4>What's included</h4>
-        <ul>
-          {included.map((i) => (
-            <li key={i}>{i}</li>
-          ))}
-        </ul>
-      </div>
     </>
   );
 
@@ -416,7 +426,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
         )}
         {/* The stage: a big blurred "screen" from the wide image, with the poster (left) and the buying and tip
             options (right) in front. Watching: the player appears on the screen and the rest slides down below it. */}
-        <section className={`s-stage${watching ? " is-watching" : ""}`} aria-label={`${f.title}: watch`}>
+        <section ref={stageRef} className={`s-stage${watching ? " is-watching" : ""}`} aria-label={`${f.title}: watch`}>
           <div className="s-stage-bg" aria-hidden="true">
             {screenImg && <div className="s-stage-screen" style={{ backgroundImage: `url(${screenImg})` }} />}
             {!watching && <span className="s-stage-play">▶</span>}
@@ -447,7 +457,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
               </div>
             </>
           )}
-        <div className={`s-buy offers-${offers}${extras ? " has-extras" : ""}${watching ? " s-buy-down" : ""}${watching && !showOptions ? " is-collapsed" : ""}`}>
+        <div className={`s-front${watching ? " s-buy-down" : ""}${watching && !showOptions ? " is-collapsed" : ""}`}>
           {f.poster_url ? (
             <img src={f.poster_url} alt={`${f.title} poster`} className="s-poster" />
           ) : (
@@ -462,44 +472,31 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
               {hasTips && <TipJar film={f} />}
             </div>
           ) : (
-          <>
-          {live && !acc?.access && (offers > 0 || f.pwyw_enabled) && (
-            <label className="s-optin">
-              <input type="checkbox" checked={contactOk} onChange={(e) => setContactOk(e.target.checked)} />
-              <span>Let the filmmaker contact me about this film and their future work</span>
-            </label>
-          )}
-
+          <div className="s-offers" ref={offersRef}>
           {rent != null && (
-            <div className="s-card">
+            <div className="s-card s-offer">
               <h3>Rent for {dollars(rent)}</h3>
-              <p className="s-sub">{days} days to start watching</p>
-              <div className="s-box">
-                <p className="s-box-title">Viewing period</p>
-                <p>Start watching within {days} days</p>
-                <p>{finish} to finish once started</p>
-              </div>
+              <p className="s-sub">
+                Start within {days} days, then {finish} to finish
+              </p>
               {rentBonus && (
-                <div className="s-box">
-                  <ul className="s-checks">
-                    <li>{rentBonus}</li>
-                  </ul>
-                </div>
+                <ul className="s-checks">
+                  <li>{rentBonus}</li>
+                </ul>
               )}
               {buyBtn("▶ Rent Now", "rent")}
             </div>
           )}
 
           {buy != null && (
-            <div className="s-card">
+            <div className="s-card s-offer">
               <h3>Buy for {dollars(buy)}</h3>
-              <p className="s-sub">Lifetime access via this website</p>
-              <div className="s-box">
+              <p className="s-sub">Yours to keep: watch any time on this website</p>
+              {buyBonus && (
                 <ul className="s-checks">
-                  <li>Unlimited access to {f.title}</li>
-                  {buyBonus && <li>{buyBonus}</li>}
+                  <li>{buyBonus}</li>
                 </ul>
-              </div>
+              )}
               {buyBtn("Buy Now", "buy")}
             </div>
           )}
@@ -508,7 +505,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
             <div className="s-card preview-missing">Add a price, free viewing or a tip jar and your offers appear here.</div>
           )}
 
-          {extras && (
+          {(f.free_watch || f.pwyw_enabled) && (
             <div className="s-extras">
               {f.pwyw_enabled && (
                 <PayWhatYouWant
@@ -535,14 +532,28 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
                   )}
                 </div>
               )}
-              {hasTips && <TipJar film={f} />}
             </div>
           )}
-          {live && !acc?.access && (offers > 0 || f.pwyw_enabled || askEmail) && <AlreadyPaid startOpen={askEmail} />}
-          </>
+          </div>
           )}
         </div>
         </section>
+
+        {/* Under the screen: what every ticket includes, the fine print, the tip jar, and "Already paid?". */}
+        {(!watching || showOptions) && (
+          <div className="s-below">
+            {(offers > 0 || f.pwyw_enabled) && (
+              <div className="s-below-info">
+                <p className="s-below-included">
+                  <strong>Included:</strong> {included.join(" · ")}
+                </p>
+                <p className="s-fine">Secure payment powered by Stripe. For personal viewing only, not for public screenings.</p>
+              </div>
+            )}
+            {hasTips && <TipJar film={f} />}
+            {live && !acc?.access && (offers > 0 || f.pwyw_enabled || askEmail) && <AlreadyPaid startOpen={askEmail} />}
+          </div>
+        )}
 
         <div className="s-narrow">
           {trailer && <h2>Watch the trailer</h2>}

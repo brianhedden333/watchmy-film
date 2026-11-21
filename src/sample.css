@@ -1036,21 +1036,120 @@
 }
 
 .s-stage {
+  --pad: clamp(18px, 3vw, 40px);
   position: relative;
   isolation: isolate;
-  margin: 0 0 56px;
-  padding: clamp(18px, 3vw, 40px);
+  container-type: inline-size; /* 56.25cqw = the 16:9 screen's height */
+  margin: 0 0 28px;
   border-radius: 18px;
 }
 
-.s-stage .s-buy {
-  margin-bottom: 0;
+/* In front of the screen: poster left, boxes right, exactly the screen's size. */
+.s-front {
+  box-sizing: border-box;
+  height: 56.25cqw;
+  padding: var(--pad);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pad);
 }
 
-/* The screen: the wide image, blurred and dimmed, framed like a cinema screen. */
+.s-front > .s-poster {
+  width: auto;
+  height: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  grid-row: auto;
+}
+
+.s-offers {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-content: safe center;
+  gap: 16px;
+}
+
+.s-offers .s-extras {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+/* Compact boxes on the screen. */
+.s-stage .s-card {
+  padding: 22px;
+}
+
+.s-stage .s-card h3 {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+
+.s-stage .s-sub {
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+.s-offer .s-checks {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+/* Stacked (the boxes wouldn't fit): the poster stays centred on the screen, the boxes go below it. */
+.s-stage[data-stacked] .s-front {
+  height: auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+  row-gap: calc(var(--pad) + 24px);
+}
+
+.s-stage[data-stacked] .s-front > .s-poster {
+  height: calc(56.25cqw - 2 * var(--pad));
+  justify-self: center;
+}
+
+.s-stage[data-stacked] .s-offers {
+  overflow: visible;
+}
+
+.s-stage[data-stacked] .s-front {
+  padding: var(--pad) 0 0;
+}
+
+/* Under the screen: what's included, fine print, tip jar, "Already paid?". */
+.s-below {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 56px;
+}
+
+.s-below-info {
+  text-align: center;
+}
+
+.s-below-included {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--s-text);
+}
+
+.s-below-included strong {
+  color: var(--s-head);
+}
+
+/* The screen: the wide image, blurred and dimmed, framed like a cinema screen. Always 16:9, the player's shape;
+   anything taller than it (on narrow screens) carries on below it. */
 .s-stage-bg {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  aspect-ratio: 16 / 9;
   z-index: -1;
   overflow: hidden;
   border-radius: 18px;
@@ -1090,7 +1189,7 @@
   margin-bottom: 28px;
 }
 
-.s-buy.s-buy-down {
+.s-front.s-buy-down {
   animation: s-slide-down 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
@@ -1105,12 +1204,12 @@
 }
 
 /* Options shrunk to one button while watching: smaller poster, then the button and the tip jar. */
-.s-buy.is-collapsed {
+.s-front.is-collapsed {
   grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
   align-items: start;
 }
 
-.s-buy.is-collapsed .s-poster {
+.s-front.is-collapsed .s-poster {
   grid-row: auto;
   aspect-ratio: 2 / 3;
   height: auto;
@@ -1191,26 +1290,6 @@
 
 .s-lights.is-on {
   border-color: rgba(252, 235, 126, 0.5);
-}
-
-/* ---------- Contact opt-in (above the buying options) ---------- */
-
-.s-optin {
-  grid-column: 2 / -1;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0 0 -8px;
-  font-size: 14px;
-  color: var(--s-text);
-  cursor: pointer;
-}
-
-.s-optin input {
-  margin-top: 2px;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--s-red);
 }
 
 /* ---------- Our logo, top right, with a menu on hover ---------- */
@@ -1296,20 +1375,115 @@
   display: none;
 }
 
-/* Watching: a little headroom at the top of the stage for the lightbulb, clear of "Back to the film page". */
+/* Watching: the player fills the 16:9 screen exactly (edge to edge, top of the stage); "Now playing" and
+   "Back to the film page" sit under it. */
 .s-stage.is-watching {
-  padding-top: 58px;
+  padding: 0 0 clamp(18px, 3vw, 40px);
+}
+
+.s-stage.is-watching .s-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.s-stage.is-watching .s-player {
+  order: -1;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.s-stage.is-watching .s-screen-admin,
+.s-stage.is-watching .s-screen-info,
+.s-stage.is-watching .s-front {
+  margin-left: clamp(18px, 3vw, 40px);
+  margin-right: clamp(18px, 3vw, 40px);
+}
+
+.s-stage.is-watching .s-screen-admin {
+  margin-top: 18px;
+  margin-right: calc(clamp(18px, 3vw, 40px) + 48px); /* room for the lightbulb */
+}
+
+/* The lightbulb sits just under the screen's bottom-right corner (a % margin is a share of the width, so
+   56.25% = the 16:9 screen's height), clear of the player's own controls. */
+.s-stage.is-watching .s-lights {
+  top: 0;
+  right: clamp(18px, 3vw, 40px);
+  margin-top: calc(56.25% + 14px);
 }
 
 .watch-about h2 {
   max-width: none;
 }
 
+/* On the screen, Pay what you want and Watch for free stack like the Rent and Buy boxes (button underneath). */
+.s-stage .s-pwyw,
+.s-stage .s-free {
+  display: block;
+  padding: 22px;
+}
+
+.s-stage .s-pwyw .s-sub,
+.s-stage .s-free .s-sub {
+  margin: 0 0 16px;
+}
+
+.s-stage .s-pwyw-row .s-btn {
+  flex: 1;
+}
+
+.s-stage .s-pwyw .s-fine {
+  margin: 10px 0 0;
+}
+
+/* Watching: everything under the player is ordinary page flow, not tied to the screen's size. */
+.s-stage.is-watching .s-front {
+  height: auto;
+  padding: 0;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  grid-template-rows: auto;
+  align-items: start;
+}
+
+.s-stage.is-watching .s-front > .s-poster {
+  width: 100%;
+  height: auto;
+}
+
+.s-stage.is-watching .s-offers {
+  overflow: visible;
+}
+
+/* "Already paid? Watch now": a small button in the film's button colour. */
+.s-already .link-btn {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--s-red);
+  color: var(--s-btn-text);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.s-already .link-btn:hover {
+  background: var(--s-red-hover);
+}
+
+@media (max-width: 680px) {
+  .s-stage.is-watching .s-front:not(.is-collapsed) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .s-stage.is-watching .s-front:not(.is-collapsed) > .s-poster {
+    max-width: 200px;
+  }
+}
+
 @media (max-width: 680px) {
   .s-hero:not(.s-hero-clean) {
     padding-top: 64px; /* clear of the logo, top right */
   }
-  .s-buy.is-collapsed {
+  .s-front.is-collapsed {
     grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
   }
   .s-optin {
@@ -1328,7 +1502,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .s-stage-player,
-  .s-buy.s-buy-down {
+  .s-front.s-buy-down {
     animation: none;
   }
   .s-page,

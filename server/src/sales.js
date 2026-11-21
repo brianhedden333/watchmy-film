@@ -128,7 +128,7 @@ export async function settleSale(session, account) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(film.id, viewer.id, access, session.id, String(session.payment_intent || ""), session.amount_total,
-           session.metadata.kind, account, fee, surcharge, session.metadata.contact_ok === "0" ? 0 : 1);
+           session.metadata.kind, account, fee, surcharge, session.metadata.contact_ok === "1" ? 1 : session.metadata.contact_ok === "0" ? 0 : null);
     if (surcharge) {
       db.prepare("UPDATE films SET setup_recovered_cents = MIN(?, setup_recovered_cents + ?) WHERE id = ?").run(config.setupFeeCents, surcharge, film.id);
     }
@@ -246,7 +246,7 @@ filmmakerSalesRouter.get("/", async (req, res) => {
       kind: r.sale_kind,
       // The buyer's email (the filmmaker also sees it in their Stripe Dashboard) and whether they agreed to be contacted.
       buyer_email: r.buyer_email || null,
-      contact_ok: r.contact_ok === 1,
+      contact_ok: r.contact_ok === 1 ? true : r.contact_ok === 0 ? false : null, // null: not asked
       amount: r.amount_cents,
       refunded: r.refunded_cents ?? 0,
       status,
@@ -326,8 +326,9 @@ salesRouter.post("/checkout", rateLimit({ windowMs: 10 * 60_000, max: 20 }), asy
   const { fee, surcharge } = feeFor(film, amount);
   const name =
     access === "buy" ? `${film.title} (yours to keep)` : `${film.title} (rental: ${rentalDays(film)} days to start, ${watchDays(film)} ${watchDays(film) === 1 ? "day" : "days"} to finish)`;
-  // contact_ok: the "the filmmaker may contact me" box on the watch page (ticked by default).
-  const contactOk = req.body.contact_ok === false ? "0" : "1";
+  // contact_ok: the viewer's answer to "the filmmaker may contact me" ("1" yes, "0" no, "" not asked).
+  // The watch page doesn't ask yet, so it's "" for now and nobody is recorded as having agreed.
+  const contactOk = req.body.contact_ok === true ? "1" : req.body.contact_ok === false ? "0" : "";
   const meta = { app: APP, purpose: "viewer_sale", film_id: String(film.id), kind, access, fee: String(fee), surcharge: String(surcharge), contact_ok: contactOk };
   const origin = originOf(req);
   try {

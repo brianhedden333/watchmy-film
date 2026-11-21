@@ -130,7 +130,7 @@ type Sale = {
   film_title: string;
   kind: "rent" | "buy" | "pwyw";
   buyer_email: string | null;
-  contact_ok: boolean; // ticked "Let the filmmaker contact me" at checkout
+  contact_ok: boolean | null; // "Let the filmmaker contact me" at checkout; null = wasn't asked
   amount: number;
   refunded: number;
   status: "refunded" | "partly_refunded" | "disputed" | null;
@@ -230,9 +230,11 @@ function Sales() {
                     </td>
                     <td className="sales-buyer">
                       {s.buyer_email || "—"}
-                      <span className={s.contact_ok ? "sales-contact is-ok" : "sales-contact"}>
-                        {s.contact_ok ? "✓ OK to contact" : "Didn't opt in"}
-                      </span>
+                      {s.contact_ok != null && (
+                        <span className={s.contact_ok ? "sales-contact is-ok" : "sales-contact"}>
+                          {s.contact_ok ? "✓ OK to contact" : "Didn't opt in"}
+                        </span>
+                      )}
                     </td>
                     <td className="num">{money(s.amount)}</td>
                     <td className="num">{money(s.stripe_fee)}</td>
