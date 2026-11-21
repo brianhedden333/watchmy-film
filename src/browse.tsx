@@ -319,8 +319,7 @@ function Browse() {
           <div className="bz-wrap bz-hero-in">
             <h1 id="bz-title">IndieFilm.club</h1>
             <p>
-              Independent films, rented and bought straight from the people who
-              made them.
+              Independent films, straight from the people who made them.
             </p>
           </div>
         </section>
