@@ -808,7 +808,69 @@
 
 .watch-404-btn {
   display: inline-block;
+  width: auto;
   padding: 16px 28px;
+}
+
+.watch-404-logo {
+  display: inline-block;
+  margin-bottom: 28px;
+}
+
+.watch-404-logo img {
+  display: block;
+  width: 160px;
+  height: auto;
+}
+
+.watch-404 .reel {
+  display: block;
+  margin: 0 auto 18px;
+  width: min(240px, 60vw);
+  height: auto;
+  overflow: visible;
+}
+
+/* The shrug: arms and eyebrows lift together, the body bobs a little, the question marks drift. */
+.reel-arms,
+.reel-brows,
+.reel-body,
+.reel-q {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: reel-shrug 2.6s ease-in-out infinite;
+}
+
+.reel-body {
+  animation-name: reel-bob;
+}
+
+.reel-q {
+  animation-name: reel-float;
+}
+
+@keyframes reel-shrug {
+  0%, 55%, 100% { transform: translateY(0); }
+  20%, 35% { transform: translateY(-7px); }
+}
+
+@keyframes reel-bob {
+  0%, 55%, 100% { transform: translateY(0); }
+  20%, 35% { transform: translateY(-2px); }
+}
+
+@keyframes reel-float {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  50% { transform: translateY(-5px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-arms,
+  .reel-brows,
+  .reel-body,
+  .reel-q {
+    animation: none;
+  }
 }
 
 /* Tip jar above the player when watching free. */
