@@ -40,6 +40,7 @@ function Watch() {
   return (
     <div className="sample" style={pageTheme(film)}>
       {film.hidden ? <HoldingPage film={film} /> : <WatchPage film={film} mode="public" />}
+      {!film.hidden && film.more && film.more.length > 0 && <MoreFilms films={film.more} />}
       <AboutUs />
       <footer className="watch-foot">
         <a className="watch-foot-brand" href={MAIN_SITE} aria-label="Powered by WatchMyFilm.Online">
@@ -51,6 +52,30 @@ function Watch() {
         </p>
       </footer>
     </div>
+  );
+}
+
+// The filmmaker's other films, as posters linking to their watch pages. Locally (<name>.localhost:5173/watch/)
+// the links stay on the local site.
+function MoreFilms({ films }: { films: NonNullable<Film["more"]> }) {
+  const local = location.hostname.endsWith(".localhost") || location.hostname === "localhost";
+  const href = (m: (typeof films)[number]) =>
+    local && m.subdomain ? `${location.protocol}//${m.subdomain}.localhost${location.port ? `:${location.port}` : ""}${location.pathname}` : `https://${m.address}/`;
+  return (
+    <section className="watch-more" aria-labelledby="watch-more-h">
+      <div className="s-wrap">
+        <h2 id="watch-more-h">More films from this account</h2>
+        <ul className="watch-more-list">
+          {films.map((m) => (
+            <li key={m.id}>
+              <a href={href(m)} title={m.title}>
+                <img src={m.poster_url} alt={m.title} loading="lazy" width={400} height={600} />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 

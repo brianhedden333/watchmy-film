@@ -506,16 +506,15 @@ function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) 
   }, [posters.length, hidden]);
   if (!posters.length) return null;
   const now = posters[i % posters.length];
+  // Just the label and the poster (no panel, no details): the info box is what carries the details.
   return (
-    <aside className={`bz-peek bz-show${hidden ? " is-hidden" : ""}`} aria-hidden="true">
+    <aside className={`bz-show${hidden ? " is-hidden" : ""}`} aria-hidden="true">
       <p className="bz-show-label">New Arrivals</p>
       <div className="bz-show-frame">
         {posters.map((f) => (
           <img key={f.id} src={f.poster_url!} alt="" width={400} height={600} className={f === now ? "is-on" : undefined} />
         ))}
       </div>
-      <h3 className="bz-show-title">{now.title}</h3>
-      {now.director && <p className="bz-peek-who">{now.director}</p>}
     </aside>
   );
 }

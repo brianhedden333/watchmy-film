@@ -36,6 +36,26 @@ export function filmForHost(rawHost) {
   return viewerFilm(row);
 }
 
+// "More films from this account": the same filmmaker's other live, visible films with a poster (newest first).
+// Only what's already public on each film's own page: title, poster and address.
+function moreFromAccount(row) {
+  return db
+    .prepare(
+      `SELECT id, title, poster_path, subdomain, own_domain, address_type FROM films
+       WHERE user_id = ? AND id != ? AND status = 'live' AND hidden = 0 AND deleted_at IS NULL AND poster_path IS NOT NULL
+       ORDER BY coalesce(submitted_at, created_at) DESC LIMIT 24`
+    )
+    .all(row.user_id, row.id)
+    .map((m) => ({
+      id: m.id,
+      title: m.title,
+      poster_url: `/uploads/${m.poster_path}`,
+      subdomain: m.subdomain, // for local testing (<name>.localhost)
+      address: m.address_type === "own" && m.own_domain ? `watch.${m.own_domain}` : m.subdomain ? `${m.subdomain}.${config.siteDomain}` : null,
+    }))
+    .filter((m) => m.address);
+}
+
 function viewerFilm(row) {
   const f = publicFilm(row);
   const out = {
@@ -53,6 +73,7 @@ function viewerFilm(row) {
   if (f.hidden) return out; // the holding page needs only the look
   return {
     ...out,
+    more: moreFromAccount(row),
     logline: f.logline,
     synopsis: f.synopsis,
     year: f.year,

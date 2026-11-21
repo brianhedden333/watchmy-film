@@ -746,6 +746,56 @@
 /* ---------- Live watch page (/watch/ at a film's address) ---------- */
 
 /* Our footer on every live film page. Always a black band, so the white logo shows whatever the film's colors are. */
+/* More films from this account: a row of posters in the film's own colors, wrapping as needed. */
+.watch-more {
+  padding: 8px 0 48px;
+}
+
+.watch-more h2 {
+  max-width: none;
+  margin: 0 0 20px;
+  font-size: clamp(22px, 2.4vw, 28px);
+  color: var(--s-head);
+}
+
+.watch-more-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px;
+}
+
+.watch-more-list a {
+  display: block;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.watch-more-list a:hover,
+.watch-more-list a:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+
+.watch-more-list img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+}
+
+@media (max-width: 480px) {
+  .watch-more-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
 /* About us + donate band above the footer, in watchmyfilm's own look (same as the home page's donate band). */
 .watch-about {
   margin-top: 48px;

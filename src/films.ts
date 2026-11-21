@@ -42,6 +42,8 @@ export type Film = {
   free_watch: boolean;
   hide_title?: boolean; // Site design: banner as a plain image, no title over it
   rights_confirmed_at?: string | null; // when the filmmaker ticked "I have the rights to sell this film"
+  // Watch page only: the same account's other live films ("More films from this account").
+  more?: { id: number; title: string; poster_url: string; subdomain: string | null; address: string }[];
   rental_days: number | null;
   rental_watch_days: number | null; // days to finish once a rental is started
   tier: "standard" | "secure";
