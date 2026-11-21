@@ -14,11 +14,16 @@ const production = env.NODE_ENV === "production";
 export const config = {
   production,
   port: Number(env.PORT || 5050),
-  // Public address of the site; used in emailed links and Stripe return URLs.
+  // Two sites, one server and database:
+  //   watchmyfilm.online (APP_URL)  — for filmmakers: home page, sign-up, My Films, add-a-film, admin.
+  //   indiefilm.club     (CLUB_URL) — for viewers: Browse, My Library, and every film at <name>.indiefilm.club.
+  // Locally: http://localhost:5173 and http://indiefilm.localhost:5173 (films at <name>.indiefilm.localhost:5173).
   appUrl: (env.APP_URL || "http://localhost:5173").replace(/\/$/, ""),
+  clubUrl: (env.CLUB_URL || (production ? "https://indiefilm.club" : "http://indiefilm.localhost:5173")).replace(/\/$/, ""),
   siteName: env.SITE_NAME || "watchmyfilm.online",
-  // Films live at <name>.<siteDomain>.
-  siteDomain: (env.SITE_DOMAIN || "watchmyfilm.online").toLowerCase(),
+  clubName: env.CLUB_NAME || "IndieFilm.club",
+  // Films live at <name>.<siteDomain>: the viewer site's domain unless SITE_DOMAIN says otherwise.
+  siteDomain: (env.SITE_DOMAIN || new URL(env.CLUB_URL || (production ? "https://indiefilm.club" : "http://indiefilm.localhost:5173")).hostname).toLowerCase(),
   // The built site (for the watch page shell). On the droplet: /var/www/watchmyfilm/site.
   // Defaults to ../site next to the server (the droplet's layout), else ../dist (a local build).
   siteDir: resolve(root, env.SITE_DIR || (existsSync(resolve(root, "../site")) ? "../site" : "../dist")),

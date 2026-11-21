@@ -1,10 +1,10 @@
 import { StrictMode, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { site } from "./config";
 import { api, ApiError, dollars, getMe, type ConnectInfo, type User } from "./api";
-import { BONUS_MAX, COLOR_DEFAULTS, liveAddress, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
+import { BONUS_MAX, COLOR_DEFAULTS, liveAddress, liveHref, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { ConnectStripe } from "./ConnectStripe";
+import { CLUB_DOMAIN } from "./sites";
 import { cleanTag, QUICK_TAGS, suggestTags, TAG_RE, TAGS_MAX } from "./tags";
 import "./styles.css";
 import "./sample.css";
@@ -161,7 +161,7 @@ function AddFilm() {
             )}
             {notice && <p className="dash-notice" role="status">{notice}</p>}
             {data.films.length === 0 ? (
-              <NewFilm onCreated={(f) => { setData({ ...data, films: [f] }); pick(f.id); }} />
+              <NewFilm needsTerms={user?.agreedTerms === false} onCreated={(f) => { setData({ ...data, films: [f] }); setAdding(false); pick(f.id); }} />
             ) : (
               !adding && film && <FilmView key={film.id} film={film} meta={data} onChange={replaceFilm} stripe={user?.connect ?? null} onStripe={(c) => setUser((u) => (u ? { ...u, connect: c } : u))} />
             )}
@@ -195,9 +195,12 @@ function FilmTabs({ films, selected, adding, setAdding, onPick, onAdded }: {
   );
 }
 
-function NewFilm({ onCreated, compact, onCancel }: { onCreated: (f: Film) => void; compact?: boolean; onCancel?: () => void }) {
+function NewFilm({ onCreated, compact, onCancel, needsTerms = false }: { onCreated: (f: Film) => void; compact?: boolean; onCancel?: () => void; needsTerms?: boolean }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Accounts that began as viewers agree to the filmmaker Terms with their first film.
+  const [askTerms, setAskTerms] = useState(needsTerms);
+  const [terms, setTerms] = useState(false);
   const id = useId();
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -206,10 +209,11 @@ function NewFilm({ onCreated, compact, onCancel }: { onCreated: (f: Film) => voi
     setBusy(true);
     setError("");
     try {
-      const r = await api<{ film: Film }>("/films", { body: { title } });
+      const r = await api<{ film: Film }>("/films", { body: { title, ...(askTerms ? { terms } : {}) } });
       onCreated(r.film);
     } catch (err) {
       setError((err as Error).message);
+      if (/agree to the Terms/i.test((err as Error).message)) setAskTerms(true);
       setBusy(false);
     }
   }
@@ -235,6 +239,18 @@ function NewFilm({ onCreated, compact, onCancel }: { onCreated: (f: Film) => voi
             </button>
           )}
         </div>
+        {askTerms && (
+          <label className="new-film-terms">
+            <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} required />
+            <span>
+              I agree to the{" "}
+              <a href={`${import.meta.env.BASE_URL}terms/`} target="_blank" rel="noopener">
+                Terms
+              </a>{" "}
+              for selling films on watchmyfilm.
+            </span>
+          </label>
+        )}
         {error && <p className="field-err" role="alert">{error}</p>}
       </form>
     </section>
@@ -345,7 +361,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
         <div className="film-head-actions">
           {film.status === "live" && liveAddress(film) ? (
             // Live: open the real page (a hidden film's address shows its holding page).
-            <a className="btn btn-small btn-red" href={`https://${liveAddress(film)}`} target="_blank" rel="noopener">
+            <a className="btn btn-small btn-red" href={liveHref(film)!} target="_blank" rel="noopener">
               View page
             </a>
           ) : (
@@ -474,7 +490,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               value={form.address_type}
               onChange={set("address_type")}
               options={[
-                ["sub", `A free address on ${site.name}`],
+                ["sub", `A free address on ${CLUB_DOMAIN}`],
                 ["own", "My own domain"],
               ]}
             />
@@ -623,7 +639,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                 <span>
                   <strong>List my film in watchmyfilm Browse.</strong>
                   <span className="hint">
-                    Optional, and off unless you turn it on. Viewers browsing {site.name} films can find yours in Browse. Tags help the
+                    Optional, and off unless you turn it on. Viewers browsing {CLUB_DOMAIN} can find yours there. Tags help the
                     right viewers find it. You can change this any time, even after your film is live.
                   </span>
                 </span>
@@ -858,19 +874,19 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
   const ownId = useId();
   const subCheck = useAddressCheck("subdomain", sub, filmId, !!disabled);
   const ownCheck = useAddressCheck("domain", own, filmId, disabled || !ownMode || !own.trim());
-  const full = `${sub.trim().toLowerCase() || "yourfilm"}.${site.name}`;
+  const full = `${sub.trim().toLowerCase() || "yourfilm"}.${CLUB_DOMAIN}`;
   const ownHost = own.trim() ? `watch.${own.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "")}` : "watch.yourfilm.com";
 
   let status: ReactNode = null;
   if (errors.subdomain) status = <p className="field-err">Address {errors.subdomain}.</p>;
-  else if (subCheck?.available) status = <p className="addr-ok">✓ {subCheck.name}.{site.name} is yours if you save it.</p>;
+  else if (subCheck?.available) status = <p className="addr-ok">✓ {subCheck.name}.{CLUB_DOMAIN} is yours if you save it.</p>;
   else if (subCheck && (subCheck.reason || subCheck.suggestion))
     status = (
       <p className={subCheck.reason ? "field-err" : "hint"}>
         {subCheck.reason || "Pick an address for your film."}{" "}
         {subCheck.suggestion && !disabled && (
           <button type="button" className="link-btn" onClick={() => onSub(subCheck.suggestion!)}>
-            Use {subCheck.suggestion}.{site.name}
+            Use {subCheck.suggestion}.{CLUB_DOMAIN}
           </button>
         )}
       </p>
@@ -879,7 +895,7 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
   return (
     <>
       <div className={`field${errors.subdomain || (subCheck && !subCheck.available && subCheck.reason) ? " has-err" : ""}`}>
-        <label htmlFor={subId}>{ownMode ? `Your film's address on ${site.name}` : "Address"}</label>
+        <label htmlFor={subId}>{ownMode ? `Your film's address on ${CLUB_DOMAIN}` : "Address"}</label>
         <div className="affix">
           <input
             id={subId}
@@ -891,7 +907,7 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
             autoCapitalize="none"
             onChange={(e) => onSub(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
           />
-          <span>.{site.name}</span>
+          <span>.{CLUB_DOMAIN}</span>
         </div>
         <div aria-live="polite">{status}</div>
         <p className="hint">

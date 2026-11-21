@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { pricing, site } from "./config";
 import { api, getMe } from "./api";
+import { APP, cross, onClub } from "./sites";
+
+const CLUB_NAME = "IndieFilm.club";
 
 /* Sign-up and sign-in share one screen.
    Sign-up emails a one-time link that confirms the address; /signin/?token=… finishes, then offers to set a password.
@@ -24,7 +27,14 @@ function returnPath() {
   return null;
 }
 
-const go = (next: string) => location.replace(`${home}${(returnPath() || next).replace(/^\//, "")}`);
+// After signing in, pass through the other site once (the hop) so the same sign-in works on both
+// watchmyfilm.online and indiefilm.club, then land where the server (or the page that sent them) says.
+// next is a path on this site ("/dashboard/") or a full address on the other ("https://indiefilm.club/library/").
+const go = (next: string) => {
+  const target = returnPath() || next;
+  const url = /^https?:\/\//.test(target) ? target : `${location.origin}${home}${target.replace(/^\//, "")}`;
+  location.replace(cross(url));
+};
 
 export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
   const token = mode === "signin" ? new URLSearchParams(location.search).get("token") : null;
@@ -32,9 +42,15 @@ export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
     <div className="signup">
       <header className="signup-head">
         <div className="wrap">
-          <a href={home} className="logo-link" aria-label={`${site.name} home`}>
-            <img src={`${home}brand/watchmyfilm-logo-white.png`} alt="" width={600} height={163} className="auth-logo" />
-          </a>
+          {onClub() ? (
+            <a href="/" className="logo-link club-wordmark" aria-label={`${CLUB_NAME}: browse films`}>
+              {CLUB_NAME}
+            </a>
+          ) : (
+            <a href={home} className="logo-link" aria-label={`${site.name} home`}>
+              <img src={`${home}brand/watchmyfilm-logo-white.png`} alt="" width={600} height={163} className="auth-logo" />
+            </a>
+          )}
         </div>
       </header>
 
@@ -340,7 +356,16 @@ function EmailForm({ mode }: { mode: "signup" | "signin" }) {
         </>
       ) : (
         <p className="switch">
-          New here? <a href={`${home}signup/`}>Create an account</a>
+          {onClub() ? (
+            // Viewers don't need a separate sign-up: the emailed link creates their free account.
+            <>
+              Made a film? <a href={`${APP}/signup/`}>Sell it on {CLUB_NAME}</a>
+            </>
+          ) : (
+            <>
+              New here? <a href={`${home}signup/`}>Create an account</a>
+            </>
+          )}
         </p>
       )}
     </form>

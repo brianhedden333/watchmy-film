@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, getMe, type User } from "./api";
 import { pricing } from "./config";
-import { liveAddress, pillClass, statusLabel, type Film, type FilmsResponse } from "./films";
+import { liveAddress, liveHref, pillClass, statusLabel, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import "./styles.css";
 import "./dashboard.css";
@@ -88,7 +88,7 @@ function Dashboard() {
                         </p>
                         {addr && (
                           <p className="film-row-addr">
-                            <a href={`https://${addr}`} target="_blank" rel="noopener">
+                            <a href={liveHref(f)!} target="_blank" rel="noopener">
                               {addr}
                             </a>
                           </p>
@@ -96,7 +96,7 @@ function Dashboard() {
                       </div>
                       <div className="film-row-actions">
                         {f.status === "live" && liveAddress(f) ? (
-                          <a className="link-btn" href={`https://${liveAddress(f)}`} target="_blank" rel="noopener">
+                          <a className="link-btn" href={liveHref(f)!} target="_blank" rel="noopener">
                             View page
                           </a>
                         ) : (

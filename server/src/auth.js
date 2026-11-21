@@ -8,8 +8,11 @@ import { db, now } from "./db.js";
 import { notifyAdmin, signInEmail } from "./email.js";
 import { rateLimit } from "./limits.js";
 import { connectInfo } from "./connect.js";
+import { safeNext, siteOf, siteOfUrl, siteUrl } from "./sites.js";
 
-const COOKIE = "wmf_session";
+// One cookie per site: watchmyfilm.online's, and indiefilm.club's (shared with its film addresses).
+const COOKIES = { app: "wmf_session", club: "ifc_session" };
+const HOP_MINUTES = 2;
 // Sign-in links are short-lived. Confirmation links (account not yet confirmed) last a day, because some inboxes
 // (iCloud especially) can hold a new sender's mail for an hour or more. Both work only once.
 const LINK_MINUTES = 30;
@@ -51,32 +54,40 @@ function passwordError(pw) {
   return null;
 }
 
-// Where to land after signing in: admins go to /admin/; filmmakers to the films list once one is published,
-// otherwise the add-a-film onboarding.
-// Viewers (people who've bought or saved films but have no films of their own) go to My Library.
-export function homeFor(user) {
+const isViewer = (user) =>
+  !!(
+    db.prepare("SELECT 1 FROM payments WHERE user_id = ? AND purpose IN ('rent', 'buy') LIMIT 1").get(user.id) ||
+    db.prepare("SELECT 1 FROM watchlist WHERE user_id = ? LIMIT 1").get(user.id)
+  );
+
+// Where to land after signing in.
+// On indiefilm.club: My Library if they have anything there, otherwise Browse.
+// On watchmyfilm.online: admins → /admin/; filmmakers → My Films once one is live, otherwise add-a-film;
+// viewers with no films of their own → their library on indiefilm.club (a full URL).
+export function homeFor(user, site = "app") {
+  if (site === "club") return isViewer(user) ? "/library/" : "/";
   if (isAdmin(user)) return "/admin/";
   const live = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND status = 'live' AND deleted_at IS NULL LIMIT 1").get(user.id);
   if (live) return "/dashboard/";
   const ownsFilms = db.prepare("SELECT 1 FROM films WHERE user_id = ? AND deleted_at IS NULL LIMIT 1").get(user.id);
-  if (!ownsFilms) {
-    const viewer =
-      db.prepare("SELECT 1 FROM payments WHERE user_id = ? AND purpose IN ('rent', 'buy') LIMIT 1").get(user.id) ||
-      db.prepare("SELECT 1 FROM watchlist WHERE user_id = ? LIMIT 1").get(user.id);
-    if (viewer) return "/library/";
-  }
+  if (!ownsFilms && isViewer(user)) return `${config.clubUrl}/library/`;
   return "/add-a-film/";
 }
 
-export function startSession(res, userId) {
+// Signs this browser in on the site the request is for. linkId ties it to a session on the other site
+// (made by the hop), so signing out of either ends both.
+export function startSession(req, res, userId, linkId = null) {
+  const { site } = siteOf(req);
   const sid = token();
-  db.prepare("INSERT INTO sessions (id_hash, user_id, expires_at) VALUES (?, ?, ?)").run(
+  db.prepare("INSERT INTO sessions (id_hash, user_id, expires_at, site, link_id) VALUES (?, ?, ?, ?, ?)").run(
     hash(sid),
     userId,
-    later(SESSION_DAYS * 86_400_000)
+    later(SESSION_DAYS * 86_400_000),
+    site,
+    linkId || token()
   );
   db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run(now(), userId);
-  setSessionCookie(res, sid, SESSION_DAYS * 86_400);
+  setSessionCookie(req, res, sid, SESSION_DAYS * 86_400);
 }
 
 // One-time sign-in link tokens (also used by film pages for viewers: see sales.js).
@@ -86,10 +97,10 @@ export function createLoginToken(userId, minutes) {
   return t;
 }
 
-// Uses up a token. Returns the user, or null if it's unknown, used or expired.
+// Uses up a token. Returns the user, or null if it's unknown, used or expired. Hop codes don't work here.
 export function useLoginToken(t) {
   const row = t && db.prepare("SELECT * FROM login_tokens WHERE token_hash = ?").get(hash(String(t)));
-  if (!row || row.used_at || row.expires_at < now()) return null;
+  if (!row || row.used_at || row.expires_at < now() || row.link_id) return null;
   db.prepare("UPDATE login_tokens SET used_at = ? WHERE token_hash = ?").run(now(), row.token_hash);
   return db.prepare("SELECT * FROM users WHERE id = ?").get(row.user_id);
 }
@@ -104,27 +115,44 @@ function readCookie(req, name) {
   return null;
 }
 
-function setSessionCookie(res, value, maxAgeSec) {
-  const attrs = [`${COOKIE}=${value}`, "Path=/", "HttpOnly", "SameSite=Lax", `Max-Age=${maxAgeSec}`];
+function setSessionCookie(req, res, value, maxAgeSec) {
+  const { site, cookieDomain } = siteOf(req);
+  const attrs = [`${COOKIES[site]}=${value}`, "Path=/", "HttpOnly", "SameSite=Lax", `Max-Age=${maxAgeSec}`];
+  if (cookieDomain) attrs.push(`Domain=${cookieDomain}`);
   if (config.production) attrs.push("Secure");
   res.setHeader("Set-Cookie", attrs.join("; "));
 }
 
-// Attaches req.user when a valid session cookie is present.
+// Attaches req.user when a valid session cookie for this site is present (req.site says which site this is).
 export function loadUser(req, _res, next) {
-  const sid = readCookie(req, COOKIE);
+  const { site } = siteOf(req);
+  req.site = site;
+  const sid = readCookie(req, COOKIES[site]);
   if (sid) {
-    req.user = db
+    const row = db
       .prepare(
-        `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ? AND s.expires_at > ?`
+        `SELECT u.*, s.link_id AS session_link_id FROM sessions s JOIN users u ON u.id = s.user_id
+         WHERE s.id_hash = ? AND s.expires_at > ? AND s.site = ?`
       )
-      .get(hash(sid), now());
+      .get(hash(sid), now(), site);
+    if (row) {
+      req.sessionLink = row.session_link_id;
+      delete row.session_link_id;
+      req.user = row;
+    }
   }
   next();
 }
 
 export function requireUser(req, res, next) {
   if (!req.user) return res.status(401).json({ error: "Please sign in." });
+  next();
+}
+
+// Filmmaker tools (films, Stripe, sales, admin, password) only work when signed in on watchmyfilm.online.
+// An indiefilm.club sign-in is for watching: library, Watch Later, purchases.
+export function appOnly(req, res, next) {
+  if (req.site !== "app") return res.status(403).json({ error: `Sign in on ${config.siteName} for this.` });
   next();
 }
 
@@ -181,8 +209,9 @@ authRouter.post("/request", rateLimit({ windowMs: 15 * 60_000, max: 8 }), async 
     later(minutes * 60_000)
   );
   try {
-    // Until the address is confirmed, every link is worded as a confirmation.
-    await signInEmail(email, `${config.appUrl}/signin/?token=${t}`, confirming);
+    // Until the address is confirmed, every link is worded as a confirmation. The link opens the site they asked on.
+    const site = siteOf(req).site;
+    await signInEmail(email, `${siteUrl(site)}/signin/?token=${t}`, confirming, site);
   } catch (e) {
     console.error("Sign-in email failed:", e.message);
     return res.status(502).json({ error: "We couldn't send the email. Try again in a minute." });
@@ -203,9 +232,9 @@ authRouter.post("/verify", rateLimit({ windowMs: 15 * 60_000, max: 30 }), (req, 
   db.transaction(() => {
     db.prepare("UPDATE login_tokens SET used_at = ? WHERE token_hash = ?").run(now(), row.token_hash);
     if (justVerified) db.prepare("UPDATE users SET email_verified_at = ? WHERE id = ?").run(now(), user.id);
-    startSession(res, user.id);
+    startSession(req, res, user.id);
   })();
-  res.json({ ok: true, justVerified, hasPassword: !!user.password_hash, next: homeFor(user) });
+  res.json({ ok: true, justVerified, hasPassword: !!user.password_hash, next: homeFor(user, req.site) });
 });
 
 // Password sign-in, for confirmed accounts that have set one. One vague error for every failure.
@@ -217,28 +246,73 @@ authRouter.post("/login", rateLimit({ windowMs: 15 * 60_000, max: 10 }), async (
   if (!user || !ok || !user.password_hash || !user.email_verified_at) {
     return res.status(401).json({ error: "That email and password don't match. Try again, or email yourself a sign-in link." });
   }
-  startSession(res, user.id);
-  res.json({ ok: true, next: homeFor(user) });
+  startSession(req, res, user.id);
+  res.json({ ok: true, next: homeFor(user, req.site) });
+});
+
+// ---------- One sign-in for both sites: the hop ----------
+// Cookies can't cross domains, so a signed-in person passes through the other site with a one-time code:
+//   GET /api/auth/hop?next=<url>   (on the site they're signed in to)
+//     → <other site>/api/auth/land?t=<code>&next=<url>   (signs them in there, linked to this session)
+//     → <url>
+// next can be on either site (when it's on this one, they bounce through the other and come straight back).
+// Not signed in: straight to next. Only our own addresses are allowed as next (see safeNext).
+authRouter.get("/hop", (req, res) => {
+  const next = safeNext(req, req.query.next);
+  if (!next) return res.redirect(302, "/");
+  if (!req.user) return res.redirect(302, next);
+  const here = req.site;
+  const target = siteOfUrl(next);
+  const land = target !== here ? target : here === "app" ? "club" : "app";
+  const t = token();
+  db.prepare("INSERT INTO login_tokens (token_hash, user_id, expires_at, link_id) VALUES (?, ?, ?, ?)").run(
+    hash(t),
+    req.user.id,
+    later(HOP_MINUTES * 60_000),
+    req.sessionLink || token()
+  );
+  res.set("Referrer-Policy", "no-referrer").set("Cache-Control", "no-store");
+  res.redirect(302, `${siteUrl(land)}/api/auth/land?t=${encodeURIComponent(t)}&next=${encodeURIComponent(next)}`);
+});
+
+authRouter.get("/land", rateLimit({ windowMs: 15 * 60_000, max: 60 }), (req, res) => {
+  const next = safeNext(req, req.query.next) || "/";
+  const row = req.query.t && db.prepare("SELECT * FROM login_tokens WHERE token_hash = ?").get(hash(String(req.query.t)));
+  // Only hop codes (they carry a link_id), unused and unexpired. A bad code just carries on to next, signed out.
+  if (row && row.link_id && !row.used_at && row.expires_at >= now()) {
+    db.prepare("UPDATE login_tokens SET used_at = ? WHERE token_hash = ?").run(now(), row.token_hash);
+    // Already signed in here as the same person: nothing to do. Otherwise sign in (replacing any other sign-in).
+    if (req.user?.id !== row.user_id) startSession(req, res, row.user_id, row.link_id);
+  }
+  res.set("Referrer-Policy", "no-referrer").set("Cache-Control", "no-store");
+  res.redirect(302, next);
 });
 
 // Set or change the password while signed in (offered right after the email is confirmed).
 // Changing an existing password needs the current one; other sessions are signed out.
-authRouter.post("/password", requireUser, rateLimit({ windowMs: 15 * 60_000, max: 10 }), async (req, res) => {
+authRouter.post("/password", requireUser, appOnly, rateLimit({ windowMs: 15 * 60_000, max: 10 }), async (req, res) => {
   const err = passwordError(req.body.password);
   if (err) return res.status(400).json({ error: err, errors: { password: err } });
   if (req.user.password_hash && !(await checkPassword(String(req.body.current || ""), req.user.password_hash))) {
     return res.status(400).json({ error: "Your current password isn't right.", errors: { current: "isn't right" } });
   }
   db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(await hashPassword(req.body.password), req.user.id);
-  const sid = readCookie(req, COOKIE);
-  if (req.user.password_hash && sid) db.prepare("DELETE FROM sessions WHERE user_id = ? AND id_hash != ?").run(req.user.id, hash(sid));
+  const sid = readCookie(req, COOKIES[req.site]);
+  // Changing it signs out everywhere else, except this session and its twin on the other site.
+  if (req.user.password_hash && sid)
+    db.prepare("DELETE FROM sessions WHERE user_id = ? AND id_hash != ? AND (link_id IS NULL OR link_id != ?)").run(req.user.id, hash(sid), req.sessionLink || "");
   res.json({ ok: true });
 });
 
+// Signing out of either site ends both (sessions made by the hop share a link_id).
 authRouter.post("/logout", (req, res) => {
-  const sid = readCookie(req, COOKIE);
-  if (sid) db.prepare("DELETE FROM sessions WHERE id_hash = ?").run(hash(sid));
-  setSessionCookie(res, "", 0);
+  const sid = readCookie(req, COOKIES[siteOf(req).site]);
+  if (sid) {
+    const row = db.prepare("SELECT link_id FROM sessions WHERE id_hash = ?").get(hash(sid));
+    if (row?.link_id) db.prepare("DELETE FROM sessions WHERE link_id = ?").run(row.link_id);
+    db.prepare("DELETE FROM sessions WHERE id_hash = ?").run(hash(sid));
+  }
+  setSessionCookie(req, res, "", 0);
   res.json({ ok: true });
 });
 
@@ -246,8 +320,9 @@ authRouter.get("/me", (req, res) => {
   if (!req.user) return res.json({ user: null });
   const { id, email, name } = req.user;
   res.json({
-    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user), stripe: stripeInfo(req.user), connect: connectInfo(req.user),
-      hasFilms: !!db.prepare("SELECT 1 FROM films WHERE user_id = ? AND deleted_at IS NULL LIMIT 1").get(req.user.id) },
+    user: { id, email, name, isAdmin: isAdmin(req.user), hasPassword: !!req.user.password_hash, home: homeFor(req.user, req.site), stripe: stripeInfo(req.user), connect: connectInfo(req.user),
+      hasFilms: !!db.prepare("SELECT 1 FROM films WHERE user_id = ? AND deleted_at IS NULL LIMIT 1").get(req.user.id),
+      agreedTerms: !!req.user.agreed_terms_at },
   });
 });
 
@@ -263,7 +338,7 @@ export const stripeInfo = (u) =>
     ? null
     : { hasAccount: !!u.stripe_has_account, email: u.stripe_email, accountId: u.stripe_account_id, country: u.stripe_country, updatedAt: u.stripe_updated_at };
 
-authRouter.put("/stripe", requireUser, (req, res) => {
+authRouter.put("/stripe", requireUser, appOnly, (req, res) => {
   const has = req.body.hasAccount === true;
   if (req.body.hasAccount !== true && req.body.hasAccount !== false) return res.status(400).json({ error: "Say whether you have a Stripe account." });
   const errors = {};

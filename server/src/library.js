@@ -10,14 +10,17 @@ import { entitlement, filmPageUrl } from "./sales.js";
 export const libraryRouter = Router();
 libraryRouter.use(requireUser);
 
-// From My Library to a film's own page, already signed in there: sessions are per address, so we hand over a
-// short one-time sign-in link (the film page uses it on load). Only for films they can still watch.
+// From My Library to a film's page, signed in there. Films at <name>.indiefilm.club share indiefilm.club's sign-in,
+// so they just open. A film on its own domain (watch.theirfilm.com) can't see our cookie, so it gets a short
+// one-time sign-in link (the film page uses it on load). Only for films they can still watch.
 libraryRouter.get("/go/:id", (req, res) => {
   const film = db.prepare("SELECT * FROM films WHERE id = ?").get(Number(req.params.id));
-  if (!film || film.status !== "live" || film.hidden || film.deleted_at) return res.redirect(302, `${config.appUrl}/library/`);
-  if (!entitlement(req.user.id, film)) return res.redirect(302, filmPageUrl(film));
+  if (!film || film.status !== "live" || film.hidden || film.deleted_at) return res.redirect(302, `${config.clubUrl}/library/`);
+  const page = filmPageUrl(film);
+  const ownDomain = !page.includes(`.${config.siteDomain}`);
+  if (!ownDomain || !entitlement(req.user.id, film)) return res.redirect(302, page);
   const t = createLoginToken(req.user.id, 5);
-  res.redirect(302, `${filmPageUrl(film)}?signin=${t}`);
+  res.redirect(302, `${page}?signin=${t}`);
 });
 
 const DAY = 86_400_000;
@@ -40,9 +43,9 @@ libraryRouter.get("/", (req, res) => {
   }
 
   const films = [...byFilm.values()].map((r) => {
-    const address =
-      r.status !== "live" || r.hidden ? null : r.address_type === "own" && r.own_domain ? `watch.${r.own_domain}` : r.subdomain ? `${r.subdomain}.${config.siteName}` : null;
-    const base = { id: r.id, title: r.title, year: r.year, poster_url: r.poster_path ? `/uploads/${r.poster_path}` : null, address, paid_at: r.paid_at };
+    const address = r.status !== "live" || r.hidden ? null : liveAddress(r);
+    const url = address ? filmPageUrl(r) : null; // the watch page, right for local testing too
+    const base = { id: r.id, title: r.title, year: r.year, poster_url: r.poster_path ? `/uploads/${r.poster_path}` : null, address, url, paid_at: r.paid_at };
     if (r.purpose === "buy") return { ...base, access: "owned" };
     const watchDays = r.rental_watch_days ?? 3;
     const startBy = new Date(new Date(r.paid_at).getTime() + (r.rental_days ?? 30) * DAY).toISOString();
@@ -79,6 +82,7 @@ watchlistRouter.get("/", (req, res) => {
       year: f.year,
       poster_url: f.poster_path ? `/uploads/${f.poster_path}` : null,
       address: liveAddress(f),
+      url: liveAddress(f) ? filmPageUrl(f) : null,
       rent_price_cents: f.rent_price_cents,
       buy_price_cents: f.buy_price_cents,
       free_watch: !!f.free_watch,

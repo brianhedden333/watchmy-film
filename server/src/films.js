@@ -361,6 +361,12 @@ filmsRouter.get("/", async (req, res) => {
 filmsRouter.post("/", (req, res) => {
   const count = db.prepare("SELECT count(*) n FROM films WHERE user_id = ? AND deleted_at IS NULL").get(req.user.id).n;
   if (count >= 25) return res.status(400).json({ error: "That's a lot of films. Email us to add more." });
+  // Accounts that started as viewers (made at checkout or by signing in on indiefilm.club) haven't agreed to the
+  // filmmaker Terms yet: their first film asks for it.
+  if (!req.user.agreed_terms_at) {
+    if (req.body.terms !== true) return res.status(400).json({ error: "Please agree to the Terms to add a film.", needsTerms: true });
+    db.prepare("UPDATE users SET agreed_terms_at = ? WHERE id = ?").run(new Date().toISOString(), req.user.id);
+  }
   const { out, errors } = clean(req.body, { requireTitle: true });
   if (Object.keys(errors).length) return res.status(400).json({ error: "Check the highlighted fields.", errors });
   const cols = Object.keys(out);

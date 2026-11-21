@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { api, getMe, type User } from "./api";
 import { textOn, type Credit } from "./films";
 import { embedUrl } from "./watchpage";
+import { APP, cross } from "./sites";
 import "./styles.css";
 import "./browse.css";
 
@@ -42,6 +43,7 @@ type Card = {
   color_primary: string | null;
   color_button: string | null;
   address: string;
+  url: string; // the watch page
   added_at: string;
 };
 
@@ -64,12 +66,9 @@ function donationLine(f: Card) {
 }
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
-// A film's watch page. Running locally, <name>.watchmyfilm.online becomes <name>.localhost:<port>/watch/.
-const LOCAL = location.hostname === "localhost" || location.hostname.endsWith(".localhost");
-const href = (f: Card) => {
-  const sub = f.address.match(/^([a-z0-9-]+)\.watchmyfilm\.online$/i)?.[1];
-  return LOCAL && sub ? `${location.protocol}//${sub}.localhost${location.port ? `:${location.port}` : ""}/watch/` : `https://${f.address}`;
-};
+// A film's watch page: the server sends the right address (<name>.indiefilm.club, or locally
+// <name>.indiefilm.localhost:5173/watch/).
+const href = (f: Card) => f.url;
 const HEX = /^#[0-9a-f]{6}$/i;
 
 // Spines without a color of their own get one of these, picked by film so it never changes.
@@ -290,9 +289,9 @@ function Browse() {
       <header className="bz-head">
         <div className="bz-wrap bz-head-in">
           <a
-            href={home}
+            href={`${APP}/`}
             className="bz-logo"
-            aria-label="Powered by watchmyfilm.online (home)"
+            aria-label="Powered by watchmyfilm.online"
           >
             <span className="bz-logo-by" aria-hidden="true">
               Powered by
@@ -304,19 +303,15 @@ function Browse() {
               height={163}
             />
           </a>
-          {/* Signed in: straight to a new film; otherwise sign up first (it leads to add-a-film). */}
-          <a className="btn btn-small bz-add" href={me ? `${home}add-a-film/?new=1` : `${home}signup/`}>
+          {/* On watchmyfilm.online. Signed in: carried over (same account) straight to a new film; otherwise sign up. */}
+          <a className="btn btn-small bz-add" href={me ? cross(`${APP}/add-a-film/?new=1`) : `${APP}/signup/`}>
             Add your film
           </a>
           <nav className="bz-nav" aria-label="Site">
-            <a href={`${home}browse/`} aria-current="page">
+            <a href="/" aria-current="page">
               Browse
             </a>
-            {me ? (
-              <a href={`${home}library/`}>My library</a>
-            ) : (
-              <a href={`${home}signin/`}>Log in</a>
-            )}
+            {me ? <a href="/library/">My library</a> : <a href="/signin/">Log in</a>}
           </nav>
         </div>
       </header>
@@ -409,7 +404,7 @@ function Browse() {
                 Nothing on the stack yet. Films appear here when their
                 filmmakers add them to Browse.
               </p>
-              <a className="btn" href={home}>
+              <a className="btn" href={`${APP}/`}>
                 Add your film
               </a>
             </div>
@@ -446,7 +441,7 @@ function Browse() {
 
       <footer className="bz-wrap bz-foot">
         <p>
-          Made a film? <a href={home}>Sell it from your own website</a> and add
+          Made a film? <a href={`${APP}/`}>Sell it from your own website</a> and add
           it to the stack.
         </p>
         <p className="bz-legal">
@@ -664,7 +659,7 @@ function AccountPrompt({ film: f, onClose }: { film: Card; onClose: () => void }
     setState("sending");
     setError("");
     try {
-      localStorage.setItem("wmf_return", JSON.stringify({ path: `/browse/?film=${f.id}`, at: Date.now() }));
+      localStorage.setItem("wmf_return", JSON.stringify({ path: `/?film=${f.id}`, at: Date.now() })); // Browse is indiefilm.club's home
     } catch {
       /* private mode: after signing in they'll land on their library instead */
     }

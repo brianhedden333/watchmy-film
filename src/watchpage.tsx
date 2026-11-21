@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { api, dollars } from "./api";
 import type { Film } from "./films";
+import { APP, CLUB, CLUB_DOMAIN } from "./sites";
 
 // What a viewer has bought on the live page (from /api/watch/access, /claim or /signin/verify).
 type Access = {
@@ -17,10 +18,6 @@ const when = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
-// The main site, from a film's own address: watchmyfilm.online in production, localhost:<port> on the dev server.
-const mainSite = () =>
-  location.hostname.endsWith(".localhost") ? `${location.protocol}//localhost${location.port ? `:${location.port}` : ""}` : "https://watchmyfilm.online";
 
 // Time left on a started rental: "2 days 5 hours", "5 hours 12 minutes", "12 minutes".
 function timeLeft(iso: string) {
@@ -402,11 +399,11 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
               new one.
             </p>
             <p className="s-fine">
-              Want all your films in one place? Sign in at{" "}
-              <a href={`${mainSite()}/library/`} target="_blank" rel="noopener">
-                watchmyfilm.online
+              Want all your films in one place? Your free library on{" "}
+              <a href={`${CLUB}/library/`} target="_blank" rel="noopener">
+                {CLUB_DOMAIN}
               </a>{" "}
-              with the same email and your free library keeps every rental and purchase.
+              keeps every rental and purchase made with this email.
             </p>
           </div>
         )}
@@ -602,15 +599,14 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
 
 // Our logo, top right of the film's page. Hover (or focus) shows where else to go.
 function BrandMenu() {
-  const main = mainSite();
   return (
-    <nav className="s-brand" aria-label="watchmyfilm.online">
-      <a className="s-brand-logo" href={`${main}/`} aria-label="watchmyfilm.online">
+    <nav className="s-brand" aria-label="watchmyfilm">
+      <a className="s-brand-logo" href={`${CLUB}/`} aria-label={`Browse more films on ${CLUB_DOMAIN}`}>
         <img src="/brand/watchmyfilm-logo-white.png" alt="" width={600} height={163} />
       </a>
       <div className="s-brand-menu">
-        <a href={`${main}/`}>For filmmakers</a>
-        <a href={`${main}/browse/`}>Browse</a>
+        <a href={`${APP}/`}>For filmmakers</a>
+        <a href={`${CLUB}/`}>Browse</a>
       </div>
     </nav>
   );

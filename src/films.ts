@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { filmAddress, filmHref } from "./sites";
 
 // Film record as the API returns it, shared by the dashboard and admin pages.
 
@@ -43,7 +44,7 @@ export type Film = {
   hide_title?: boolean; // Site design: banner as a plain image, no title over it
   rights_confirmed_at?: string | null; // when the filmmaker ticked "I have the rights to sell this film"
   // Watch page only: the same account's other live films ("More films from this account").
-  more?: { id: number; title: string; poster_url: string; subdomain: string | null; address: string }[];
+  more?: { id: number; title: string; poster_url: string; address: string; url: string }[];
   rental_days: number | null;
   rental_watch_days: number | null; // days to finish once a rental is started
   tier: "standard" | "secure";
@@ -67,12 +68,10 @@ export type Film = {
 
 export type FilmsResponse = { films: Film[]; setupFeeCents: number; setupUpfront: boolean; setupSurchargeCents: number; checkoutEnabled: boolean };
 
-// The film's public address (no https://): watch.<their domain>, or <name>.watchmyfilm.online.
-export function liveAddress(f: Pick<Film, "address_type" | "own_domain" | "subdomain">) {
-  if (f.address_type === "own" && f.own_domain) return `watch.${f.own_domain}`;
-  if (f.subdomain) return `${f.subdomain}.watchmyfilm.online`;
-  return null;
-}
+// The film's public address (no https://): watch.<their domain>, or <name>.indiefilm.club.
+export const liveAddress = (f: Pick<Film, "address_type" | "own_domain" | "subdomain">) => filmAddress(f);
+// A link to the film's watch page that also works locally (<name>.indiefilm.localhost:5173/watch/).
+export const liveHref = (f: Pick<Film, "address_type" | "own_domain" | "subdomain">) => filmHref(f);
 
 // Label and pill style, counting a hidden live film as "Hidden".
 export const statusLabel = (f: Pick<Film, "status" | "hidden">) => (f.status === "live" && f.hidden ? "Hidden" : STATUS_LABEL[f.status]);

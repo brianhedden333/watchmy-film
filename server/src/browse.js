@@ -4,6 +4,7 @@
 import { Router } from "express";
 import { config } from "./config.js";
 import { db } from "./db.js";
+import { filmPageUrl } from "./sales.js";
 
 export const browseRouter = Router();
 
@@ -43,6 +44,7 @@ function card(f) {
     color_button: f.color_button,
     staff_pick: !!f.staff_pick,
     address: address(f),
+    url: filmPageUrl(f), // the watch page (right for local testing too)
     added_at: f.submitted_at || f.created_at,
   };
 }

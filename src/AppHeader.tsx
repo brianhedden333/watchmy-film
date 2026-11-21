@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { site } from "./config";
 import { signOut, type User } from "./api";
+import { APP, CLUB, cross, onClub } from "./sites";
+
+const CLUB_NAME = "IndieFilm.club";
 
 /* Header for the signed-in pages: logo on the left, account menu on the right. Filmmakers who also buy films have
    two libraries: My Films (the films they sell) and My Library (films they've rented, bought or saved). */
@@ -8,11 +11,23 @@ import { signOut, type User } from "./api";
 const home = import.meta.env.BASE_URL;
 
 export function AppHeader({ user }: { user: User | null | undefined }) {
+  // On indiefilm.club (My Library) the header is the club's; on watchmyfilm.online, ours.
+  if (onClub())
+    return (
+      <header className="dash-head">
+        <div className="wrap dash-head-inner">
+          <a href="/" className="logo-link club-wordmark" aria-label={`${CLUB_NAME}: browse films`}>
+            {CLUB_NAME}
+          </a>
+          {user && <UserMenu user={user} />}
+        </div>
+      </header>
+    );
   return (
     <header className="dash-head">
       <div className="wrap dash-head-inner">
         <a
-          href={user ? `${home}${user.isAdmin ? "admin/" : user.hasFilms ? "dashboard/" : "library/"}` : home}
+          href={user ? (user.isAdmin ? `${home}admin/` : user.hasFilms ? `${home}dashboard/` : cross(`${CLUB}/library/`)) : home}
           className="logo-link"
           aria-label={user ? (user.isAdmin ? "Admin" : user.hasFilms ? "My Films" : "My Library") : `${site.name} home`}
         >
@@ -51,13 +66,20 @@ function UserMenu({ user }: { user: User }) {
     };
   }, [open]);
 
-  const item = (path: string, label: string) => (
-    <li>
-      <a href={`${home}${path}`} aria-current={here.startsWith(`/${path}`) ? "page" : undefined}>
-        {label}
-      </a>
-    </li>
-  );
+  // A menu link to a page on watchmyfilm.online ("app") or indiefilm.club ("club"). Pages on the other site go
+  // through the hop, so they arrive signed in there too.
+  const club = onClub();
+  const item = (where: "app" | "club", path: string, label: string) => {
+    const local = (where === "club") === club;
+    const href = local ? `/${path}` : cross(`${where === "club" ? CLUB : APP}/${path}`);
+    return (
+      <li>
+        <a href={href} aria-current={local && (path ? here.startsWith(`/${path}`) : here === "/") ? "page" : undefined}>
+          {label}
+        </a>
+      </li>
+    );
+  };
 
   return (
     <div className="user-menu" ref={wrap}>
@@ -77,13 +99,14 @@ function UserMenu({ user }: { user: User }) {
       {open && (
         <ul id={menuId} className="user-menu-list">
           {user.name && <li className="user-menu-email">{user.email}</li>}
-          {user.isAdmin && item("admin/", "Admin")}
-          {user.hasFilms && item("dashboard/", "My Films")}
-          {item("library/", "My Library")}
-          {item("browse/", "Browse films")}
-          {item("account/", "Account")}
+          {user.isAdmin && item("app", "admin/", "Admin")}
+          {user.hasFilms && item("app", "dashboard/", "My Films")}
+          {item("club", "library/", "My Library")}
+          {item("club", "", "Browse films")}
+          {item("app", "account/", "Account")}
           <li>
-            <button type="button" onClick={() => signOut().finally(() => location.assign(home))}>
+            {/* Signs out of both sites (the server ends the linked sign-in too). */}
+            <button type="button" onClick={() => signOut().finally(() => location.assign(club ? "/" : home))}>
               Sign out
             </button>
           </li>

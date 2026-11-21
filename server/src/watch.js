@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import { config } from "./config.js";
 import { db } from "./db.js";
 import { publicFilm } from "./films.js";
+import { filmPageUrl } from "./sales.js"; // (sales.js imports this file too; both are only used at request time)
 
 export const watchRouter = Router();
 
@@ -16,13 +17,11 @@ export function filmRowForHost(rawHost) {
   const host = String(rawHost || "").toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
   if (!host || host.length > 253) return null;
   let row = null;
-  // Our domain, and *.localhost for local testing.
-  for (const suffix of [`.${config.siteDomain}`, ".localhost"]) {
-    if (host.endsWith(suffix)) {
-      const name = host.slice(0, -suffix.length);
-      if (name && !name.includes(".")) row = db.prepare("SELECT * FROM films WHERE subdomain = ? AND deleted_at IS NULL").get(name);
-      break;
-    }
+  // <name>.indiefilm.club (locally <name>.indiefilm.localhost).
+  const suffix = `.${config.siteDomain}`;
+  if (host.endsWith(suffix)) {
+    const name = host.slice(0, -suffix.length);
+    if (name && !name.includes(".")) row = db.prepare("SELECT * FROM films WHERE subdomain = ? AND deleted_at IS NULL").get(name);
   }
   // Their own domain: watch.theirfilm.com -> own_domain theirfilm.com
   if (!row && host.startsWith("watch.")) row = db.prepare("SELECT * FROM films WHERE own_domain = ? AND deleted_at IS NULL").get(host.slice(6));
@@ -50,8 +49,8 @@ function moreFromAccount(row) {
       id: m.id,
       title: m.title,
       poster_url: `/uploads/${m.poster_path}`,
-      subdomain: m.subdomain, // for local testing (<name>.localhost)
       address: m.address_type === "own" && m.own_domain ? `watch.${m.own_domain}` : m.subdomain ? `${m.subdomain}.${config.siteDomain}` : null,
+      url: filmPageUrl(m), // the watch page (right for local testing too)
     }))
     .filter((m) => m.address);
 }

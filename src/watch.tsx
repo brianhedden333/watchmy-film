@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { pageTheme, type Film } from "./films";
 import { site } from "./config";
+import { APP, CLUB, CLUB_DOMAIN } from "./sites";
 import { HoldingPage, WatchPage } from "./watchpage";
 import "./styles.css";
 import "./sample.css";
@@ -15,7 +16,7 @@ declare global {
   }
 }
 
-const MAIN_SITE = "https://watchmyfilm.online";
+const MAIN_SITE = APP; // watchmyfilm.online ("Powered by", "About watchmyfilm")
 // The main site's own look, for the "no film here" page.
 const SITE_COLORS = { color_background: "#000000", color_primary: "#ede8df", color_secondary: "#a39e95", color_button: "#ede8df" };
 
@@ -58,9 +59,7 @@ function Watch() {
 // The filmmaker's other films, as posters linking to their watch pages. Locally (<name>.localhost:5173/watch/)
 // the links stay on the local site.
 function MoreFilms({ films }: { films: NonNullable<Film["more"]> }) {
-  const local = location.hostname.endsWith(".localhost") || location.hostname === "localhost";
-  const href = (m: (typeof films)[number]) =>
-    local && m.subdomain ? `${location.protocol}//${m.subdomain}.localhost${location.port ? `:${location.port}` : ""}${location.pathname}` : `https://${m.address}/`;
+  const href = (m: (typeof films)[number]) => m.url; // the server gives the right address (local or live)
   return (
     <section className="watch-more" aria-labelledby="watch-more-h">
       <div className="s-wrap">
@@ -116,14 +115,14 @@ function NotFound() {
   return (
     <div className="sample watch-404" style={pageTheme(SITE_COLORS)}>
       <main className="s-wrap">
-        <a className="watch-404-logo" href={MAIN_SITE} aria-label="watchmyfilm.online home">
+        <a className="watch-404-logo" href={`${CLUB}/`} aria-label={`${CLUB_DOMAIN}: browse films`}>
           <img src="/brand/watchmyfilm-logo-white.png" alt="" width={600} height={163} />
         </a>
         <ShruggingReel />
         <h1>Hmm, no film playing here.</h1>
         <p>This address doesn't have a film right now. Check the link, or ask the filmmaker for theirs.</p>
-        <a className="s-btn watch-404-btn" href={MAIN_SITE}>
-          Go to watchmyfilm.online
+        <a className="s-btn watch-404-btn" href={`${CLUB}/`}>
+          Browse films on {CLUB_DOMAIN}
         </a>
       </main>
     </div>

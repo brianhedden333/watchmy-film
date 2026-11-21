@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
+// Pages for filmmakers: only on watchmyfilm.online.
+const APP_PAGES = ["/signup", "/dashboard", "/add-a-film", "/admin", "/account", "/preview", "/workflow", "/sample"];
 const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/preview", "/library", "/browse", "/admin", "/terms", "/privacy"];
 
 export default defineConfig({
@@ -15,10 +17,25 @@ export default defineConfig({
       name: "workflow-slash",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          // A film's own address (e.g. mountaingoat.localhost:5173) shows its live watch page, as nginx does in production.
-          if (/^[^.]+\.localhost(:\d+)?$/.test(req.headers.host || "") && (req.url === "/" || req.url?.startsWith("/?"))) {
-            req.url = "/watch/";
-          }
+          const host = (req.headers.host || "").replace(/:\d+$/, "");
+          const port = (req.headers.host || "").match(/:\d+$/)?.[0] || "";
+          const atRoot = req.url === "/" || req.url?.startsWith("/?");
+          const first = `/${(req.url || "/").split(/[/?]/)[1] || ""}`;
+          const club = host === "indiefilm.localhost" || host.endsWith(".indiefilm.localhost");
+          // Each page lives on one site; on the other, pass through the sign-in hop to the right one (nginx does
+          // the same in production). Filmmaker pages belong on watchmyfilm.online, Browse and My Library on the club.
+          const hop = (url: string) => {
+            res.statusCode = 302;
+            res.setHeader("Location", `/api/auth/hop?next=${encodeURIComponent(url)}`);
+            res.end();
+          };
+          if (club && APP_PAGES.includes(first)) return hop(`http://localhost${port}${req.url}`);
+          if (!club && host === "localhost" && first === "/browse") return hop(`http://indiefilm.localhost${port}/${req.url!.replace(/^\/browse\/?/, "")}`);
+          if (!club && host === "localhost" && first === "/library") return hop(`http://indiefilm.localhost${port}${req.url}`);
+          // The viewer site, as nginx does in production: indiefilm.localhost:5173 is Browse, and a film's own
+          // address (e.g. mountaingoat.indiefilm.localhost:5173) shows its live watch page.
+          if (host === "indiefilm.localhost" && atRoot) req.url = `/browse/${req.url!.slice(1)}`;
+          else if (/^[^.]+\.indiefilm\.localhost$/.test(host) && atRoot) req.url = `/watch/${req.url!.slice(1)}`;
           const path = req.url?.split("?")[0];
           if (path && SLASH_PAGES.includes(path)) {
             res.statusCode = 301;

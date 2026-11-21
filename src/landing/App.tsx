@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { money, pricing, site, splitSale, type TierKey } from "../config";
 import { getMe, type User } from "../api";
+import { cross } from "../sites";
 
 /* Landing page. The interface stays neutral, like a screening room; color comes only from the films. */
 
@@ -136,8 +137,9 @@ function Nav({ solid }: { solid: boolean }) {
           <a href="#pricing">Pricing</a>
           <a href="#about">About us</a>
           {me ? (
-            <a href={`${base}${me.home.replace(/^\//, "")}`} className="btn btn-small">
-              {me.isAdmin ? "Admin" : "Your films"}
+            // A viewer's home is their library on indiefilm.club (a full address): go there signed in.
+            <a href={/^https?:/.test(me.home) ? cross(me.home) : `${base}${me.home.replace(/^\//, "")}`} className="btn btn-small">
+              {me.isAdmin ? "Admin" : /^https?:/.test(me.home) ? "My Library" : "Your films"}
             </a>
           ) : (
             <>

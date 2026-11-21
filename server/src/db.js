@@ -264,6 +264,15 @@ const MIGRATIONS = [
   -- When the filmmaker ticked "I own or control all the rights needed to sell and stream this film" (null = not yet).
   ALTER TABLE films ADD COLUMN rights_confirmed_at TEXT;
   `,
+  `
+  -- Two sites: 'app' (watchmyfilm.online, filmmakers) and 'club' (indiefilm.club and its film addresses, viewers).
+  -- A session belongs to one site; a 'club' session can't use the filmmaker tools.
+  ALTER TABLE sessions ADD COLUMN site TEXT NOT NULL DEFAULT 'app';
+  -- Sessions made by hopping between the sites share a link_id, so signing out of one signs out of both.
+  ALTER TABLE sessions ADD COLUMN link_id TEXT;
+  -- A one-time code for that hop carries the link_id (emailed sign-in links have none).
+  ALTER TABLE login_tokens ADD COLUMN link_id TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

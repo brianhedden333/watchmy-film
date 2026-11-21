@@ -79,11 +79,11 @@ export function entitlement(userId, film) {
   return null;
 }
 
-// The film's address, for emails. Production: https://<name>.<domain> (or watch.<own domain>);
-// local dev: http://<name>.localhost:<port> next to APP_URL.
+// The film's address: https://<name>.indiefilm.club (or watch.<own domain>). Locally the films live at
+// http://<name>.indiefilm.localhost:<port> (own domains can't be tried locally, so those use their subdomain).
 export function filmOrigin(film) {
-  const app = new URL(config.appUrl);
-  if (app.hostname === "localhost" || app.hostname === "127.0.0.1") return `${app.protocol}//${film.subdomain}.localhost${app.port ? `:${app.port}` : ""}`;
+  const club = new URL(config.clubUrl);
+  if (!config.production) return `${club.protocol}//${film.subdomain}.${config.siteDomain}${club.port ? `:${club.port}` : ""}`;
   if (film.address_type === "own" && film.own_domain) return `https://watch.${film.own_domain}`;
   return `https://${film.subdomain}.${config.siteDomain}`;
 }
@@ -376,7 +376,7 @@ salesRouter.post("/claim", rateLimit({ windowMs: 10 * 60_000, max: 30 }), async 
     const fresh = Date.now() - Date.parse(payment.created_at) < CLAIM_HOURS * HOUR;
     if (payment.claimed_at || !fresh) return res.json({ signIn: true });
     db.prepare("UPDATE payments SET claimed_at = ? WHERE id = ?").run(now(), payment.id);
-    startSession(res, payment.user_id);
+    startSession(req, res, payment.user_id);
   }
   const ent = entitlement(payment.user_id, film);
   res.json({ ok: true, ...(ent ? accessPayload(film, ent) : { access: null }) });
@@ -429,7 +429,7 @@ salesRouter.post("/signin/verify", rateLimit({ windowMs: 15 * 60_000, max: 30 })
   if (!film) return;
   const user = useLoginToken(req.body.token);
   if (!user) return res.status(400).json({ error: "That link has expired or was already used. Ask for a new one below." });
-  startSession(res, user.id);
+  startSession(req, res, user.id);
   const ent = entitlement(user.id, film);
   res.json({ ok: true, ...(ent ? accessPayload(film, ent) : { access: null }) });
 });

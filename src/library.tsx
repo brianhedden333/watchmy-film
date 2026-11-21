@@ -2,11 +2,12 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, getMe, type User } from "./api";
 import { AppHeader } from "./AppHeader";
+import { CLUB, CLUB_DOMAIN, cross, onApp } from "./sites";
 import "./styles.css";
 import "./dashboard.css";
 
-/* My Library: films this person has rented or bought on any watchmyfilm.online page, plus their Watch Later list
-   (saved from Browse). Filmmakers also have My Films (the films they sell) on the dashboard. */
+/* My Library (on indiefilm.club): films this person has rented or bought, plus their Watch Later list (saved from
+   Browse). Filmmakers also have My Films (the films they sell) on watchmyfilm.online. */
 
 const home = import.meta.env.BASE_URL;
 
@@ -15,7 +16,8 @@ type LibraryFilm = {
   title: string;
   year: number | null;
   poster_url: string | null;
-  address: string | null; // the film's watch page, once it's live
+  address: string | null; // the film's address, once it's live
+  url: string | null; // its watch page
   paid_at: string;
   access: "owned" | "rented" | "expired";
   start_by?: string;
@@ -29,6 +31,7 @@ type LaterFilm = {
   year: number | null;
   poster_url: string | null;
   address: string | null;
+  url: string | null;
   rent_price_cents: number | null;
   buy_price_cents: number | null;
   free_watch: boolean;
@@ -69,6 +72,8 @@ function Library() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // My Library lives on indiefilm.club: from watchmyfilm.online, carry them over (still signed in).
+    if (onApp()) return location.replace(cross(`${CLUB}/library/`));
     getMe()
       .then(async (u) => {
         if (!u) return location.replace(`${home}signin/`);
@@ -104,13 +109,13 @@ function Library() {
             <h2 id="lib-bought">Rented and bought</h2>
             {films.length === 0 ? (
               <p className="settings-hint">
-                Films you rent or buy on any watchmyfilm.online page show up here, using the email you paid with.
+                Films you rent or buy on {CLUB_DOMAIN} show up here, using the email you paid with.
               </p>
             ) : (
               <ul className="library-grid">
                 {films.map((f) => {
-                  // Through /api/library/go so they arrive signed in on the film's own page.
-                  const href = f.address && f.access !== "expired" ? `/api/library/go/${f.id}` : f.address ? `https://${f.address}` : null;
+                  // Through /api/library/go so they arrive signed in (a film on its own domain needs a one-time link).
+                  const href = f.url && f.access !== "expired" ? `/api/library/go/${f.id}` : f.url;
                   const poster = f.poster_url ? <img src={f.poster_url} alt="" loading="lazy" /> : <span>{f.title}</span>;
                   return (
                     <li key={f.id} className={`library-item is-${f.access}`}>
@@ -139,12 +144,12 @@ function Library() {
             <h2 id="lib-later">Watch Later</h2>
             {later.length === 0 ? (
               <p className="settings-hint">
-                Save films from <a href={`${home}browse/`}>Browse</a> with "Watch later" and they'll wait for you here.
+                Save films from <a href="/">Browse</a> with "Watch later" and they'll wait for you here.
               </p>
             ) : (
               <ul className="library-grid">
                 {later.map((f) => {
-                  const href = f.address ? `https://${f.address}` : null;
+                  const href = f.url;
                   const poster = f.poster_url ? <img src={f.poster_url} alt="" loading="lazy" /> : <span>{f.title}</span>;
                   return (
                     <li key={f.id} className="library-item">

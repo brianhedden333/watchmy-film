@@ -3,7 +3,7 @@
 import express from "express";
 import { config } from "./config.js";
 import "./db.js";
-import { authRouter, loadUser, purgeExpired } from "./auth.js";
+import { appOnly, authRouter, loadUser, purgeExpired } from "./auth.js";
 import { filmsRouter } from "./films.js";
 import { adminRouter } from "./admin.js";
 import { libraryRouter, watchlistRouter } from "./library.js";
@@ -32,12 +32,14 @@ app.use("/api/browse", browseRouter); // public catalog of opted-in live films
 app.use("/api", loadUser);
 app.use("/api/watch", salesRouter); // buying and watching on a film's own address (knows who's signed in there)
 app.use("/api/auth", authRouter);
-app.use("/api/films", filmsRouter);
-app.use("/api/admin", adminRouter);
+// Filmmaker tools: only with a watchmyfilm.online sign-in (an indiefilm.club sign-in is for watching).
+app.use("/api/films", appOnly, filmsRouter);
+app.use("/api/admin", appOnly, adminRouter);
+app.use("/api/connect", appOnly, connectRouter);
+app.use("/api/sales", appOnly, filmmakerSalesRouter); // the filmmaker's own sales list
+// Viewer things: either site.
 app.use("/api/library", libraryRouter);
 app.use("/api/watchlist", watchlistRouter);
-app.use("/api/connect", connectRouter);
-app.use("/api/sales", filmmakerSalesRouter); // the filmmaker's own sales list
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api", (_req, res) => res.status(404).json({ error: "Not found." }));
 

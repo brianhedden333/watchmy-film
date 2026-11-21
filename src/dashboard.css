@@ -639,6 +639,22 @@
   align-self: center;
 }
 
+/* First film from an account that began as a viewer: agree to the filmmaker Terms. */
+.new-film-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.new-film-terms input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+}
+
 .film-head {
   display: flex;
   align-items: flex-start;
@@ -1396,6 +1412,17 @@
   height: 34px;
   width: auto;
   display: block;
+}
+
+/* indiefilm.club pages (My Library, sign-in): the club's name as a wordmark instead of our logo. */
+.club-wordmark {
+  font-family: var(--display, inherit);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 34px;
+  color: var(--text, #ede8df);
+  text-decoration: none;
 }
 
 .user-menu {

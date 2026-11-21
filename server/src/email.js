@@ -40,16 +40,25 @@ export function notifyAdmin(subject, text) {
 const LOGO = "https://watchmyfilm.online/brand/watchmyfilm-logo-white.png";
 
 // The site's screening-room palette: black, warm house gray, projector cream.
-function layout(title, bodyHtml) {
+// brand "club": emails to viewers, from IndieFilm.club (powered by watchmyfilm). "app": emails to filmmakers.
+function layout(title, bodyHtml, brand = "app") {
+  const head =
+    brand === "club"
+      ? `<p style="margin:0 0 20px;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:#ede8df">${esc(config.clubName)}</p>`
+      : `<p style="margin:0 0 20px"><img src="${LOGO}" alt="${esc(config.siteName)}" width="150" height="41" style="display:block;border:0;width:150px;height:auto"></p>`;
+  const foot =
+    brand === "club"
+      ? `${esc(config.clubName)} · Independent films, straight from the people who made them. Powered by ${esc(config.siteName)}.`
+      : `${esc(config.siteName)} · Independent films, sold direct by their filmmakers.`;
   return `<!doctype html><html><head><meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"></head>
 <body style="margin:0;background:#000000;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;color:#ede8df">
 <div style="max-width:520px;margin:0 auto">
-<p style="margin:0 0 20px"><img src="${LOGO}" alt="${esc(config.siteName)}" width="150" height="41" style="display:block;border:0;width:150px;height:auto"></p>
+${head}
 <div style="background:#1f1d1b;border:1px solid #3a3734;border-top:2px solid #ede8df;border-radius:8px;padding:32px">
 <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;color:#ede8df">${esc(title)}</h1>
 ${bodyHtml}
 </div>
-<p style="margin:20px 4px 0;font-size:12px;line-height:1.5;color:#a39e95">${esc(config.siteName)} · Independent films, sold direct by their filmmakers.</p>
+<p style="margin:20px 4px 0;font-size:12px;line-height:1.5;color:#a39e95">${foot}</p>
 </div></body></html>`;
 }
 
@@ -58,20 +67,23 @@ const button = (href, label) =>
 
 const para = (s) => `<p style="margin:0 0 14px;line-height:1.55;color:#ede8df">${esc(s)}</p>`;
 
-export function signInEmail(to, link, isNew) {
+// site "club": asked for on indiefilm.club (viewers); "app": on watchmyfilm.online.
+export function signInEmail(to, link, isNew, site = "app") {
+  const name = site === "club" ? config.clubName : config.siteName;
   const title = isNew ? "Confirm your email" : "Your sign-in link";
   const lead = isNew
     ? "Click the button to confirm this is your email and finish creating your account. The link works once and expires in 24 hours."
     : "Click the button to sign in. The link works once and expires in 30 minutes.";
   return sendEmail({
     to,
-    subject: isNew ? `Confirm your ${config.siteName} account` : `Sign in to ${config.siteName}`,
+    subject: isNew ? `Confirm your ${name} account` : `Sign in to ${name}`,
     text: `${title}\n\n${lead}\n${link}\n\nIf you didn't ask for this, you can ignore this email.`,
     html: layout(
       title,
       para(lead) +
         button(link, isNew ? "Confirm my email" : "Sign in") +
-        `<p style="margin:0;font-size:13px;color:#a39e95;line-height:1.5">If you didn't ask for this, you can ignore this email.</p>`
+        `<p style="margin:0;font-size:13px;color:#a39e95;line-height:1.5">If you didn't ask for this, you can ignore this email.</p>`,
+      site
     ),
   });
 }
@@ -128,13 +140,14 @@ export function purchaseEmail(to, { title, access, link, days, watchDays }) {
   return sendEmail({
     to,
     subject: `Your film: ${title}`,
-    text: `${what}\n\nNo account needed. Watch now:\n${link}\n\nKeep this email: it's your way back to the film. If the link has been used, it opens the film's page, where "Already paid? Watch now" emails you a fresh one. Want all your films in one place? Sign in at https://watchmyfilm.online/library/ with this email.`,
+    text: `${what}\n\nNo account needed. Watch now:\n${link}\n\nKeep this email: it's your way back to the film. If the link has been used, it opens the film's page, where "Already paid? Watch now" emails you a fresh one. Want all your films in one place? Sign in at ${config.clubUrl}/library/ with this email.`,
     html: layout(
       `Thanks for watching ${title}`,
       para(what) +
         para("No account needed. Keep this email: it's your way back to the film, on any device.") +
         button(link, "Watch now") +
-        small(`If the button has been used, it opens the film's page, where "Already paid? Watch now" emails you a fresh link. Want all your films in one place? Sign in at watchmyfilm.online with this email to see your library.`)
+        small(`If the button has been used, it opens the film's page, where "Already paid? Watch now" emails you a fresh link. Want all your films in one place? Sign in at ${new URL(config.clubUrl).host} with this email to see your library.`),
+      "club"
     ),
   });
 }
@@ -149,7 +162,8 @@ export function viewerSignInEmail(to, { title, link }) {
       `Watch ${title}`,
       para("Click the button to sign in and watch. The link works once and expires in 30 minutes.") +
         button(link, "Watch now") +
-        small("If you didn't ask for this, you can ignore this email.")
+        small("If you didn't ask for this, you can ignore this email."),
+      "club"
     ),
   });
 }
