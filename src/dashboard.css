@@ -133,6 +133,18 @@
   margin-bottom: 18px;
 }
 
+/* "84 left": a field's character counter, at the right end of its label. */
+.field-count {
+  float: right;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-soft);
+}
+
+.field-count.is-low {
+  color: var(--gold);
+}
+
 .field.has-err input,
 .field.has-err textarea {
   border-color: var(--red-bright);

@@ -421,6 +421,11 @@
   font-size: 14px;
   line-height: 1.5;
   color: rgba(237, 232, 223, 0.85);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 
 .bz-peek-credits {

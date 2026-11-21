@@ -205,7 +205,7 @@ const color = (v) => {
 
 const FIELDS = {
   title: text(200),
-  logline: text(300),
+  logline: text(120), // one line under the title (the form counts down from 120 too)
   synopsis: text(5000),
   director: text(200),
   year: int(1880, 2100),

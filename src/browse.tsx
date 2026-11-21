@@ -524,11 +524,8 @@ function Peek({ film: f }: { film: Card | null }) {
       </div>
       <div className="bz-peek-more">
         {f.logline && <p className="bz-peek-log">{f.logline}</p>}
-        {paragraphs.map((p, i) => (
-          <p key={i} className="bz-peek-syn">
-            {p}
-          </p>
-        ))}
+        {/* A taste of the synopsis: the first paragraph, ending in "…" if it's long (the pop-up has it all). */}
+        {paragraphs[0] && <p className="bz-peek-syn">{paragraphs[0]}</p>}
         {credits.length > 0 && (
           <dl className="bz-peek-credits">
             {credits.map((c) => (

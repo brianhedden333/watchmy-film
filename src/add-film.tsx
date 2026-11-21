@@ -322,7 +322,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
     location.assign(`${home}preview/?film=${film.id}`);
   }
 
-  const field = (k: keyof FormState, label: string, opts: { type?: string; hint?: ReactNode; placeholder?: string; multiline?: number; prefix?: string; suffix?: string; inputMode?: "decimal" | "numeric" } = {}) => (
+  const field = (k: keyof FormState, label: string, opts: { type?: string; hint?: ReactNode; placeholder?: string; multiline?: number; prefix?: string; suffix?: string; inputMode?: "decimal" | "numeric"; maxLength?: number } = {}) => (
     <Field
       label={label}
       hint={opts.hint}
@@ -379,7 +379,10 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
           <fieldset>
             <legend>The film</legend>
             {field("title", "Title")}
-            {field("logline", "One-line description", { hint: "Shown under the title on your watch page and in link previews." })}
+            {field("logline", "One-line description", {
+              maxLength: LOGLINE_MAX,
+              hint: "Shown under the title on your watch page, in Browse and in link previews. Keep it to one line.",
+            })}
             {field("synopsis", "Synopsis", { multiline: 6 })}
             <div className="row-3">
               {field("year", "Year", { inputMode: "numeric", placeholder: "2026" })}
@@ -705,6 +708,9 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
 
 // "Add these first": each missing item jumps to its field (or section), focuses it and flashes it briefly.
 // Keyed by the labels server/src/films.js sends in film.missing (LABELS there).
+// One-line description: short enough to sit on one line under the title and in Browse (server allows the same).
+const LOGLINE_MAX = 120;
+
 const MISSING_TARGETS: Record<string, string> = {
   Title: '[name="title"]',
   Synopsis: '[name="synopsis"]',
@@ -1706,16 +1712,25 @@ function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IM
   );
 }
 
-function Field({ label, hint, error, value, onChange, disabled, type = "text", placeholder, multiline, prefix, suffix, inputMode, name }: {
+function Field({ label, hint, error, value, onChange, disabled, type = "text", placeholder, multiline, prefix, suffix, inputMode, name, maxLength }: {
   label: string; hint?: ReactNode; error?: string; value: string; onChange: (v: string) => void; disabled?: boolean;
   type?: string; placeholder?: string; multiline?: number; prefix?: string; suffix?: string; inputMode?: "decimal" | "numeric";
   name?: string; // lets "Add these first" jump to the field
+  maxLength?: number; // a character limit, with a counter by the label
 }) {
   const id = useId();
-  const common = { id, name, value, disabled, placeholder, "aria-invalid": !!error, "aria-describedby": hint || error ? `${id}-d` : undefined };
+  const common = { id, name, value, disabled, placeholder, maxLength, "aria-invalid": !!error, "aria-describedby": hint || error ? `${id}-d` : undefined };
+  const left = maxLength ? maxLength - (value || "").length : null;
   return (
     <div className={`field${error ? " has-err" : ""}`}>
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id}>
+        {label}
+        {left != null && (
+          <span className={`field-count${left <= 10 ? " is-low" : ""}`} aria-live="polite">
+            {left} left
+          </span>
+        )}
+      </label>
       {multiline ? (
         <textarea {...common} rows={multiline} onChange={(e) => onChange(e.target.value)} />
       ) : (
