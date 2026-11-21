@@ -1373,6 +1373,13 @@
 
 /* ---------- Title hidden (Site design): the banner shows as a plain image ---------- */
 
+/* Title hidden: the banner is a plain image, so our logo sits on a black rounded tab to stay readable. */
+.s-hero-clean .s-brand-logo {
+  padding: 8px 12px;
+  background: #000;
+  border-radius: 10px;
+}
+
 /* Same height as the banner with the title: an invisible copy of the title and line holds the space. */
 .s-hero-spacer {
   visibility: hidden;
