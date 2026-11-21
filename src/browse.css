@@ -372,6 +372,12 @@
   overflow: hidden;
 }
 
+/* Opened from the New Arrivals poster: it takes the pointer, and a click opens the film. */
+.bz-peek.is-live {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .bz-peek.is-empty {
   opacity: 0;
   visibility: hidden;
@@ -474,7 +480,8 @@
 
 .bz-peek-poster {
   display: block;
-  width: min(100%, calc((100svh - 400px) * 2 / 3));
+  /* Leaves room underneath for the one-line description (up to three lines). */
+  width: min(100%, calc((100svh - 470px) * 2 / 3));
   min-width: 160px;
   margin-bottom: 16px;
   height: auto;

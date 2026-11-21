@@ -127,6 +127,7 @@ function Browse() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Card | null>(null);
   const [peek, setPeek] = useState<Card | null>(null); // hovered or focused spine, shown in the panel on the right
+  const [peekFromShow, setPeekFromShow] = useState(false); // the panel was opened from the New Arrivals poster
   const lastSpine = useRef<HTMLButtonElement | null>(null);
   // Watch Later: ids of the films this person saved (signed in only).
   const [saved, setSaved] = useState<Set<number>>(new Set());
@@ -250,7 +251,10 @@ function Browse() {
                 <Spine
                   film={f}
                   current={open?.id === f.id}
-                  onPeek={() => setPeek(f)}
+                  onPeek={() => {
+                    setPeek(f);
+                    setPeekFromShow(false);
+                  }}
                   onOpen={(el) => {
                     lastSpine.current = el;
                     setOpen(f);
@@ -418,8 +422,23 @@ function Browse() {
                   ? pile(aisle || "Search", shown, "results")
                   : sections.map((sec) => pile(sec.title, sec.films, sec.key))}
               </div>
-              <NewArrivalsShow films={films.slice(0, NEW_MAX)} hidden={!!peek} />
-              <Peek film={peek} />
+              <NewArrivalsShow
+                films={films.slice(0, NEW_MAX)}
+                hidden={!!peek}
+                onPeek={(f) => {
+                  setPeek(f);
+                  setPeekFromShow(true);
+                }}
+              />
+              {/* Opened from the slideshow poster: the box takes the pointer (click = watch page, leave = close). */}
+              <Peek
+                film={peek}
+                live={peekFromShow}
+                onLeave={() => {
+                  setPeek(null);
+                  setPeekFromShow(false);
+                }}
+              />
             </div>
           )}
         </div>
@@ -501,7 +520,7 @@ function Spine({
 // Top right while nothing is hovered: the New Arrivals posters, fading from one to the next. It steps aside
 // (fades out) whenever a spine's info box is showing in the same spot.
 const SHOW_EVERY_MS = 4000;
-function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) {
+function NewArrivalsShow({ films, hidden, onPeek }: { films: Card[]; hidden: boolean; onPeek: (f: Card) => void }) {
   const posters = films.filter((f) => f.poster_url);
   // The current poster, and the one leaving (it turns away to the left while the next turns in from the right).
   const [{ i, prev }, setStep] = useState<{ i: number; prev: number | null }>({ i: 0, prev: null });
@@ -527,8 +546,8 @@ function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) 
         href={href(now)}
         aria-label={`Watch ${now.title}`}
         tabIndex={hidden ? -1 : undefined}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
+        // Hover: this film's info box opens in the same spot (the slideshow holds still behind it).
+        onMouseEnter={() => onPeek(now)}
         onFocus={() => setPaused(true)}
         onBlur={() => setPaused(false)}
       >
@@ -547,7 +566,7 @@ function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) 
   );
 }
 
-function Peek({ film: f }: { film: Card | null }) {
+function Peek({ film: f, live = false, onLeave }: { film: Card | null; live?: boolean; onLeave?: () => void }) {
   // Nothing hovered: the panel fades away.
   if (!f) return <aside className="bz-peek is-empty" aria-hidden="true" />;
   const details = [f.year, f.runtime_minutes && `${f.runtime_minutes} min`, f.genre, f.languages].filter(Boolean).join(", ");
@@ -557,10 +576,15 @@ function Peek({ film: f }: { film: Card | null }) {
     f.free_watch && "Free to Watch",
   ].filter(Boolean) as string[];
   const donations = acceptsDonations(f) ? donationLine(f) : "";
-  const paragraphs = (f.synopsis || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   const credits = f.credits.filter((c) => !/^directors?$/i.test(c.role)); // the director is already up top
   return (
-    <aside className="bz-peek" aria-hidden="true">
+    <aside
+      className={`bz-peek${live ? " is-live" : ""}`}
+      aria-hidden="true"
+      // From the slideshow poster: the box itself is the link to the film, and closes when the pointer leaves.
+      onClick={live ? () => location.assign(href(f)) : undefined}
+      onMouseLeave={live ? onLeave : undefined}
+    >
       <div className="bz-peek-head">
         {f.poster_url && <img className="bz-peek-poster" src={f.poster_url} alt="" width={400} height={600} />}
         <div>
@@ -582,13 +606,14 @@ function Peek({ film: f }: { film: Card | null }) {
               Accepts Donations
             </p>
           )}
-          <p className="bz-peek-hint">{f.trailer_url ? "Click the spine for the trailer" : "Click the spine for details"}</p>
+          <p className="bz-peek-hint">
+            {live ? "Click to watch" : f.trailer_url ? "Click the spine for the trailer" : "Click the spine for details"}
+          </p>
         </div>
       </div>
       <div className="bz-peek-more">
+        {/* The one-line description only; the full synopsis is in the pop-up. */}
         {f.logline && <p className="bz-peek-log">{f.logline}</p>}
-        {/* A taste of the synopsis: the first paragraph, ending in "…" if it's long (the pop-up has it all). */}
-        {paragraphs[0] && <p className="bz-peek-syn">{paragraphs[0]}</p>}
         {credits.length > 0 && (
           <dl className="bz-peek-credits">
             {credits.map((c) => (
