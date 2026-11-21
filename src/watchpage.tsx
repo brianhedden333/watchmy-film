@@ -185,10 +185,6 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
     setShowOptions(false);
     requestAnimationFrame(() => document.querySelector(".s-stage")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
-  const close = () => {
-    setWatching(null);
-    setShowOptions(false);
-  };
 
   // The poster and the boxes sit inside the 16:9 screen. If the boxes would run past its bottom (narrow
   // windows, phones, lots of options), switch to "stacked": the poster stays on the screen, the boxes go below.
@@ -452,7 +448,6 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
                   finish={finish}
                   endsAt={live ? acc?.ends_at ?? null : null}
                   onSwitch={setWatching}
-                  onClose={close}
                 />
               </div>
             </>
@@ -690,8 +685,8 @@ function AlreadyPaid({ startOpen = false }: { startOpen?: boolean }) {
 
 // What a viewer gets after paying: the film in a large player where the poster and price boxes were,
 // their access terms, and the bonus features for what they bought, playable in the same player.
-function ScreeningRoom({ film: f, kind, admin, days, finish, endsAt, onSwitch, onClose }: {
-  film: Film; kind: "rent" | "buy" | "free"; admin: boolean; days: number; finish: string; endsAt?: string | null; onSwitch: (k: "rent" | "buy") => void; onClose: () => void;
+function ScreeningRoom({ film: f, kind, admin, days, finish, endsAt, onSwitch }: {
+  film: Film; kind: "rent" | "buy" | "free"; admin: boolean; days: number; finish: string; endsAt?: string | null; onSwitch: (k: "rent" | "buy") => void;
 }) {
   // Free viewing is the film alone: bonus features come with a rental or purchase.
   const items = [{ title: "The film", url: f.vimeo_url || "" }, ...(kind === "free" ? [] : f.bonus[kind].videos)];
@@ -703,22 +698,20 @@ function ScreeningRoom({ film: f, kind, admin, days, finish, endsAt, onSwitch, o
 
   return (
     <section className="s-screen" aria-label={`Watching ${f.title}`}>
-      <div className="s-screen-admin">
-        {admin &&
-          (kind === "free" ? (
+      {admin && (
+        <div className="s-screen-admin">
+          {kind === "free" ? (
             <span>Admin view: what anyone sees when they watch free.</span>
           ) : (
             <span>Admin view: what a {kind === "rent" ? "renter" : "buyer"} sees after paying.</span>
-          ))}
-        {admin && both && kind !== "free" && (
-          <button type="button" className="link-btn" onClick={() => onSwitch(kind === "rent" ? "buy" : "rent")}>
-            Show the {kind === "rent" ? "buyer" : "renter"} view
-          </button>
-        )}
-        <button type="button" className="link-btn" onClick={onClose}>
-          Show purchase options
-        </button>
-      </div>
+          )}
+          {both && kind !== "free" && (
+            <button type="button" className="link-btn" onClick={() => onSwitch(kind === "rent" ? "buy" : "rent")}>
+              Show the {kind === "rent" ? "buyer" : "renter"} view
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="s-player">
         {src ? (
