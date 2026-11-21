@@ -1067,15 +1067,24 @@
   min-height: 0;
   overflow: hidden;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: safe center;
   gap: 16px;
 }
 
+/* Rent, Buy, Pay what you want and Watch free are equal boxes in one grid (two across). */
 .s-offers .s-extras {
+  display: contents;
+}
+
+.s-offers > :only-child {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+}
+
+@media (max-width: 680px) {
+  .s-offers {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Compact boxes on the screen. */
@@ -1478,6 +1487,16 @@
 .s-already-row .s-btn {
   flex: none;
   width: auto;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* The email field and its button are the same height, side by side or stacked. */
+.s-already-row .s-btn,
+.s-already-row input {
+  box-sizing: border-box;
+  height: 52px;
   padding-left: 22px;
   padding-right: 22px;
 }
