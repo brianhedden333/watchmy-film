@@ -889,6 +889,38 @@
   color: var(--text-soft);
 }
 
+/* Each missing item jumps to its field. */
+.missing-link {
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.missing-link:hover {
+  color: #fceb7e;
+}
+
+/* The field you jumped to glows gold for a moment. */
+.jump-flash {
+  animation: jump-flash 1.6s ease-out;
+  border-radius: 8px;
+}
+
+@keyframes jump-flash {
+  0%, 30% { box-shadow: 0 0 0 3px #fceb7e; }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jump-flash {
+    animation: none;
+    box-shadow: 0 0 0 3px #fceb7e;
+  }
+}
+
 .missing ul {
   margin: 0;
   padding-left: 18px;

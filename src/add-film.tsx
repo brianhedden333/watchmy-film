@@ -326,6 +326,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
       value={form[k]}
       onChange={set(k)}
       disabled={linkLocked && k === "vimeo_url"}
+      name={k}
       {...opts}
     />
   );
@@ -384,7 +385,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             {field("genre", "Genre", { placeholder: "Documentary" })}
           </fieldset>
 
-          <fieldset>
+          <fieldset id="sec-images">
             <legend>Images</legend>
             <p className="fieldset-hint">
               The poster and wide image are required. The poster shows on desktop; the wide image shows on phones and when your
@@ -424,7 +425,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             </div>
           </fieldset>
 
-          <fieldset>
+          <fieldset id="sec-address">
             <legend>Web address</legend>
             <Choice
               name="address_type"
@@ -447,7 +448,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             />
           </fieldset>
 
-          <fieldset>
+          <fieldset id="sec-prices">
             <legend>Prices</legend>
             <p className="fieldset-hint">
               Turn on any mix of renting, buying and donations. Or leave them all off and use the Tip jar below (Venmo,
@@ -660,6 +661,52 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
         <SetupCard film={film} meta={meta} dirty={dirty} save={save} onChange={onChange} stripe={stripe} onStripe={onStripe} />
       </div>
     </div>
+  );
+}
+
+// "Add these first": each missing item jumps to its field (or section), focuses it and flashes it briefly.
+// Keyed by the labels server/src/films.js sends in film.missing (LABELS there).
+const MISSING_TARGETS: Record<string, string> = {
+  Title: '[name="title"]',
+  Synopsis: '[name="synopsis"]',
+  Poster: "#img-poster",
+  "Wide image": "#img-still",
+  "Film link (Vimeo or YouTube)": '[name="vimeo_url"]',
+  "Web address": "#sec-address",
+};
+const targetFor = (label: string) => MISSING_TARGETS[label] || (/price|free viewing|tip jar/i.test(label) ? "#sec-prices" : null);
+
+function jumpTo(selector: string) {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  const focusable = el.matches("input, textarea, select") ? el : el.querySelector<HTMLElement>("input:not([type=hidden]), textarea, select, button");
+  focusable?.focus({ preventScroll: true });
+  const box = el.closest(".field, .poster-up, fieldset") || el;
+  box.classList.remove("jump-flash");
+  void (box as HTMLElement).offsetWidth; // restart the animation if clicked twice
+  box.classList.add("jump-flash");
+  setTimeout(() => box.classList.remove("jump-flash"), 1600);
+}
+
+function MissingList({ items }: { items: string[] }) {
+  return (
+    <ul>
+      {items.map((m) => {
+        const target = targetFor(m);
+        return (
+          <li key={m}>
+            {target ? (
+              <button type="button" className="link-btn missing-link" onClick={() => jumpTo(target)}>
+                {m}
+              </button>
+            ) : (
+              m
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -1497,11 +1544,7 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
         {!ready && (
           <div className="missing">
             <p>Add these first:</p>
-            <ul>
-              {film.missing.map((m) => (
-                <li key={m}>{m}</li>
-              ))}
-            </ul>
+            <MissingList items={film.missing} />
           </div>
         )}
         <button type="button" className="btn setup-pay" onClick={submit} disabled={!ready || !!busy}>
@@ -1522,11 +1565,7 @@ function SetupCard({ film, meta, dirty, save, onChange, stripe, onStripe }: { fi
         {!ready && (
           <div className="missing">
             <p>Add these first:</p>
-            <ul>
-              {film.missing.map((m) => (
-                <li key={m}>{m}</li>
-              ))}
-            </ul>
+            <MissingList items={film.missing} />
           </div>
         )}
         <button type="button" className="btn setup-pay" onClick={pay} disabled={!ready || !!busy || !meta.checkoutEnabled}>
@@ -1613,7 +1652,7 @@ function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IM
   }
 
   return (
-    <div className="poster-up">
+    <div className="poster-up" id={`img-${kind}`}>
       <div className={`poster-frame ${kind}`}>{src ? <img src={src} alt={`${film.title} ${k.label}`} /> : <span>{k.empty}</span>}</div>
       <div>
         <label htmlFor={id} className={`btn btn-red btn-small${disabled ? " is-disabled" : ""}`}>
@@ -1627,12 +1666,13 @@ function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IM
   );
 }
 
-function Field({ label, hint, error, value, onChange, disabled, type = "text", placeholder, multiline, prefix, suffix, inputMode }: {
+function Field({ label, hint, error, value, onChange, disabled, type = "text", placeholder, multiline, prefix, suffix, inputMode, name }: {
   label: string; hint?: ReactNode; error?: string; value: string; onChange: (v: string) => void; disabled?: boolean;
   type?: string; placeholder?: string; multiline?: number; prefix?: string; suffix?: string; inputMode?: "decimal" | "numeric";
+  name?: string; // lets "Add these first" jump to the field
 }) {
   const id = useId();
-  const common = { id, value, disabled, placeholder, "aria-invalid": !!error, "aria-describedby": hint || error ? `${id}-d` : undefined };
+  const common = { id, name, value, disabled, placeholder, "aria-invalid": !!error, "aria-describedby": hint || error ? `${id}-d` : undefined };
   return (
     <div className={`field${error ? " has-err" : ""}`}>
       <label htmlFor={id}>{label}</label>
