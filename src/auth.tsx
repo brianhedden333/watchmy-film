@@ -38,6 +38,8 @@ const go = (next: string) => {
 
 export function AuthPage({ mode }: { mode: "signup" | "signin" }) {
   const token = mode === "signin" ? new URLSearchParams(location.search).get("token") : null;
+  // The same sign-in page serves both sites: on indiefilm.club the tab says so.
+  if (onClub() && mode === "signin") document.title = `Sign in | ${CLUB_NAME}`;
   return (
     <div className="signup">
       <header className="signup-head">

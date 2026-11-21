@@ -136,7 +136,7 @@ watchRouter.get("/page", (req, res) => {
 
   let head;
   if (!film) {
-    head = `<title>Film not found | ${esc(config.siteName)}</title><meta name="robots" content="noindex">`;
+    head = `<title>Film not found | ${esc(config.clubName)}</title><meta name="robots" content="noindex">`;
   } else {
     const title = film.hidden ? `${film.title}` : `Watch ${film.title}`;
     const desc = film.hidden ? "Not available right now. Check back soon." : film.logline || `Rent or buy ${film.title}.`;
