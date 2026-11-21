@@ -127,6 +127,8 @@ function AddFilm() {
   }
 
   const film = data?.films.find((f) => f.id === selected) || null;
+  // Adding another film: show only the empty "new film" box, not the form of the film that was open.
+  const [adding, setAdding] = useState(startAdding);
 
   return (
     <div className="dash">
@@ -138,13 +140,26 @@ function AddFilm() {
         {data && (
           <>
             {data.films.length > 0 && (
-              <FilmTabs films={data.films} selected={selected} startAdding={startAdding} onPick={pick} onAdded={(f) => { setData({ ...data, films: [f, ...data.films] }); pick(f.id); }} />
+              <FilmTabs
+                films={data.films}
+                selected={adding ? null : selected}
+                adding={adding}
+                setAdding={setAdding}
+                onPick={(id) => {
+                  setAdding(false);
+                  pick(id);
+                }}
+                onAdded={(f) => {
+                  setData({ ...data, films: [f, ...data.films] });
+                  pick(f.id);
+                }}
+              />
             )}
             {notice && <p className="dash-notice" role="status">{notice}</p>}
             {data.films.length === 0 ? (
               <NewFilm onCreated={(f) => { setData({ ...data, films: [f] }); pick(f.id); }} />
             ) : (
-              film && <FilmView key={film.id} film={film} meta={data} onChange={replaceFilm} stripe={user?.connect ?? null} onStripe={(c) => setUser((u) => (u ? { ...u, connect: c } : u))} />
+              !adding && film && <FilmView key={film.id} film={film} meta={data} onChange={replaceFilm} stripe={user?.connect ?? null} onStripe={(c) => setUser((u) => (u ? { ...u, connect: c } : u))} />
             )}
           </>
         )}
@@ -153,8 +168,9 @@ function AddFilm() {
   );
 }
 
-function FilmTabs({ films, selected, startAdding, onPick, onAdded }: { films: Film[]; selected: number | null; startAdding: boolean; onPick: (id: number) => void; onAdded: (f: Film) => void }) {
-  const [adding, setAdding] = useState(startAdding);
+function FilmTabs({ films, selected, adding, setAdding, onPick, onAdded }: {
+  films: Film[]; selected: number | null; adding: boolean; setAdding: (v: boolean) => void; onPick: (id: number) => void; onAdded: (f: Film) => void;
+}) {
   return (
     <div className="film-tabs">
       <div className="film-tabs-list" role="tablist" aria-label="Your films">
