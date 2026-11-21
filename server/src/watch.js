@@ -74,6 +74,7 @@ function viewerFilm(row) {
     tip_paypal: f.tip_paypal,
     tip_zelle: f.tip_zelle,
     free_watch: f.free_watch,
+    hide_title: f.hide_title,
     vimeo_url: f.free_watch ? f.vimeo_url : null,
     // Titles and descriptions only: the videos themselves are what people pay for.
     bonus: {

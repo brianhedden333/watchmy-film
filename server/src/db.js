@@ -254,6 +254,12 @@ const MIGRATIONS = [
   CREATE UNIQUE INDEX films_subdomain_unique ON films(subdomain) WHERE subdomain IS NOT NULL AND deleted_at IS NULL;
   CREATE UNIQUE INDEX films_own_domain_unique ON films(own_domain) WHERE own_domain IS NOT NULL AND deleted_at IS NULL;
   `,
+  `
+  -- Site design: hide the title (and one-line description) over the banner, so the banner shows as a plain image.
+  ALTER TABLE films ADD COLUMN hide_title INTEGER NOT NULL DEFAULT 0;
+  -- The buyer agreed (at checkout, on the watch page) that the filmmaker may contact them. 1 = yes, 0 = no.
+  ALTER TABLE payments ADD COLUMN contact_ok INTEGER;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

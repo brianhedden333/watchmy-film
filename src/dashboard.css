@@ -2342,6 +2342,16 @@ a.library-poster:focus-visible {
   margin-top: 14px;
 }
 
+.sales-contact {
+  display: block;
+  font-size: 11px;
+  color: var(--text-soft);
+}
+
+.sales-contact.is-ok {
+  color: #b4e89a;
+}
+
 .sales-status {
   display: block;
   font-size: 11px;

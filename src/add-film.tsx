@@ -25,7 +25,7 @@ const TEXT_FIELDS = [
   "color_background", "color_primary", "color_secondary", "color_button",
   "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle",
 ] as const;
-type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable", string>;
+type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable" | "hide_title", string>;
 
 function toForm(f: Film): FormState {
   const out = {} as FormState;
@@ -39,6 +39,7 @@ function toForm(f: Film): FormState {
   out.pwyw_min = (f.pwyw_min_cents / 100).toFixed(2);
   out.pwyw_suggested = f.pwyw_suggested_cents == null ? "" : (f.pwyw_suggested_cents / 100).toFixed(2);
   out.free_watch = f.free_watch ? "1" : "";
+  out.hide_title = f.hide_title ? "1" : "";
   out.discoverable = f.discoverable ? "1" : "";
   return out;
 }
@@ -71,6 +72,7 @@ function toBody(s: FormState, credits: Credit[], bonus: Bonus, tags: string[]) {
   body.pwyw_min_cents = cents(s.pwyw_min);
   body.pwyw_suggested_cents = cents(s.pwyw_suggested);
   body.free_watch = s.free_watch ? 1 : 0;
+  body.hide_title = s.hide_title ? 1 : 0;
   body.discoverable = s.discoverable ? 1 : 0;
   return body;
 }
@@ -422,6 +424,18 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
                 ))}
               </div>
               <DesignPreview form={form} />
+            </div>
+            <div className="pwyw">
+              <label className="pwyw-toggle">
+                <input type="checkbox" checked={!!form.hide_title} onChange={(e) => set("hide_title")(e.target.checked ? "1" : "")} />
+                <span>
+                  <strong>Hide the title on the banner</strong>
+                  <span className="hint">
+                    For a banner that already shows your title. The banner appears as a plain image, without the title, the one-line
+                    description, or the dark fade behind them.
+                  </span>
+                </span>
+              </label>
             </div>
           </fieldset>
 

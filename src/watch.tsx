@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { pageTheme, type Film } from "./films";
+import { site } from "./config";
 import { HoldingPage, WatchPage } from "./watchpage";
 import "./styles.css";
 import "./sample.css";
@@ -39,6 +40,7 @@ function Watch() {
   return (
     <div className="sample" style={pageTheme(film)}>
       {film.hidden ? <HoldingPage film={film} /> : <WatchPage film={film} mode="public" />}
+      <AboutUs />
       <footer className="watch-foot">
         <a className="watch-foot-brand" href={MAIN_SITE} aria-label="Powered by WatchMyFilm.Online">
           <span>Powered by</span>
@@ -49,6 +51,39 @@ function Watch() {
         </p>
       </footer>
     </div>
+  );
+}
+
+// Banner at the bottom of every film page: who we are, and an invitation to chip in.
+function AboutUs() {
+  return (
+    <section className="watch-about" aria-labelledby="watch-about-h">
+      <div className="watch-about-inner">
+        <div>
+          <h2 id="watch-about-h">This film is sold direct by its filmmaker</h2>
+          <p>
+            watchmyfilm.online is a small, grassroots service built by filmmakers for filmmakers. We take a minimal margin on
+            each sale, so as much of what you pay as possible goes straight to the people who made the film. No investors, no
+            ads, no monthly fees.
+          </p>
+          <p>Enjoying independent film sold on its makers' own terms? Help keep our projectors running.</p>
+        </div>
+        <div className="watch-about-act">
+          {site.donateUrl ? (
+            <>
+              <a className="watch-about-btn" href={site.donateUrl} target="_blank" rel="noopener">
+                Donate to watchmyfilm
+              </a>
+              <p>Any amount. Secure checkout by Stripe. Not tax-deductible.</p>
+            </>
+          ) : (
+            <a className="watch-about-btn" href={MAIN_SITE}>
+              About watchmyfilm
+            </a>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

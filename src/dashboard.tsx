@@ -129,6 +129,8 @@ type Sale = {
   film_id: number;
   film_title: string;
   kind: "rent" | "buy" | "pwyw";
+  buyer_email: string | null;
+  contact_ok: boolean; // ticked "Let the filmmaker contact me" at checkout
   amount: number;
   refunded: number;
   status: "refunded" | "partly_refunded" | "disputed" | null;
@@ -205,6 +207,7 @@ function Sales() {
                   <th scope="col">Date</th>
                   {several && <th scope="col">Film</th>}
                   <th scope="col">Type</th>
+                  <th scope="col">Buyer</th>
                   <th scope="col" className="num">Paid</th>
                   <th scope="col" className="num">Stripe fee</th>
                   <th scope="col" className="num">Our fee</th>
@@ -224,6 +227,12 @@ function Sales() {
                           {s.status === "partly_refunded" && ` (${money(s.refunded)})`}
                         </span>
                       )}
+                    </td>
+                    <td className="sales-buyer">
+                      {s.buyer_email || "—"}
+                      <span className={s.contact_ok ? "sales-contact is-ok" : "sales-contact"}>
+                        {s.contact_ok ? "✓ OK to contact" : "Didn't opt in"}
+                      </span>
                     </td>
                     <td className="num">{money(s.amount)}</td>
                     <td className="num">{money(s.stripe_fee)}</td>

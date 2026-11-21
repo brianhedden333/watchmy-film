@@ -746,6 +746,70 @@
 /* ---------- Live watch page (/watch/ at a film's address) ---------- */
 
 /* Our footer on every live film page. Always a black band, so the white logo shows whatever the film's colors are. */
+/* About us + donate band above the footer, in watchmyfilm's own look (same as the home page's donate band). */
+.watch-about {
+  margin-top: 48px;
+  padding: 44px var(--gutter);
+  background: #1e3518;
+  color: rgba(237, 232, 223, 0.82);
+}
+
+.watch-about-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
+}
+
+.watch-about h2 {
+  margin: 0 0 12px;
+  font-size: clamp(22px, 2.4vw, 28px);
+  color: #ede8df;
+}
+
+.watch-about p {
+  margin: 0 0 10px;
+  line-height: 1.55;
+}
+
+.watch-about-act {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.watch-about-act p {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(237, 232, 223, 0.65);
+}
+
+.watch-about-btn {
+  display: inline-block;
+  padding: 14px 24px;
+  border-radius: 4px;
+  background: #b4e89a;
+  color: #000;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.watch-about-btn:hover {
+  background: #c9f1b5;
+}
+
+.watch-about + .watch-foot {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .watch-about-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
 .watch-foot {
   margin-top: 48px;
   padding: 32px var(--gutter) 36px;
@@ -961,5 +1025,315 @@
   .s-already-row {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+/* ---------- The stage: a big blurred "screen" with the poster and options in front ---------- */
+
+.s-page {
+  background: var(--s-bg);
+  transition: background-color 0.8s ease;
+}
+
+.s-stage {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 56px;
+  padding: clamp(18px, 3vw, 40px);
+  border-radius: 18px;
+}
+
+.s-stage .s-buy {
+  margin-bottom: 0;
+}
+
+/* The screen: the wide image, blurred and dimmed, framed like a cinema screen. */
+.s-stage-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #000;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: opacity 0.8s ease;
+}
+
+.s-stage-screen {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(22px) brightness(0.42) saturate(1.15);
+}
+
+/* A faint play mark in the middle of the screen, behind everything. */
+.s-stage-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(90px, 14vw, 200px);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+/* ---------- Watching: the player takes the screen, the rest slides down, the lights dim ---------- */
+
+.s-stage-player {
+  animation: s-reveal 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  overflow: hidden;
+}
+
+.s-stage-player .s-screen {
+  margin-bottom: 28px;
+}
+
+.s-buy.s-buy-down {
+  animation: s-slide-down 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes s-reveal {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 2000px; opacity: 1; }
+}
+
+@keyframes s-slide-down {
+  from { transform: translateY(-60px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Options shrunk to one button while watching: smaller poster, then the button and the tip jar. */
+.s-buy.is-collapsed {
+  grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.s-buy.is-collapsed .s-poster {
+  grid-row: auto;
+  aspect-ratio: 2 / 3;
+  height: auto;
+}
+
+.s-options-collapsed {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  justify-items: start;
+}
+
+.s-options-collapsed .s-tips {
+  text-align: left;
+  width: 100%;
+}
+
+.s-btn.s-btn-quiet {
+  width: auto;
+  padding-left: 28px;
+  padding-right: 28px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: var(--s-head);
+}
+
+.s-btn.s-btn-quiet:hover {
+  border-color: var(--s-head);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* House lights down: page and header fade to black; the screen's glow dims. */
+.s-page.lights-off {
+  background-color: #000;
+}
+
+.s-hero {
+  transition: filter 0.8s ease, opacity 0.8s ease;
+}
+
+.lights-off .s-hero {
+  filter: brightness(0.12);
+}
+
+.lights-off .s-stage-bg {
+  opacity: 0.2;
+}
+
+.lights-off .s-narrow,
+.lights-off .s-flash,
+.lights-off .s-noacct {
+  opacity: 0.3;
+  transition: opacity 0.8s ease;
+}
+
+/* The lightbulb: small and subtle, top right of the stage. */
+.s-lights {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.s-lights:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.s-lights.is-on {
+  border-color: rgba(252, 235, 126, 0.5);
+}
+
+/* ---------- Contact opt-in (above the buying options) ---------- */
+
+.s-optin {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 -8px;
+  font-size: 14px;
+  color: var(--s-text);
+  cursor: pointer;
+}
+
+.s-optin input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--s-red);
+}
+
+/* ---------- Our logo, top right, with a menu on hover ---------- */
+
+.s-hero {
+  position: relative;
+}
+
+.s-brand {
+  position: absolute;
+  top: 14px;
+  right: var(--gutter);
+  z-index: 3;
+}
+
+.s-brand-logo {
+  display: block;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.s-brand-logo img {
+  display: block;
+  width: 120px;
+  height: auto;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.s-brand:hover .s-brand-logo img,
+.s-brand:focus-within .s-brand-logo img {
+  opacity: 1;
+}
+
+.s-brand-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  display: grid;
+  min-width: 170px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+}
+
+.s-brand:hover .s-brand-menu,
+.s-brand:focus-within .s-brand-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.s-brand-menu a {
+  padding: 9px 12px;
+  border-radius: 5px;
+  color: #ede8df;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.s-brand-menu a:hover,
+.s-brand-menu a:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Title hidden (Site design): the banner shows as a plain image ---------- */
+
+.s-hero.s-hero-clean {
+  min-height: 0;
+  aspect-ratio: 3 / 1;
+  max-height: 520px;
+  padding: 0;
+}
+
+.s-hero.s-hero-clean::before {
+  display: none;
+}
+
+/* Watching: a little headroom at the top of the stage for the lightbulb, clear of "Back to the film page". */
+.s-stage.is-watching {
+  padding-top: 58px;
+}
+
+.watch-about h2 {
+  max-width: none;
+}
+
+@media (max-width: 680px) {
+  .s-hero:not(.s-hero-clean) {
+    padding-top: 64px; /* clear of the logo, top right */
+  }
+  .s-buy.is-collapsed {
+    grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
+  }
+  .s-optin {
+    grid-column: 1 / -1;
+  }
+  .s-brand-logo img {
+    width: 96px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .s-optin {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s-stage-player,
+  .s-buy.s-buy-down {
+    animation: none;
+  }
+  .s-page,
+  .s-hero,
+  .s-stage-bg {
+    transition: none;
   }
 }

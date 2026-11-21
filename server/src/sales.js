@@ -124,11 +124,11 @@ export async function settleSale(session, account) {
     const info = db
       .prepare(
         `INSERT INTO payments (film_id, user_id, purpose, stripe_session_id, stripe_payment_intent, amount_cents,
-                               sale_kind, connect_account, application_fee_cents, setup_surcharge_cents)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                               sale_kind, connect_account, application_fee_cents, setup_surcharge_cents, contact_ok)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(film.id, viewer.id, access, session.id, String(session.payment_intent || ""), session.amount_total,
-           session.metadata.kind, account, fee, surcharge);
+           session.metadata.kind, account, fee, surcharge, session.metadata.contact_ok === "0" ? 0 : 1);
     if (surcharge) {
       db.prepare("UPDATE films SET setup_recovered_cents = MIN(?, setup_recovered_cents + ?) WHERE id = ?").run(config.setupFeeCents, surcharge, film.id);
     }
@@ -219,7 +219,8 @@ filmmakerSalesRouter.get("/", async (req, res) => {
   if (!req.user) return res.status(401).json({ error: "Please sign in." });
   const rows = db
     .prepare(
-      `SELECT p.*, f.title AS film_title FROM payments p JOIN films f ON f.id = p.film_id
+      `SELECT p.*, f.title AS film_title, u.email AS buyer_email FROM payments p JOIN films f ON f.id = p.film_id
+       LEFT JOIN users u ON u.id = p.user_id
        WHERE f.user_id = ? AND p.sale_kind IS NOT NULL ORDER BY p.created_at DESC LIMIT 500`
     )
     .all(req.user.id);
@@ -243,6 +244,9 @@ filmmakerSalesRouter.get("/", async (req, res) => {
       film_id: r.film_id,
       film_title: r.film_title,
       kind: r.sale_kind,
+      // The buyer's email (the filmmaker also sees it in their Stripe Dashboard) and whether they agreed to be contacted.
+      buyer_email: r.buyer_email || null,
+      contact_ok: r.contact_ok === 1,
       amount: r.amount_cents,
       refunded: r.refunded_cents ?? 0,
       status,
@@ -322,7 +326,9 @@ salesRouter.post("/checkout", rateLimit({ windowMs: 10 * 60_000, max: 20 }), asy
   const { fee, surcharge } = feeFor(film, amount);
   const name =
     access === "buy" ? `${film.title} (yours to keep)` : `${film.title} (rental: ${rentalDays(film)} days to start, ${watchDays(film)} ${watchDays(film) === 1 ? "day" : "days"} to finish)`;
-  const meta = { app: APP, purpose: "viewer_sale", film_id: String(film.id), kind, access, fee: String(fee), surcharge: String(surcharge) };
+  // contact_ok: the "the filmmaker may contact me" box on the watch page (ticked by default).
+  const contactOk = req.body.contact_ok === false ? "0" : "1";
+  const meta = { app: APP, purpose: "viewer_sale", film_id: String(film.id), kind, access, fee: String(fee), surcharge: String(surcharge), contact_ok: contactOk };
   const origin = originOf(req);
   try {
     const session = await stripe.checkout.sessions.create(

@@ -175,9 +175,21 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
   const [tried, setTried] = useState("");
   // Admins skip checkout: Rent/Buy opens the screening room a renter or buyer would get.
   const [watching, setWatching] = useState<"rent" | "buy" | "free" | null>(null);
+  // Watching: the house lights go down (page and header dim to black); the lightbulb brings them back up.
+  const [lightsOff, setLightsOff] = useState(true);
+  // Watching: the buying options shrink to a "See purchase options" button.
+  const [showOptions, setShowOptions] = useState(false);
+  // "The filmmaker may contact me", sent with checkout. Ticked by default.
+  const [contactOk, setContactOk] = useState(true);
   const open = (kind: "rent" | "buy" | "free") => {
     setWatching(kind);
-    requestAnimationFrame(() => document.querySelector(".s-main")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    setLightsOff(true);
+    setShowOptions(false);
+    requestAnimationFrame(() => document.querySelector(".s-stage")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  const close = () => {
+    setWatching(null);
+    setShowOptions(false);
   };
 
   // ----- Live page: buying and watching -----
@@ -208,6 +220,8 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
           else {
             setAcc(r);
             setFlash("Thanks for your purchase! Enjoy the film.");
+            // Straight to the film: options collapse, the player slides in and the lights go down.
+            if (r.access) startWatching(r);
           }
           setJustBought(true);
         } else if (signin) {
@@ -234,7 +248,7 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
     setBusy(kind);
     setError("");
     try {
-      const r = await api<{ url: string }>("/watch/checkout", { body: { kind, amount_cents: amountCents } });
+      const r = await api<{ url: string }>("/watch/checkout", { body: { kind, amount_cents: amountCents, contact_ok: contactOk } });
       location.assign(r.url);
       await new Promise(() => {}); // keep the button busy while the browser leaves for Stripe
     } catch (e) {
@@ -243,10 +257,10 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
     }
   }
 
-  // Open what they bought. A rental's hours start on the first play.
-  async function watchBought() {
-    if (!acc?.access) return;
-    if (acc.access === "rent" && !acc.started) {
+  // Open what they bought. A rental's time starts on the first play.
+  async function startWatching(a: Access | null) {
+    if (!a?.access) return;
+    if (a.access === "rent" && !a.started) {
       try {
         setAcc(await api<Access>("/watch/start", { body: {} }));
       } catch (e) {
@@ -254,8 +268,9 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
         return;
       }
     }
-    open(acc.access);
+    open(a.access);
   }
+  const watchBought = () => startWatching(acc);
 
   // The film as the screening room needs it: on the live page, the links come from the viewer's access.
   const roomFilm: Film =
@@ -338,16 +353,25 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
     </>
   );
 
+  // The blurred "screen" behind the poster and options: the wide image, else the banner, else the poster.
+  const screenImg = f.still_url || f.banner_url || f.poster_url;
+  const cleanHero = !!(f.hide_title && hero);
+
   return (
-    <>
+    <div className={`s-page${watching ? " is-watching" : ""}${watching && lightsOff ? " lights-off" : ""}`}>
       <section
-        className={`s-hero ${hero ? "" : "preview-no-still"}`}
+        className={`s-hero${hero ? "" : " preview-no-still"}${cleanHero ? " s-hero-clean" : ""}`}
         style={hero ? { backgroundImage: `url(${hero})` } : undefined}
       >
-        <div className="s-wrap">
-          <h1>{f.title}</h1>
-          <p>{f.logline || "Watch Now"}</p>
-        </div>
+        <BrandMenu />
+        {cleanHero ? (
+          <h1 className="visually-hidden">{f.title}</h1>
+        ) : (
+          <div className="s-wrap">
+            <h1>{f.title}</h1>
+            <p>{f.logline || "Watch Now"}</p>
+          </div>
+        )}
       </section>
 
       <main className="s-wrap s-main">
@@ -390,23 +414,60 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
             </button>
           </div>
         )}
-        {watching ? (
-          <ScreeningRoom
-            film={canWatch ? f : roomFilm}
-            kind={watching}
-            admin={canWatch}
-            days={days}
-            finish={finish}
-            endsAt={live ? acc?.ends_at ?? null : null}
-            onSwitch={setWatching}
-            onClose={() => setWatching(null)}
-          />
-        ) : (
-        <div className={`s-buy offers-${offers}${extras ? " has-extras" : ""}`}>
+        {/* The stage: a big blurred "screen" from the wide image, with the poster (left) and the buying and tip
+            options (right) in front. Watching: the player appears on the screen and the rest slides down below it. */}
+        <section className={`s-stage${watching ? " is-watching" : ""}`} aria-label={`${f.title}: watch`}>
+          <div className="s-stage-bg" aria-hidden="true">
+            {screenImg && <div className="s-stage-screen" style={{ backgroundImage: `url(${screenImg})` }} />}
+            {!watching && <span className="s-stage-play">▶</span>}
+          </div>
+          {watching && (
+            <>
+              <button
+                type="button"
+                className={`s-lights${lightsOff ? "" : " is-on"}`}
+                onClick={() => setLightsOff((v) => !v)}
+                aria-pressed={!lightsOff}
+                title={lightsOff ? "Turn the lights back on" : "Dim the lights"}
+              >
+                <BulbIcon on={!lightsOff} />
+                <span className="visually-hidden">{lightsOff ? "Turn the lights on" : "Dim the lights"}</span>
+              </button>
+              <div className="s-stage-player">
+                <ScreeningRoom
+                  film={canWatch ? f : roomFilm}
+                  kind={watching}
+                  admin={canWatch}
+                  days={days}
+                  finish={finish}
+                  endsAt={live ? acc?.ends_at ?? null : null}
+                  onSwitch={setWatching}
+                  onClose={close}
+                />
+              </div>
+            </>
+          )}
+        <div className={`s-buy offers-${offers}${extras ? " has-extras" : ""}${watching ? " s-buy-down" : ""}${watching && !showOptions ? " is-collapsed" : ""}`}>
           {f.poster_url ? (
             <img src={f.poster_url} alt={`${f.title} poster`} className="s-poster" />
           ) : (
             preview && <div className="s-poster preview-missing">Your poster goes here</div>
+          )}
+
+          {watching && !showOptions ? (
+            <div className="s-options-collapsed">
+              <button type="button" className="s-btn s-btn-quiet" onClick={() => setShowOptions(true)}>
+                See purchase options
+              </button>
+              {hasTips && <TipJar film={f} />}
+            </div>
+          ) : (
+          <>
+          {live && !acc?.access && (offers > 0 || f.pwyw_enabled) && (
+            <label className="s-optin">
+              <input type="checkbox" checked={contactOk} onChange={(e) => setContactOk(e.target.checked)} />
+              <span>Let the filmmaker contact me about this film and their future work</span>
+            </label>
           )}
 
           {rent != null && (
@@ -478,8 +539,10 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
             </div>
           )}
           {live && !acc?.access && (offers > 0 || f.pwyw_enabled || askEmail) && <AlreadyPaid startOpen={askEmail} />}
+          </>
+          )}
         </div>
-        )}
+        </section>
 
         <div className="s-narrow">
           {trailer && <h2>Watch the trailer</h2>}
@@ -521,7 +584,43 @@ export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { fil
           )}
         </div>
       </main>
-    </>
+    </div>
+  );
+}
+
+// Our logo, top right of the film's page. Hover (or focus) shows where else to go.
+function BrandMenu() {
+  const main = mainSite();
+  return (
+    <nav className="s-brand" aria-label="watchmyfilm.online">
+      <a className="s-brand-logo" href={`${main}/`} aria-label="watchmyfilm.online">
+        <img src="/brand/watchmyfilm-logo-white.png" alt="" width={600} height={163} />
+      </a>
+      <div className="s-brand-menu">
+        <a href={`${main}/`}>For filmmakers</a>
+        <a href={`${main}/browse/`}>Browse</a>
+      </div>
+    </nav>
+  );
+}
+
+// The lightbulb that turns the house lights back on (or dims them again) while watching.
+function BulbIcon({ on }: { on: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      {on && (
+        <g stroke="#fceb7e" strokeWidth="1.6" strokeLinecap="round">
+          <path d="M12 1.5v1.6M4.2 4.7l1.1 1.1M19.8 4.7l-1.1 1.1M1.8 11h1.6M20.6 11h1.6" />
+        </g>
+      )}
+      <path
+        d="M12 4.5a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V18h5.2v-.7c0-.8.4-1.5 1-2A6 6 0 0 0 12 4.5z"
+        fill={on ? "#fceb7e" : "none"}
+        stroke={on ? "#fceb7e" : "currentColor"}
+        strokeWidth="1.6"
+      />
+      <path d="M9.6 20.2h4.8M10.4 22.2h3.2" stroke={on ? "#fceb7e" : "currentColor"} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -609,12 +708,6 @@ function ScreeningRoom({ film: f, kind, admin, days, finish, endsAt, onSwitch, o
           {kind === "free" || !admin ? "Back to the film page" : "Back to Rent and Buy"}
         </button>
       </div>
-
-      {kind === "free" && (f.tip_venmo || f.tip_paypal || f.tip_zelle) && (
-        <div className="s-screen-tips">
-          <TipJar film={f} />
-        </div>
-      )}
 
       <div className="s-player">
         {src ? (

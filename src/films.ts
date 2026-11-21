@@ -40,6 +40,7 @@ export type Film = {
   tip_paypal: string | null;
   tip_zelle: string | null;
   free_watch: boolean;
+  hide_title?: boolean; // Site design: banner as a plain image, no title over it
   rental_days: number | null;
   rental_watch_days: number | null; // days to finish once a rental is started
   tier: "standard" | "secure";

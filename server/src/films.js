@@ -227,6 +227,7 @@ const FIELDS = {
   tip_zelle: zelle,
   free_watch: flag,
   discoverable: flag,
+  hide_title: flag,
   tags,
   rental_days: int(1, 365),
   // Days to finish once a rental is started (replaced rental_hours, which is no longer used).
@@ -281,6 +282,7 @@ export const publicFilm = (f) => ({
   hidden: !!f.hidden,
   pwyw_enabled: !!f.pwyw_enabled,
   free_watch: !!f.free_watch,
+  hide_title: !!f.hide_title,
   discoverable: !!f.discoverable,
   tags: f.tags ? JSON.parse(f.tags) : [],
   editable: EDITABLE.has(f.status),
