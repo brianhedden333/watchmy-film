@@ -2154,6 +2154,56 @@ a.library-poster:focus-visible {
   color: var(--text, #ede8df);
 }
 
+/* Add-a-film: delete a film (bottom of the form) */
+.delete-film-open {
+  margin: 40px 0 0;
+}
+
+.delete-film-open .link-btn {
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.delete-film {
+  margin-top: 40px;
+  padding: 20px;
+  border: 1px solid #8c1c3a;
+  border-radius: 8px;
+}
+
+.dash .delete-film h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+
+.delete-film p {
+  margin: 0 0 12px;
+}
+
+.delete-film label {
+  display: block;
+  margin: 4px 0 6px;
+  font-weight: 600;
+}
+
+.delete-film-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.btn.btn-danger {
+  background: #8c1c3a;
+  border-color: #8c1c3a;
+  color: #fff;
+}
+
+.btn.btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Dashboard: Sales */
 .sales {
   margin-top: 48px;

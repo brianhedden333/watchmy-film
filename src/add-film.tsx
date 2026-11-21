@@ -637,11 +637,88 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               {saveState === "error" && <span className="field-err" role="alert">{saveError}</span>}
             </div>
           )}
+
+          <DeleteFilm film={film} />
         </form>
 
         <SetupCard film={film} meta={meta} dirty={dirty} save={save} onChange={onChange} stripe={stripe} onStripe={onStripe} />
       </div>
     </div>
+  );
+}
+
+// Delete a film for good, after typing its title. The server refuses films with sales (buyers keep access).
+// Not a <form> of its own (it sits inside the film form), so Enter in the box doesn't submit anything.
+function DeleteFilm({ film }: { film: Film }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const id = useId();
+  const title = film.title.trim();
+  const matches = typed.trim().toLowerCase() === title.toLowerCase();
+
+  async function del() {
+    setBusy(true);
+    setError("");
+    try {
+      await api(`/films/${film.id}`, { method: "DELETE", body: { confirm_title: typed } });
+      location.assign(`${import.meta.env.BASE_URL}dashboard/`);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <p className="delete-film-open">
+        <button type="button" className="link-btn" onClick={() => setOpen(true)}>
+          Delete this film…
+        </button>
+      </p>
+    );
+  }
+  return (
+    <section className="delete-film" aria-labelledby={`${id}-h`}>
+      <h2 id={`${id}-h`}>Delete this film</h2>
+      <p>
+        This permanently deletes <strong>{title}</strong>: its details, images and settings
+        {film.status === "live" ? ", and its watch page stops working" : ""}. It can't be undone. Your Stripe account isn't
+        affected.
+      </p>
+      <p className="small-print">
+        Films that have been rented or bought can't be deleted, because those viewers keep access. Hide the film instead,
+        or email us.
+      </p>
+      <label htmlFor={id}>Type the film's title to confirm</label>
+      <input
+        id={id}
+        value={typed}
+        onChange={(e) => setTyped(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+        placeholder={title}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      <div className="delete-film-actions">
+        <button type="button" className="btn btn-danger" onClick={del} disabled={!matches || busy}>
+          {busy ? "Deleting…" : "Delete film"}
+        </button>
+        <button
+          type="button"
+          className="link-btn"
+          onClick={() => {
+            setOpen(false);
+            setTyped("");
+            setError("");
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+      {error && <p className="field-err" role="alert">{error}</p>}
+    </section>
   );
 }
 

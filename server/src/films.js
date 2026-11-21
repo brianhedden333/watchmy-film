@@ -530,6 +530,28 @@ filmsRouter.post("/:id/go-live", async (req, res) => {
 });
 
 // Hide or show a live film. Hidden: the address shows a holding page instead of the film.
+// Delete a film for good. Only films with no viewer sales: people who rented or bought a film keep access to it
+// (Terms: "for as long as the filmmaker keeps it available"), so those films can be hidden instead.
+// The body must repeat the film's title, as a guard against accidents. Its promo codes and Watch Later entries go
+// with it (ON DELETE CASCADE); older setup-fee payment records keep their amount but lose the link.
+filmsRouter.delete("/:id", (req, res) => {
+  const film = getOwnFilm(req);
+  if (!film) return res.status(404).json({ error: "Film not found." });
+  const sales = db.prepare("SELECT count(*) AS n FROM payments WHERE film_id = ? AND purpose IN ('rent', 'buy')").get(film.id).n;
+  if (sales) {
+    return res.status(409).json({
+      error: "This film has sales, so viewers who rented or bought it keep access. You can hide it instead, or email us to remove it.",
+    });
+  }
+  const typed = String(req.body?.confirm_title ?? "").trim().toLowerCase();
+  if (typed !== String(film.title || "").trim().toLowerCase()) {
+    return res.status(400).json({ error: "Type the film's title exactly to confirm." });
+  }
+  db.prepare("DELETE FROM films WHERE id = ?").run(film.id);
+  notifyAdmin("Film deleted", `${req.user.email} deleted "${film.title}" (status was ${film.status}).`);
+  res.json({ ok: true });
+});
+
 filmsRouter.post("/:id/visibility", (req, res) => {
   const film = getOwnFilm(req);
   if (!film) return res.status(404).json({ error: "Film not found." });
