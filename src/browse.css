@@ -412,6 +412,21 @@
   min-width: 160px;
   aspect-ratio: 2 / 3;
   perspective: 1100px; /* depth for the turn */
+  display: block;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Hovered or focused (paused, ready to click): a touch brighter and a deeper shadow. */
+.bz-show-frame:hover img.is-on,
+.bz-show-frame:focus-visible img.is-on {
+  filter: brightness(1.06);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+}
+
+.bz-show-frame:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
 }
 
 /* Each poster waits turned to the right and invisible; the current one turns left into place as it fades in,

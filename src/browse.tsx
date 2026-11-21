@@ -64,7 +64,12 @@ function donationLine(f: Card) {
 }
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
-const href = (f: Card) => `https://${f.address}`;
+// A film's watch page. Running locally, <name>.watchmyfilm.online becomes <name>.localhost:<port>/watch/.
+const LOCAL = location.hostname === "localhost" || location.hostname.endsWith(".localhost");
+const href = (f: Card) => {
+  const sub = f.address.match(/^([a-z0-9-]+)\.watchmyfilm\.online$/i)?.[1];
+  return LOCAL && sub ? `${location.protocol}//${sub}.localhost${location.port ? `:${location.port}` : ""}/watch/` : `https://${f.address}`;
+};
 const HEX = /^#[0-9a-f]{6}$/i;
 
 // Spines without a color of their own get one of these, picked by film so it never changes.
@@ -500,19 +505,33 @@ function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) 
   const posters = films.filter((f) => f.poster_url);
   // The current poster, and the one leaving (it turns away to the left while the next turns in from the right).
   const [{ i, prev }, setStep] = useState<{ i: number; prev: number | null }>({ i: 0, prev: null });
+  // Pointer over the poster (or keyboard focus on it): hold this film so it can be clicked.
+  const [paused, setPaused] = useState(false);
   useEffect(() => {
-    if (posters.length < 2 || hidden) return; // hold still while the info box is up
+    if (posters.length < 2 || hidden || paused) return; // hold still while the info box is up or it's hovered
     const t = setInterval(() => setStep((s) => ({ i: (s.i + 1) % posters.length, prev: s.i })), SHOW_EVERY_MS);
     return () => clearInterval(t);
-  }, [posters.length, hidden]);
+  }, [posters.length, hidden, paused]);
   if (!posters.length) return null;
   const now = posters[i % posters.length];
   const leaving = prev != null ? posters[prev % posters.length] : null;
   // Just the label and the poster (no panel, no details): the info box is what carries the details.
+  // The poster is a link to the film showing now.
   return (
-    <aside className={`bz-show${hidden ? " is-hidden" : ""}`} aria-hidden="true">
-      <p className="bz-show-label">New Arrivals</p>
-      <div className="bz-show-frame">
+    <aside className={`bz-show${hidden ? " is-hidden" : ""}`} aria-label="New arrivals">
+      <p className="bz-show-label" aria-hidden="true">
+        New Arrivals
+      </p>
+      <a
+        className="bz-show-frame"
+        href={href(now)}
+        aria-label={`Watch ${now.title}`}
+        tabIndex={hidden ? -1 : undefined}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+      >
         {posters.map((f) => (
           <img
             key={f.id}
@@ -523,7 +542,7 @@ function NewArrivalsShow({ films, hidden }: { films: Card[]; hidden: boolean }) 
             className={f === now ? "is-on" : f === leaving ? "is-off" : undefined}
           />
         ))}
-      </div>
+      </a>
     </aside>
   );
 }
