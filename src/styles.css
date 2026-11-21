@@ -127,12 +127,17 @@ a {
   cursor: pointer;
 }
 
-.btn:hover{
+.btn:not(:disabled):hover{
   background: #fff1c9;
 }
 
+/* Greyed out: a normal arrow (nothing to do yet). The busy wheel only while the button is working (aria-busy). */
 .btn:disabled{
   opacity: 0.6;
+  cursor: default;
+}
+
+.btn[aria-busy="true"]{
   cursor: progress;
 }
 

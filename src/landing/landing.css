@@ -146,7 +146,7 @@ p {
   transition: background 0.18s var(--ease), transform 0.18s var(--ease);
 }
 
-.btn:hover {
+.btn:not(:disabled):hover {
   background: #fff;
 }
 
@@ -154,8 +154,13 @@ p {
   transform: translateY(1px);
 }
 
+/* Greyed out: a normal arrow. The busy wheel only while the button is working (aria-busy). */
 .btn:disabled {
   opacity: 0.6;
+  cursor: default;
+}
+
+.btn[aria-busy="true"] {
   cursor: progress;
 }
 

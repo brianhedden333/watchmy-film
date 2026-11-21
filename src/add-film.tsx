@@ -644,7 +644,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
 
           {(
             <div className="save-bar">
-              <button className="btn" disabled={saveState === "saving" || !dirty}>
+              <button className="btn" disabled={saveState === "saving" || !dirty} aria-busy={saveState === "saving"}>
                 {saveState === "saving" ? "Saving…" : "Save changes"}
               </button>
               <span className="save-state" role="status">
