@@ -459,9 +459,10 @@ function Spine({
       <span className="bz-spine-who">{f.director}</span>
       <span className="bz-spine-title">
         {f.title}
-        {acceptsDonations(f) && (
-          <span className="bz-dot bz-spine-dot" title="Accepts donations">
-            <span className="visually-hidden">Accepts donations</span>
+        {/* The green dot marks every film in the Free/Donate aisle: free to watch, pay what you want, or tips. */}
+        {takesDonations(f) && (
+          <span className="bz-dot bz-spine-dot" title="Free/Donate">
+            <span className="visually-hidden">Free or donation-based</span>
           </span>
         )}
       </span>
