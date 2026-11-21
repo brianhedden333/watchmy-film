@@ -79,13 +79,14 @@ export function entitlement(userId, film) {
   return null;
 }
 
-// The film's address: https://<name>.indiefilm.club (or watch.<own domain>). Locally the films live at
-// http://<name>.indiefilm.localhost:<port> (own domains can't be tried locally, so those use their subdomain).
+// The film's address, the one viewers always see: <name>.indiefilm.club. A filmmaker's own domain
+// (watch.theirfilm.com) only forwards here, so a mistake in their DNS never breaks a link we've given out.
+export const filmAddress = (film) => (film.subdomain ? `${film.subdomain}.${config.siteDomain}` : null);
+
+// https://<name>.indiefilm.club (locally http://<name>.indiefilm.localhost:<port>).
 export function filmOrigin(film) {
   const club = new URL(config.clubUrl);
-  if (!config.production) return `${club.protocol}//${film.subdomain}.${config.siteDomain}${club.port ? `:${club.port}` : ""}`;
-  if (film.address_type === "own" && film.own_domain) return `https://watch.${film.own_domain}`;
-  return `https://${film.subdomain}.${config.siteDomain}`;
+  return `${club.protocol}//${filmAddress(film)}${club.port ? `:${club.port}` : ""}`;
 }
 
 // The film's watch page (with the dev-server path when running locally).

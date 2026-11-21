@@ -8,7 +8,7 @@ import { resolve } from "node:path";
 import { config } from "./config.js";
 import { db } from "./db.js";
 import { publicFilm } from "./films.js";
-import { filmPageUrl } from "./sales.js"; // (sales.js imports this file too; both are only used at request time)
+import { filmAddress, filmPageUrl } from "./sales.js"; // (sales.js imports this file too; both are only used at request time)
 
 export const watchRouter = Router();
 
@@ -49,7 +49,7 @@ function moreFromAccount(row) {
       id: m.id,
       title: m.title,
       poster_url: `/uploads/${m.poster_path}`,
-      address: m.address_type === "own" && m.own_domain ? `watch.${m.own_domain}` : m.subdomain ? `${m.subdomain}.${config.siteDomain}` : null,
+      address: filmAddress(m),
       url: filmPageUrl(m), // the watch page (right for local testing too)
     }))
     .filter((m) => m.address);
@@ -128,6 +128,13 @@ function pageShell() {
 
 watchRouter.get("/page", (req, res) => {
   const host = String(req.headers.host || "");
+  // A filmmaker's own domain (watch.theirfilm.com) only forwards: viewers always see <name>.indiefilm.club.
+  const row = filmRowForHost(host);
+  const bare = host.toLowerCase().replace(/:\d+$/, "");
+  if (row && row.subdomain && !bare.endsWith(`.${config.siteDomain}`)) {
+    const query = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+    return res.redirect(301, `${filmPageUrl(row)}${query}`);
+  }
   const film = filmForHost(host);
   const html = pageShell();
   if (!html) return res.status(500).send("Watch page isn't built.");

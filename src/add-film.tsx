@@ -915,7 +915,7 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
         <div aria-live="polite">{status}</div>
         <p className="hint">
           Each film needs its own. Letters, numbers and dashes.
-          {ownMode && " Your domain points here, so it's needed even with your own domain."}
+          {ownMode && " This is the address viewers see; your own domain forwards to it."}
         </p>
       </div>
 
@@ -931,8 +931,10 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
             ) : null}
           </div>
           <p className="hint">
-            Your page will be at <strong>{ownHost}</strong>. At your domain's DNS settings, add a CNAME record for{" "}
-            <strong>watch</strong> pointing to <strong>{full}</strong>. We'll check it during setup.
+            <strong>{ownHost}</strong> will forward to your page at <strong>{full}</strong>, so you can put it on
+            posters and your own site. At your domain's DNS settings, add a CNAME record for <strong>watch</strong>{" "}
+            pointing to <strong>{full}</strong>. We'll check it during setup. If it isn't set up right, nothing
+            breaks: {full} always works.
           </p>
         </div>
       )}

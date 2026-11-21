@@ -15,14 +15,14 @@ const clubHost = new URL(CLUB).hostname;
 export const onClub = () => location.hostname !== new URL(APP).hostname;
 export const onApp = () => !onClub();
 
-// A film's public address as people see it: watch.<their domain>, or <name>.indiefilm.club.
-export function filmAddress(f: { address_type?: string; own_domain?: string | null; subdomain?: string | null }) {
-  if (f.address_type === "own" && f.own_domain) return `watch.${f.own_domain}`;
+// A film's public address, the one viewers always see: <name>.indiefilm.club. A filmmaker's own domain
+// (watch.theirfilm.com) only forwards there, so a DNS mistake on their side never breaks our links.
+export function filmAddress(f: { subdomain?: string | null }) {
   return f.subdomain ? `${f.subdomain}.${CLUB_DOMAIN}` : null;
 }
 
 // A link to a film's watch page that works where we are: locally <name>.indiefilm.localhost:<port>/watch/.
-export function filmHref(f: { address_type?: string; own_domain?: string | null; subdomain?: string | null }) {
+export function filmHref(f: { subdomain?: string | null }) {
   if (LOCAL) return f.subdomain ? `${location.protocol}//${f.subdomain}.${clubHost}${port}/watch/` : null;
   const a = filmAddress(f);
   return a ? `https://${a}/` : null;

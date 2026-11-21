@@ -4,23 +4,18 @@
 import { Router } from "express";
 import { config } from "./config.js";
 import { db } from "./db.js";
-import { createLoginToken, requireUser } from "./auth.js";
-import { entitlement, filmPageUrl } from "./sales.js";
+import { requireUser } from "./auth.js";
+import { filmAddress, filmPageUrl } from "./sales.js";
 
 export const libraryRouter = Router();
 libraryRouter.use(requireUser);
 
-// From My Library to a film's page, signed in there. Films at <name>.indiefilm.club share indiefilm.club's sign-in,
-// so they just open. A film on its own domain (watch.theirfilm.com) can't see our cookie, so it gets a short
-// one-time sign-in link (the film page uses it on load). Only for films they can still watch.
+// From My Library to a film's page. Every film's page is at <name>.indiefilm.club, which shares indiefilm.club's
+// sign-in, so they arrive signed in.
 libraryRouter.get("/go/:id", (req, res) => {
   const film = db.prepare("SELECT * FROM films WHERE id = ?").get(Number(req.params.id));
   if (!film || film.status !== "live" || film.hidden || film.deleted_at) return res.redirect(302, `${config.clubUrl}/library/`);
-  const page = filmPageUrl(film);
-  const ownDomain = !page.includes(`.${config.siteDomain}`);
-  if (!ownDomain || !entitlement(req.user.id, film)) return res.redirect(302, page);
-  const t = createLoginToken(req.user.id, 5);
-  res.redirect(302, `${page}?signin=${t}`);
+  res.redirect(302, filmPageUrl(film));
 });
 
 const DAY = 86_400_000;
@@ -65,7 +60,7 @@ export const watchlistRouter = Router();
 watchlistRouter.use(requireUser);
 
 const liveAddress = (f) =>
-  f.address_type === "own" && f.own_domain ? `watch.${f.own_domain}` : f.subdomain ? `${f.subdomain}.${config.siteDomain}` : null;
+  filmAddress(f); // always <name>.indiefilm.club
 
 // Saved films that are still live and visible, newest first.
 watchlistRouter.get("/", (req, res) => {

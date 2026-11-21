@@ -4,12 +4,12 @@
 import { Router } from "express";
 import { config } from "./config.js";
 import { db } from "./db.js";
-import { filmPageUrl } from "./sales.js";
+import { filmAddress, filmPageUrl } from "./sales.js";
 
 export const browseRouter = Router();
 
 const address = (f) =>
-  f.address_type === "own" && f.own_domain ? `watch.${f.own_domain}` : f.subdomain ? `${f.subdomain}.${config.siteDomain}` : null;
+  filmAddress(f); // always <name>.indiefilm.club (an own domain only forwards there)
 
 const upload = (p) => (p ? `/uploads/${p}` : null);
 
