@@ -70,9 +70,22 @@
 }
 
 /* "Add your film" sits right after the logo; the nav keeps to the far right. */
-.bz-add {
+/* "Add your film": quiet, for the occasional filmmaker browsing; viewers are who this page is for. */
+.bz-add.btn {
   margin-right: auto;
   white-space: nowrap;
+  background: #000;
+  color: rgba(237, 232, 223, 0.65);
+  border: 1px solid rgba(237, 232, 223, 0.28);
+  box-shadow: none;
+  font-weight: 500;
+}
+
+.bz-add.btn:hover,
+.bz-add.btn:focus-visible {
+  background: #000;
+  color: #ede8df;
+  border-color: rgba(237, 232, 223, 0.6);
 }
 
 /* Phones: no room for everything. Keep "Powered by" + logo and Log in / My library; drop the "Add your film"
