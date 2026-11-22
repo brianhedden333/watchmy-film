@@ -318,13 +318,14 @@ function LibraryShow() {
         <button
           type="button"
           className="lib-frame"
-          onClick={() => setOpen(now)}
+          onClick={() => setOpen((o) => (o?.id === now.id ? null : now))}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onFocus={() => setPaused(true)}
           onBlur={() => setPaused(false)}
-          aria-haspopup="dialog"
-          aria-label={`${now.title}: see its sales page`}
+          aria-expanded={open?.id === now.id}
+          aria-controls="lib-sales"
+          aria-label={`${now.title}: ${open?.id === now.id ? "hide" : "see"} its sales page`}
         >
           {libraryFilms.map((f, k) => (
             <img
@@ -337,45 +338,36 @@ function LibraryShow() {
             />
           ))}
         </button>
-        <p className="lib-caption">
-          <span>{now.title}</span>
-          <span className="lib-hint">Click the poster to see its sales page</span>
-        </p>
+        <p className="lib-hint">{open ? "Click the poster again to hide its sales page" : "Click the poster to see its sales page"}</p>
       </div>
-      {open && <SalesShot film={open} onClose={() => setOpen(null)} />}
+      {/* The sales page opens right here in the section, below the poster (not an overlay). */}
+      <div id="lib-sales" className={`lib-sales${open ? " is-open" : ""}`} aria-hidden={!open}>
+        {open && <SalesShot film={open} onClose={() => setOpen(null)} />}
+      </div>
     </section>
   );
 }
 
 // A film's real sales page, as a screenshot, with a link to the live one.
 function SalesShot({ film, onClose }: { film: LibraryFilm; onClose: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
+  const ref = useRef<HTMLDivElement>(null);
+  // Bring it into view as it opens.
   useEffect(() => {
-    const d = ref.current!;
-    d.showModal();
-    const close = () => onClose();
-    d.addEventListener("close", close);
-    return () => d.removeEventListener("close", close);
-  }, [onClose]);
+    const t = setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 150);
+    return () => clearTimeout(t);
+  }, [film.id]);
   return (
-    <dialog ref={ref} className="lib-dialog" aria-labelledby={titleId} onClick={(e) => e.target === ref.current && ref.current.close()}>
-      <div className="lib-dialog-inner">
-        <h3 id={titleId} className="visually-hidden">
-          {film.title}: sales page
-        </h3>
-        <img src={film.salesShot} alt={`The sales page for ${film.title}: poster, rent, buy, pay what you want, and watch free`} />
-        <p className="lib-dialog-foot">
-          <span>{film.title}</span>
-          <a href={film.link} target="_blank" rel="noopener">
-            Open the live page ↗
-          </a>
-        </p>
-        <button type="button" className="sd-close" onClick={() => ref.current?.close()} aria-label="Close">
-          ×
+    <div ref={ref} className="lib-sales-inner wrap">
+      <img src={film.salesShot} alt={`The sales page for ${film.title}: poster, rent, buy, pay what you want, and watch free`} />
+      <p className="lib-sales-foot">
+        <a href={film.link} target="_blank" rel="noopener">
+          Open the live page ↗
+        </a>
+        <button type="button" className="link-btn" onClick={onClose}>
+          Hide
         </button>
-      </div>
-    </dialog>
+      </p>
+    </div>
   );
 }
 

@@ -675,66 +675,82 @@ main section.tight {
   transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.lib-caption {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  margin: 0;
-  text-align: center;
-  font-size: 17px;
-  color: var(--projector, #ede8df);
-}
-
 .lib-hint {
+  margin: 0;
   font-size: 13px;
   color: rgba(237, 232, 223, 0.55);
 }
 
-/* The sales page screenshot, in a pop-up */
-.lib-dialog {
-  width: min(1200px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
-  padding: 0;
-  border: 1px solid rgba(237, 232, 223, 0.18);
-  border-radius: 10px;
-  background: #000;
-  color: #ede8df;
-  overflow: auto;
+/* The sales page screenshot, opening right in the section below the poster: the panel slides open (grid rows
+   0fr → 1fr) and the screenshot fades up. */
+.lib-sales {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.lib-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.8);
+.lib-sales.is-open {
+  grid-template-rows: 1fr;
 }
 
-.lib-dialog-inner {
-  position: relative;
+.lib-sales > * {
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* Close button top-left, clear of the logo in the screenshot's top-right corner. */
-.lib-dialog .sd-close {
-  left: 10px;
-  right: auto;
+.lib-sales-inner {
+  padding-top: 32px;
+  animation: lib-sales-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-.lib-dialog img {
+@keyframes lib-sales-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.lib-sales-inner img {
   display: block;
   width: 100%;
   height: auto;
+  border: 1px solid rgba(237, 232, 223, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
-.lib-dialog-foot {
+.lib-sales-foot {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 20px;
-  margin: 0;
-  padding: 14px 18px;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin: 14px 0 0;
   font-size: 15px;
 }
 
-.lib-dialog-foot a {
+.lib-sales-foot a {
   color: #b4e89a;
   font-weight: 600;
+}
+
+.lib-sales-foot button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: rgba(237, 232, 223, 0.65);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.lib-sales-foot button:hover {
+  color: #ede8df;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lib-sales,
+  .lib-sales-inner {
+    transition: none;
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
