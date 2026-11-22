@@ -1722,7 +1722,8 @@ function ImageUpload({ kind, film, onChange, disabled }: { kind: keyof typeof IM
 
   return (
     <div className="poster-up" id={`img-${kind}`}>
-      <div className={`poster-frame ${kind}`}>{src ? <img src={src} alt={`${film.title} ${k.label}`} /> : <span>{k.empty}</span>}</div>
+      {/* frame-<kind>, not a bare "poster": that class belongs to the home page's mock-up and would reshape this box. */}
+      <div className={`poster-frame frame-${kind}`}>{src ? <img src={src} alt={`${film.title} ${k.label}`} /> : <span>{k.empty}</span>}</div>
       <div>
         <label htmlFor={id} className={`btn btn-red btn-small${disabled ? " is-disabled" : ""}`}>
           {busy ? "Uploading…" : src ? `Replace ${k.label}` : `Upload ${k.label}`}

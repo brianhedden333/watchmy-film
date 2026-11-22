@@ -826,12 +826,12 @@
   background: var(--surface);
 }
 
-.poster-frame.still {
+.poster-frame.frame-still {
   width: 213px;
   aspect-ratio: 16 / 9;
 }
 
-.poster-frame.banner {
+.poster-frame.frame-banner {
   width: 240px;
   aspect-ratio: 3 / 1;
   text-align: center;
