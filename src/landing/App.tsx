@@ -304,8 +304,25 @@ function LibraryShow() {
   }, [inView, paused, open]);
 
   const now = libraryFilms[i];
+  // Hide the sales page and scroll back up to the Library (the section's top, just under the menu bar).
+  const sectionRef = useRef<HTMLElement>(null);
+  // Scroll first, then close once the scroll has settled: closing first shrinks the page under the scroll.
+  const hide = () => {
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    sectionRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    let done = false;
+    const close = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener("scrollend", close);
+      setOpen(null);
+    };
+    if (reduce) return close();
+    window.addEventListener("scrollend", close);
+    setTimeout(close, 900); // browsers without "scrollend"
+  };
   return (
-    <section className="samples lib" aria-labelledby="samples-title">
+    <section ref={sectionRef} className="samples lib" aria-labelledby="samples-title">
       <div className="wrap">
         <h2 id="samples-title">
           Browse our{" "}
@@ -318,7 +335,7 @@ function LibraryShow() {
         <button
           type="button"
           className="lib-frame"
-          onClick={() => setOpen((o) => (o?.id === now.id ? null : now))}
+          onClick={() => (open?.id === now.id ? hide() : setOpen(now))}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onFocus={() => setPaused(true)}
@@ -342,7 +359,7 @@ function LibraryShow() {
       </div>
       {/* The sales page opens right here in the section, below the poster (not an overlay). */}
       <div id="lib-sales" className={`lib-sales${open ? " is-open" : ""}`} aria-hidden={!open}>
-        {open && <SalesShot film={open} onClose={() => setOpen(null)} />}
+        {open && <SalesShot film={open} onClose={hide} />}
       </div>
     </section>
   );
@@ -351,9 +368,14 @@ function LibraryShow() {
 // A film's real sales page, as a screenshot, with a link to the live one.
 function SalesShot({ film, onClose }: { film: LibraryFilm; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  // Bring it into view as it opens.
+  // Scroll down to the screenshot as it opens (its top lands just under the menu bar).
   useEffect(() => {
-    const t = setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 150);
+    const t = setTimeout(() => {
+      const el = ref.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }, 120);
     return () => clearTimeout(t);
   }, [film.id]);
   return (

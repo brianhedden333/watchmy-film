@@ -700,6 +700,9 @@ main section.tight {
 
 .lib-sales-inner {
   padding-top: 32px;
+  /* A resting point for the page's section snapping, so scrolling down to the screenshot stays there. */
+  scroll-snap-align: start;
+  scroll-margin-top: 48px;
   animation: lib-sales-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
