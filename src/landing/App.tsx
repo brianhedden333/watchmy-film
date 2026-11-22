@@ -304,22 +304,29 @@ function LibraryShow() {
   }, [inView, paused, open]);
 
   const now = libraryFilms[i];
-  // Hide the sales page and scroll back up to the Library (the section's top, just under the menu bar).
   const sectionRef = useRef<HTMLElement>(null);
-  // Scroll first, then close once the scroll has settled: closing first shrinks the page under the scroll.
+  // Closing, in steps: "fading" (the screenshot fades out in place), then "collapsing" (the page scrolls back up to
+  // the Library while the opened area slides shut), then gone. Without motion it just closes.
+  const [closing, setClosing] = useState<null | "fading" | "collapsing">(null);
+  const FADE_MS = 350;
+  const COLLAPSE_MS = 650;
   const hide = () => {
+    if (closing) return;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    sectionRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-    let done = false;
-    const close = () => {
-      if (done) return;
-      done = true;
-      window.removeEventListener("scrollend", close);
+    if (reduce) {
+      sectionRef.current?.scrollIntoView({ block: "start" });
       setOpen(null);
-    };
-    if (reduce) return close();
-    window.addEventListener("scrollend", close);
-    setTimeout(close, 900); // browsers without "scrollend"
+      return;
+    }
+    setClosing("fading");
+    setTimeout(() => {
+      setClosing("collapsing");
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => {
+        setOpen(null);
+        setClosing(null);
+      }, COLLAPSE_MS);
+    }, FADE_MS);
   };
   return (
     <section ref={sectionRef} className="samples lib" aria-labelledby="samples-title">
@@ -358,7 +365,11 @@ function LibraryShow() {
         <p className="lib-hint">{open ? "Click the poster again to hide its sales page" : "Click the poster to see its sales page"}</p>
       </div>
       {/* The sales page opens right here in the section, below the poster (not an overlay). */}
-      <div id="lib-sales" className={`lib-sales${open ? " is-open" : ""}`} aria-hidden={!open}>
+      <div
+        id="lib-sales"
+        className={`lib-sales${open && closing !== "collapsing" ? " is-open" : ""}${closing ? " is-closing" : ""}`}
+        aria-hidden={!open || !!closing}
+      >
         {open && <SalesShot film={open} onClose={hide} />}
       </div>
     </section>

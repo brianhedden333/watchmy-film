@@ -706,6 +706,18 @@ main section.tight {
   animation: lib-sales-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* Hide: the screenshot fades out in place, then the opened area slides shut (grid rows back to 0fr, using the
+   transition above) while the page scrolls up. No longer a resting point for snapping once it's closing. */
+.lib-sales.is-closing .lib-sales-inner {
+  animation: lib-sales-out 0.35s ease forwards;
+  scroll-snap-align: none;
+}
+
+@keyframes lib-sales-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
 @keyframes lib-sales-in {
   from { opacity: 0; transform: translateY(-12px); }
   to { opacity: 1; transform: none; }
