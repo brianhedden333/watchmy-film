@@ -164,6 +164,13 @@
   margin: 0;
 }
 
+/* "Filmmakers keep up to 88%…": a quieter second line under the tagline. */
+.bz-hero p.bz-hero-keep {
+  margin-top: 8px;
+  font-size: clamp(15px, 1.25vw, 18px);
+  color: rgba(237, 232, 223, 0.72);
+}
+
 /* One line wherever it fits; phones are too narrow, so it wraps there. */
 @media (min-width: 700px) {
   .bz-hero p {

@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { money, pricing, site, splitSale, type TierKey } from "../config";
+import { keepPercentAt, money, pricing, site, splitSale, type TierKey } from "../config";
 import { getMe, type User } from "../api";
 import { CLUB, cross } from "../sites";
 
@@ -610,14 +610,6 @@ function Pricing() {
 
 // Every number in this section. Change them here; the percentages and dollar amounts are computed from these.
 // Our own fees come from `pricing` in config.ts so this section always agrees with the calculator above.
-// What a filmmaker keeps of one ticket after our fee and Stripe's card fee, as a whole percent.
-// The hero quotes it at $19.99: Stripe's flat 30¢ makes cheaper tickets keep less, so this is an honest "up to".
-function keepPercentAt(price: number) {
-  const t = pricing.tiers.standard;
-  const ours = Math.max(price * t.percent, t.minimum);
-  const card = price * pricing.stripePercent + pricing.stripeFixed;
-  return Math.round(((price - ours - card) / price) * 100);
-}
 
 const KEEP = {
   ticket: 5.99, // the example rental price

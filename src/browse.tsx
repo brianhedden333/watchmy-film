@@ -5,6 +5,7 @@ import { api, getMe, type User } from "./api";
 import { textOn, type Credit } from "./films";
 import { embedUrl } from "./watchpage";
 import { APP, cross } from "./sites";
+import { keepPercentAt } from "./config";
 import "./styles.css";
 import "./browse.css";
 
@@ -328,9 +329,8 @@ function Browse() {
           <div className="bz-hero-shade" aria-hidden="true" />
           <div className="bz-wrap bz-hero-in">
             <h1 id="bz-title">IndieFilm.club</h1>
-            <p>
-              Independent films, straight from the people who made them.
-            </p>
+            <p>Independent films, straight from the artists who made them.</p>
+            <p className="bz-hero-keep">Filmmakers keep up to {keepPercentAt(19.99)}% of every ticket sale.</p>
           </div>
         </section>
 

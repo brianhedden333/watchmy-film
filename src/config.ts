@@ -41,5 +41,14 @@ export function splitSale(price: number, tier: TierKey) {
   return { stripe, fee, filmmaker };
 }
 
+// What a filmmaker keeps of one ticket after our fee and Stripe's card fee, as a whole percent. Quoted at $19.99
+// ("up to"): Stripe's flat 30¢ makes cheaper tickets keep less. Used by the home page and indiefilm.club's hero.
+export function keepPercentAt(price: number) {
+  const t = pricing.tiers.standard;
+  const ours = Math.max(price * t.percent, t.minimum);
+  const card = price * pricing.stripePercent + pricing.stripeFixed;
+  return Math.round(((price - ours - card) / price) * 100);
+}
+
 const round = (n: number) => Math.round(n * 100) / 100;
 export const money = (n: number) => `$${n.toFixed(2)}`;
