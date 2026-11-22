@@ -75,11 +75,15 @@
   white-space: nowrap;
 }
 
-/* Phones: no room for everything, so drop "Powered by" and the Browse link (you're already on Browse). */
+/* Phones: no room for everything. Keep "Powered by" + logo and Log in / My library; drop the "Add your film"
+   button and the Browse link (you're already on Browse). */
 @media (max-width: 560px) {
-  .bz-logo-by,
+  .bz-add,
   .bz-nav a[aria-current="page"] {
     display: none;
+  }
+  .bz-logo {
+    margin-right: auto; /* (the Add button usually pushes the nav to the right) */
   }
   .bz-head-in {
     gap: 12px;
