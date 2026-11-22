@@ -34,7 +34,7 @@ export default function App() {
       <Nav solid={pastHero} />
       <main id="main">
         <Hero frameRef={heroRef} />
-        <Samples />
+        <LibraryShow />
         <Keep />
         <HowItWorks />
         <WhatYouGet />
@@ -258,99 +258,99 @@ function Hero({ frameRef }: { frameRef: React.RefObject<HTMLDivElement> }) {
   );
 }
 
-/* ---------- Samples: three watch pages, each themed by its own poster ---------- */
+/* ---------- Our library: films on indiefilm.club, posters turning in like the club's New Arrivals ---------- */
 
-type SampleFilm = {
+// Films to show here. Add more as they go live: the posters take turns (turn + fade), and clicking one shows a
+// screenshot of its real sales page.
+type LibraryFilm = {
   id: string;
   title: string;
-  placeholder?: boolean;
-  poster: string;
-  still: string; // wide 16:9 image, shown instead of the poster on phones
-  link?: string; // a real watch page: Rent and Buy go there instead of closing the sample
-  accent: string;
-  logline: string;
-  meta: string;
-  rent: { price: string; terms: string };
-  buy: { price: string; terms: string };
+  poster: string; // 2:3
+  salesShot: string; // screenshot of its watch page (rent / buy / pay what you want / free)
+  link: string; // its live page on indiefilm.club
 };
 
-const samples: SampleFilm[] = [
+const libraryFilms: LibraryFilm[] = [
   {
     id: "fts",
-    title: "Fracking the System",
+    title: "Fracking the System: Colorado's Oil and Gas Wars",
     poster: `${base}sample/fts-poster.jpg`,
-    still: `${base}landing/fts-still.jpg`,
-    link: "https://www.frackingthesystem.com/watch-now",
-    accent: "#f63052",
-    logline:
-      "An investigative documentary about climate justice activism in Colorado and the oil and gas industry's tactics to undermine democracy.",
-    meta: "Documentary, 2024, 93 minutes",
-    rent: { price: "$4.99", terms: "30 days to start watching, 3 days to finish" },
-    buy: { price: "$14.99", terms: "Watch any time, plus bonus Q&A recordings" },
-  },
-  {
-    id: "feature",
-    title: "Your feature here",
-    placeholder: true,
-    poster: `${base}landing/placeholder-feature.svg`,
-    still: `${base}landing/placeholder-feature-wide.svg`,
-    accent: "#3fb8ac",
-    logline: "Placeholder film. This is where your logline goes, set in the colors pulled from your poster.",
-    meta: "Feature, placeholder",
-    rent: { price: "$5.99", terms: "48 hours to watch" },
-    buy: { price: "$12.99", terms: "Watch any time" },
-  },
-  {
-    id: "short",
-    title: "Your short here",
-    placeholder: true,
-    poster: `${base}landing/placeholder-short.svg`,
-    still: `${base}landing/placeholder-short-wide.svg`,
-    accent: "#e9a23b",
-    logline: "Placeholder film. A short can sell on its own page too, with its own prices and rental window.",
-    meta: "Short, placeholder",
-    rent: { price: "$2.99", terms: "48 hours to watch" },
-    buy: { price: "$6.99", terms: "Watch any time" },
+    salesShot: `${base}landing/fts-sales-page.jpg`,
+    link: "https://frackingthesystem.indiefilm.club/",
   },
 ];
 
-// Black or white text, whichever reads better on the accent.
-const inkOn = (hex: string) => {
-  const n = parseInt(hex.slice(1), 16);
-  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-  return lum > 0.55 ? "#000000" : "#ffffff";
-};
+const LIB_EVERY_MS = 4000;
 
-function Samples() {
-  const [open, setOpen] = useState<SampleFilm | null>(null);
+function LibraryShow() {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false); // the first poster turns in when the section scrolls into view
+  const [{ i, prev }, setStep] = useState<{ i: number; prev: number | null }>({ i: 0, prev: null });
+  const [paused, setPaused] = useState(false);
+  const [open, setOpen] = useState<LibraryFilm | null>(null);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && setInView(true), { threshold: 0.35 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView || paused || open || libraryFilms.length < 2) return;
+    const t = setInterval(() => setStep((s) => ({ i: (s.i + 1) % libraryFilms.length, prev: s.i })), LIB_EVERY_MS);
+    return () => clearInterval(t);
+  }, [inView, paused, open]);
+
+  const now = libraryFilms[i];
   return (
-    <section className="samples" aria-labelledby="samples-title">
+    <section className="samples lib" aria-labelledby="samples-title">
       <div className="wrap">
-        <h2 id="samples-title">Browse our library</h2>
+        <h2 id="samples-title">
+          Browse our{" "}
+          <a className="headline-link" href={`${CLUB}/`}>
+            Library
+          </a>
+        </h2>
       </div>
-      <ul className="sample-row">
-        {samples.map((f) => (
-          <li key={f.id} style={{ "--accent": f.accent, "--ink": inkOn(f.accent) } as React.CSSProperties}>
-            <button type="button" className="sample-tile" onClick={() => setOpen(f)} aria-haspopup="dialog">
-              <img src={f.poster} alt={f.placeholder ? "Placeholder poster" : `${f.title} poster`} loading="lazy" width={600} height={900} />
-              <span className="sample-title">{f.title}</span>
-              <span className="sample-meta">
-                Rent {f.rent.price}, buy {f.buy.price}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {open && <SampleDialog film={open} onClose={() => setOpen(null)} />}
+      <div className="lib-stage" ref={stageRef}>
+        <button
+          type="button"
+          className="lib-frame"
+          onClick={() => setOpen(now)}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+          aria-haspopup="dialog"
+          aria-label={`${now.title}: see its sales page`}
+        >
+          {libraryFilms.map((f, k) => (
+            <img
+              key={f.id}
+              src={f.poster}
+              alt=""
+              width={600}
+              height={900}
+              className={inView && k === i ? "is-on" : k === prev ? "is-off" : undefined}
+            />
+          ))}
+        </button>
+        <p className="lib-caption">
+          <span>{now.title}</span>
+          <span className="lib-hint">Click the poster to see its sales page</span>
+        </p>
+      </div>
+      {open && <SalesShot film={open} onClose={() => setOpen(null)} />}
     </section>
   );
 }
 
-function SampleDialog({ film, onClose }: { film: SampleFilm; onClose: () => void }) {
+// A film's real sales page, as a screenshot, with a link to the live one.
+function SalesShot({ film, onClose }: { film: LibraryFilm; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [mode, setMode] = useState<"rent" | "buy">("rent");
   const titleId = useId();
-
   useEffect(() => {
     const d = ref.current!;
     d.showModal();
@@ -358,53 +358,20 @@ function SampleDialog({ film, onClose }: { film: SampleFilm; onClose: () => void
     d.addEventListener("close", close);
     return () => d.removeEventListener("close", close);
   }, [onClose]);
-
-  const offer = film[mode];
   return (
-    <dialog
-      ref={ref}
-      className="sample-dialog"
-      aria-labelledby={titleId}
-      style={{ "--accent": film.accent, "--ink": inkOn(film.accent) } as React.CSSProperties}
-      onClick={(e) => e.target === ref.current && ref.current.close()}
-    >
-      <div className="sd-inner">
-        <picture className="sd-poster">
-          <source media="(max-width: 640px)" srcSet={film.still} />
-          <img src={film.poster} alt="" />
-        </picture>
-        <div className="sd-body">
-          <p className="sd-flag">{film.placeholder ? "Placeholder sample" : "Sample watch page"}</p>
-          <h3 id={titleId}>{film.title}</h3>
-          <p className="sd-meta">{film.meta}</p>
-          <p>{film.logline}</p>
-          <div className="sd-toggle" role="radiogroup" aria-label="Rent or buy">
-            {(["rent", "buy"] as const).map((m) => (
-              <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)}>
-                {m === "rent" ? "Rent" : "Buy"}
-              </button>
-            ))}
-          </div>
-          <p className="sd-price" aria-live="polite">
-            <b>{offer.price}</b> {offer.terms}
-          </p>
-          {film.link ? (
-            <>
-              <a className="sd-cta" href={film.link} target="_blank" rel="noopener">
-                {mode === "rent" ? `Rent for ${offer.price}` : `Buy for ${offer.price}`}
-              </a>
-              <p className="sd-note">Opens the film's real watch page in a new tab.</p>
-            </>
-          ) : (
-            <>
-              <button type="button" className="sd-cta" onClick={() => ref.current?.close()}>
-                {mode === "rent" ? `Rent for ${offer.price}` : `Buy for ${offer.price}`}
-              </button>
-              <p className="sd-note">This is a sample. Nothing is charged.</p>
-            </>
-          )}
-        </div>
-        <button type="button" className="sd-close" onClick={() => ref.current?.close()} aria-label="Close sample">
+    <dialog ref={ref} className="lib-dialog" aria-labelledby={titleId} onClick={(e) => e.target === ref.current && ref.current.close()}>
+      <div className="lib-dialog-inner">
+        <h3 id={titleId} className="visually-hidden">
+          {film.title}: sales page
+        </h3>
+        <img src={film.salesShot} alt={`The sales page for ${film.title}: poster, rent, buy, pay what you want, and watch free`} />
+        <p className="lib-dialog-foot">
+          <span>{film.title}</span>
+          <a href={film.link} target="_blank" rel="noopener">
+            Open the live page ↗
+          </a>
+        </p>
+        <button type="button" className="sd-close" onClick={() => ref.current?.close()} aria-label="Close">
           ×
         </button>
       </div>
