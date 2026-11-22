@@ -487,25 +487,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
 
           <fieldset id="sec-address">
             <legend>Web address</legend>
-            <Choice
-              name="address_type"
-              value={form.address_type}
-              onChange={set("address_type")}
-              options={[
-                ["sub", `A free address on ${CLUB_DOMAIN}`],
-                ["own", "My own domain"],
-              ]}
-            />
-            <AddressFields
-              filmId={film.id}
-              title={form.title}
-              sub={form.subdomain}
-              own={form.own_domain}
-              ownMode={form.address_type === "own"}
-              onSub={set("subdomain")}
-              onOwn={set("own_domain")}
-              errors={errors}
-            />
+            <AddressFields filmId={film.id} title={form.title} sub={form.subdomain} onSub={set("subdomain")} errors={errors} />
           </fieldset>
 
           <fieldset id="sec-prices">
@@ -868,19 +850,15 @@ function useAddressCheck(param: "subdomain" | "domain", value: string, filmId: n
 }
 
 // Every film gets a unique address on our domain. With their own domain, that address is what their DNS points at.
-function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disabled, errors }: {
-  filmId: number; title: string; sub: string; own: string; ownMode: boolean;
-  onSub: (v: string) => void; onOwn: (v: string) => void; disabled?: boolean; errors: Record<string, string>;
+// The film's address: <name>.indiefilm.club. Filmmakers who want their own (watch.yourfilm.com) forward it here at
+// their own domain provider; we don't host other domains (no extra cost, setup or support on our side).
+function AddressFields({ filmId, title, sub, onSub, disabled, errors }: {
+  filmId: number; title: string; sub: string;
+  onSub: (v: string) => void; disabled?: boolean; errors: Record<string, string>;
 }) {
   const subId = useId();
-  const ownId = useId();
   const subCheck = useAddressCheck("subdomain", sub, filmId, !!disabled);
-  const ownCheck = useAddressCheck("domain", own, filmId, disabled || !ownMode || !own.trim());
   const full = `${sub.trim().toLowerCase() || "yourfilm"}.${CLUB_DOMAIN}`;
-  // Same cleaning as the server: a "watch." or "www." typed in front is dropped (the film lives at watch.<domain>).
-  const ownHost = own.trim()
-    ? `watch.${own.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^(watch|www)\.(?=[^.]+\.)/, "")}`
-    : "watch.yourfilm.com";
 
   let status: ReactNode = null;
   if (errors.subdomain) status = <p className="field-err">Address {errors.subdomain}.</p>;
@@ -900,7 +878,7 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
   return (
     <>
       <div className={`field${errors.subdomain || (subCheck && !subCheck.available && subCheck.reason) ? " has-err" : ""}`}>
-        <label htmlFor={subId}>{ownMode ? `Your film's address on ${CLUB_DOMAIN}` : "Address"}</label>
+        <label htmlFor={subId}>Address</label>
         <div className="affix">
           <input
             id={subId}
@@ -915,31 +893,14 @@ function AddressFields({ filmId, title, sub, own, ownMode, onSub, onOwn, disable
           <span>.{CLUB_DOMAIN}</span>
         </div>
         <div aria-live="polite">{status}</div>
+        <p className="hint">Each film needs its own. Letters, numbers and dashes.</p>
         <p className="hint">
-          Each film needs its own. Letters, numbers and dashes.
-          {ownMode && " This is the address viewers see; your own domain forwards to it."}
+          <strong>Want your own address too,</strong> like watch.yourfilm.com? At your domain provider (Squarespace,
+          Namecheap, GoDaddy, Cloudflare…), set up a <strong>forward</strong> (sometimes called a URL redirect) from it to{" "}
+          <strong>https://{full}</strong>. It's free with most providers. Afterwards, check that both http:// and
+          https:// versions of your address forward.
         </p>
       </div>
-
-      {ownMode && (
-        <div className={`field${errors.own_domain || (ownCheck && !ownCheck.available && ownCheck.reason) ? " has-err" : ""}`}>
-          <label htmlFor={ownId}>Your domain</label>
-          <input id={ownId} value={own} placeholder="yourfilm.com" disabled={disabled} spellCheck={false} autoCapitalize="none" onChange={(e) => onOwn(e.target.value)} />
-          <div aria-live="polite">
-            {errors.own_domain ? (
-              <p className="field-err">Your domain {errors.own_domain}.</p>
-            ) : ownCheck && !ownCheck.available && ownCheck.reason ? (
-              <p className="field-err">{ownCheck.reason}</p>
-            ) : null}
-          </div>
-          <p className="hint">
-            <strong>{ownHost}</strong> will forward to your page at <strong>{full}</strong>, so you can put it on
-            posters and your own site. At your domain's DNS settings, add a CNAME record for <strong>watch</strong>{" "}
-            pointing to <strong>{full}</strong>. We'll check it during setup. If it isn't set up right, nothing
-            breaks: {full} always works.
-          </p>
-        </div>
-      )}
     </>
   );
 }

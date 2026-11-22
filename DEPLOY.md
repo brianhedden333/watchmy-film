@@ -86,33 +86,22 @@ indiefilm.club sign-in can't use the filmmaker tools. Old `<name>.watchmyfilm.on
 11. Vimeo: each film's embed domain list needs `*.indiefilm.club` (or the film's own address) instead of
     `*.watchmyfilm.online`.
 
-### Films on their own domains (watch.theirfilm.com), once
+### Films on their own domains (watch.theirfilm.com)
 
-A filmmaker's own domain only **forwards** (301) to `<name>.indiefilm.club`, which stays the address viewers and
-search engines see. If their DNS is wrong, only their short link fails; every link we give out still works.
+We don't host filmmakers' own domains (decided 2026-11-21: no per-client setup, cost or support with thin margins).
+Every film's address is `<name>.indiefilm.club`. A filmmaker who wants `watch.theirfilm.com` sets up a **forward**
+(URL redirect) at their own domain provider to `https://<name>.indiefilm.club`; add-a-film says so. It never reaches
+us. They should **not** point a CNAME at indiefilm.club: Cloudflare answers that with error 1001.
 
-The filmmaker adds a CNAME `watch` → `<name>.indiefilm.club` at their DNS. That brings the visit to Cloudflare, but
-Cloudflare only serves it once the hostname is registered with our zone (otherwise: error 1001).
-
-**Brian (Cloudflare, indiefilm.club zone):**
-
-1. **DNS**: add `A` record, name `fallback`, value `165.232.58.191`, **Proxied**.
-2. **SSL/TLS → Custom Hostnames**: enable **Cloudflare for SaaS** (free for the first 100 hostnames; may ask for a
-   card on file). Set the **Fallback Origin** to `fallback.indiefilm.club`.
-3. **Rules → Configuration Rules → Create rule**: name "Filmmaker domains"; when **Hostname** does **not end with**
-   `indiefilm.club` → **SSL: Full**. (Our server's certificate can't name their domain; Full still encrypts.)
-4. **Custom Hostnames → Add Custom Hostname**: `watch.frackingthesystem.com` (default settings). It turns Active once
-   the filmmaker's CNAME is in place and Cloudflare has issued the certificate (usually minutes).
-
-**Server (Claude, at deploy time):** copy `deploy/nginx-own-domains.conf` → `/etc/nginx/sites-available/own-domains`,
-symlink into `sites-enabled`, `nginx -t && systemctl reload nginx`. It's the catch-all for hosts no other block names;
-the API forwards known own domains and shows "film not found" for anything else.
+(`deploy/nginx-own-domains.conf` is installed as the catch-all for hosts no other block names: unknown hosts get
+"film not found", and a film whose old own domain still points straight at the droplet gets forwarded. Cloudflare for
+SaaS / Custom Hostnames would be the way to host own domains properly, if that's ever wanted.)
 
 ### Film addresses: how the wildcard works
 
 Nothing is done per film: one wildcard covers them all (`*.indiefilm.club`, DNS + origin certificate + one nginx
 block). The API serves the page at `/api/watch/page` from the built site's `watch/index.html` (`SITE_DIR`, default
-`../site` next to the server). Films on their own domains (watch.theirfilm.com) need Cloudflare for SaaS later.
+`../site` next to the server).
 
 ## Notes
 

@@ -128,8 +128,8 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
           ? "Deferred ($1 per sale until covered)"
           : "Not sent yet";
   const price = [film.rent_price_cents && `Rent ${dollars(film.rent_price_cents)}`, film.buy_price_cents && `Buy ${dollars(film.buy_price_cents)}`].filter(Boolean).join(" · ");
-  // The address viewers see, plus the filmmaker's own domain that forwards to it (if they set one).
-  const address = `${film.subdomain || "?"}.${CLUB_DOMAIN}${film.address_type === "own" && film.own_domain ? ` (watch.${film.own_domain} forwards here)` : ""}`;
+  // The address viewers see. (Filmmakers who want their own domain forward it here at their own provider.)
+  const address = `${film.subdomain || "?"}.${CLUB_DOMAIN}`;
 
   return (
     <article className="admin-film">
