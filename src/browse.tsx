@@ -482,16 +482,15 @@ function Spine({
       onFocus={onPeek}
       onClick={(e) => onOpen(e.currentTarget)}
     >
+      {/* The green dot marks every film in the Free/Donate aisle (free to watch, pay what you want, or tips): a round
+          sticker on the case's left edge, half of it showing, as if it wraps around the edge. */}
+      {takesDonations(f) && (
+        <span className="bz-spine-dot" title="Free/Donate">
+          <span className="visually-hidden">Free or donation-based</span>
+        </span>
+      )}
       <span className="bz-spine-who">{f.director}</span>
-      <span className="bz-spine-title">
-        {f.title}
-        {/* The green dot marks every film in the Free/Donate aisle: free to watch, pay what you want, or tips. */}
-        {takesDonations(f) && (
-          <span className="bz-dot bz-spine-dot" title="Free/Donate">
-            <span className="visually-hidden">Free or donation-based</span>
-          </span>
-        )}
-      </span>
+      <span className="bz-spine-title">{f.title}</span>
       <span className="bz-spine-time">{f.runtime_minutes ? `${f.runtime_minutes} min` : ""}</span>
       <span className="bz-spine-year">{f.year}</span>
       <span className="bz-spine-img" aria-hidden="true">
