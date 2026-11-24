@@ -1018,8 +1018,25 @@
   margin: 0 0 4px;
 }
 
+/* Text on the left takes the room; the button keeps its own size (buttons are full-width by default, which
+   squashed the text into a narrow column and pushed the button out of the card). */
+.s-card.s-owned > div {
+  flex: 1;
+  min-width: 0;
+}
+
 .s-card.s-owned .s-btn {
   flex: none;
+  width: auto;
+  margin: 0;
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+@media (max-width: 600px) {
+  .s-card.s-owned .s-btn {
+    width: 100%;
+  }
 }
 
 .s-card.s-noacct {
