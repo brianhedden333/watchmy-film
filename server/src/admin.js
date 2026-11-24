@@ -1,5 +1,6 @@
 // Admin: review films, manage waiver codes. Only ADMIN_EMAILS can reach these.
 
+import { createHash, randomBytes } from "node:crypto";
 import { Router } from "express";
 import { config } from "./config.js";
 import { db, now } from "./db.js";
@@ -66,6 +67,21 @@ adminRouter.patch("/films/:id", async (req, res) => {
     }
   }
   res.json({ ok: true, emailed });
+});
+
+// A private test screening on indiefilm.club: the watch page with the film playing (any status, even without an
+// address), so we can check the Vimeo embed works on the domain it's allowed on. The link works for 24 hours.
+adminRouter.post("/films/:id/screening", (req, res) => {
+  const film = db.prepare("SELECT id FROM films WHERE id = ? AND deleted_at IS NULL").get(Number(req.params.id));
+  if (!film) return res.status(404).json({ error: "No such film." });
+  const t = randomBytes(24).toString("base64url");
+  db.prepare("INSERT INTO screening_links (token_hash, film_id, created_by, expires_at) VALUES (?, ?, ?, ?)").run(
+    createHash("sha256").update(t).digest("hex"),
+    film.id,
+    req.user.id,
+    new Date(Date.now() + 24 * 3_600_000).toISOString()
+  );
+  res.json({ url: `${config.clubUrl}/screening/?t=${t}` });
 });
 
 adminRouter.post("/codes", (req, res) => {

@@ -3,6 +3,7 @@
 // a film that's free to watch includes its own link (bonus features stay paid).
 
 import { Router } from "express";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "./config.js";
@@ -103,6 +104,22 @@ function viewerFilm(row) {
     },
   };
 }
+
+// Admin test screening (see admin.js): the full film, film link included, for a valid unexpired screening link.
+// No sign-in needed (it's a secret link), so indiefilm.club sign-ins stay viewer-only.
+watchRouter.get("/screening", (req, res) => {
+  res.set("Cache-Control", "no-store").set("X-Robots-Tag", "noindex");
+  const t = String(req.query.t || "");
+  const link =
+    t &&
+    db
+      .prepare("SELECT * FROM screening_links WHERE token_hash = ? AND expires_at > ?")
+      .get(createHash("sha256").update(t).digest("hex"), new Date().toISOString());
+  if (!link) return res.status(404).json({ error: "This test link has expired or isn't valid. Make a new one from admin." });
+  const row = db.prepare("SELECT * FROM films WHERE id = ? AND deleted_at IS NULL").get(link.film_id);
+  if (!row) return res.status(404).json({ error: "That film no longer exists." });
+  res.json({ film: publicFilm(row), expires_at: link.expires_at });
+});
 
 // JSON for the page (and for local testing): GET /api/watch?host=mountaingoat.watchmyfilm.online
 watchRouter.get("/", (req, res) => {

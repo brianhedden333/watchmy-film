@@ -85,6 +85,37 @@ function Films({ films, statuses, reload }: { films: AdminFilm[]; statuses: Film
   );
 }
 
+// "Test on indiefilm.club": a private 24-hour link to the film's watch page there, film playable, so we can check the
+// Vimeo embed works on the domain the filmmaker allowed (vimeo.com itself says "page not found" for Embed-only videos).
+function TestScreening({ filmId }: { filmId: number }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function go() {
+    setBusy(true);
+    setError("");
+    // Open the tab now (a tab opened after waiting for the server would be blocked as a pop-up), then point it there.
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const r = await api<{ url: string }>(`/admin/films/${filmId}/screening`, { body: {} });
+      if (tab) tab.location.href = r.url;
+      else location.assign(r.url);
+    } catch (e) {
+      tab?.close();
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <button type="button" className="link-btn" onClick={go} disabled={busy}>
+        {busy ? "Opening…" : "Test on indiefilm.club (film playable) ↗"}
+      </button>
+      {error && <span className="field-err"> {error}</span>}
+    </>
+  );
+}
+
 function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: Film["status"][]; reload: () => void }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(film.status);
@@ -197,21 +228,37 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Bonus features</dt><dd>{(["rent", "buy"] as const).map((k) => {
               const b = film.bonus[k];
               if (!b.description && !b.videos.length) return null;
-              return <span key={k} className="credit-line"><strong>{k === "rent" ? "Rentals" : "Purchases"}:</strong> {b.description}{b.videos.length ? ` (${b.videos.length} ${b.videos.length === 1 ? "video" : "videos"}: ${b.videos.map((v) => v.title).join(", ")})` : ""}</span>;
+              return (
+                <span key={k} className="credit-line">
+                  <strong>{k === "rent" ? "Rentals" : "Purchases"}:</strong> {b.description}
+                  {b.videos.map((v) => (
+                    <span key={v.url} className="credit-line">
+                      ↳ {v.url ? <a href={v.url} target="_blank" rel="noreferrer">{v.title || v.url}</a> : v.title}
+                    </span>
+                  ))}
+                </span>
+              );
             })}{!film.bonus.rent.description && !film.bonus.rent.videos.length && !film.bonus.buy.description && !film.bonus.buy.videos.length && "None"}</dd></div>
+            <div><dt>Watch free</dt><dd>{film.free_watch ? "Yes" : "No"}</dd></div>
+            <div><dt>Browse (indiefilm.club)</dt><dd>{film.discoverable ? `Listed${film.tags.length ? ` · ${film.tags.join(", ")}` : ""}` : "Not listed"}{film.staff_pick ? " · Staff pick" : ""}</dd></div>
+            <div><dt>Banner title</dt><dd>{film.hide_title ? "Hidden (banner shown as a plain image)" : "Shown"}</dd></div>
+            <div><dt>Rights</dt><dd>{film.rights_confirmed_at ? `Confirmed ${day(film.rights_confirmed_at)}` : "Not confirmed yet"}</dd></div>
             <div><dt>Pay what you want</dt><dd>{film.pwyw_enabled ? `From ${dollars(film.pwyw_min_cents)}${film.pwyw_suggested_cents ? `, suggested ${dollars(film.pwyw_suggested_cents)}` : ""} · unlocks ${film.pwyw_access === "buy" ? "for keeps" : "a rental"}` : "Off"}</dd></div>
             <div><dt>Tip jar</dt><dd>{[film.tip_venmo && `Venmo @${film.tip_venmo}`, film.tip_paypal && `paypal.me/${film.tip_paypal}`, film.tip_zelle && `Zelle ${film.tip_zelle}`].filter(Boolean).join(" · ") || "None"}</dd></div>
             <div><dt>Stripe</dt><dd>{stripeText(film)}</dd></div>
             <div><dt>Contact</dt><dd>{[film.contact_name || film.owner_name, film.owner_email, film.contact_phone].filter(Boolean).join(" · ")}</dd></div>
           </dl>
-          <p>
+          <p className="admin-links">
             <a href={`${home}preview/?film=${film.id}`} target="_blank" rel="noopener">
               Open their watch page preview
             </a>
+            <TestScreening filmId={film.id} />
           </p>
-          {film.logline && <p><em>{film.logline}</em></p>}
-          {film.synopsis && <p className="admin-synopsis">{film.synopsis}</p>}
-          {film.notes && <p className="admin-synopsis"><strong>Their notes:</strong> {film.notes}</p>}
+          <dl className="admin-details admin-text">
+            <div><dt>One-line description</dt><dd>{film.logline || "None"}</dd></div>
+            <div><dt>Synopsis</dt><dd className="admin-synopsis">{film.synopsis || "None"}</dd></div>
+            {film.notes && <div><dt>Their notes to us</dt><dd className="admin-synopsis">{film.notes}</dd></div>}
+          </dl>
 
           <form className="admin-review" onSubmit={save}>
             <label>

@@ -273,6 +273,17 @@ const MIGRATIONS = [
   -- A one-time code for that hop carries the link_id (emailed sign-in links have none).
   ALTER TABLE login_tokens ADD COLUMN link_id TEXT;
   `,
+  `
+  -- Admin test screenings: a private, expiring link that shows a film's watch page (with the film playing) on
+  -- indiefilm.club, any status, so the Vimeo embed can be checked on the domain it's allowed on. Only the hash kept.
+  CREATE TABLE screening_links (
+    token_hash TEXT PRIMARY KEY,
+    film_id INTEGER NOT NULL REFERENCES films(id),
+    created_by INTEGER REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    expires_at TEXT NOT NULL
+  );
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

@@ -1146,6 +1146,23 @@
   color: var(--gold);
 }
 
+/* "Open their watch page preview" and "Test on indiefilm.club" side by side. */
+.admin-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 24px;
+}
+
+.admin-links .link-btn {
+  color: var(--gold);
+}
+
+/* Long text (one-line description, synopsis, notes): one column. */
+.admin-details.admin-text {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .admin-synopsis {
   white-space: pre-wrap;
   line-height: 1.55;

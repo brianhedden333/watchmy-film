@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 // Pages for filmmakers: only on watchmyfilm.online.
 const APP_PAGES = ["/signup", "/dashboard", "/add-a-film", "/admin", "/account", "/preview", "/workflow", "/sample"];
-const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/preview", "/library", "/browse", "/admin", "/terms", "/privacy"];
+const SLASH_PAGES = ["/workflow", "/account", "/signup", "/signin", "/sample", "/dashboard", "/add-a-film", "/preview", "/library", "/browse", "/admin", "/terms", "/privacy", "/screening"];
 
 export default defineConfig({
   // Sub-path the site is served from. GitHub Pages project sites need
@@ -77,6 +77,7 @@ export default defineConfig({
           preview: resolve(__dirname, "preview/index.html"), // the filmmaker's watch page, before it's live
         }),
         sample: resolve(__dirname, "sample/index.html"), // sample watch page (Fracking the System)
+        screening: resolve(__dirname, "screening/index.html"), // admin test screening on indiefilm.club (private link)
         browse: resolve(__dirname, "browse/index.html"), // public catalog of opted-in live films (not linked yet)
       },
     },
