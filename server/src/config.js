@@ -53,6 +53,8 @@ export const config = {
   sendgridKey: env.SENDGRID_API_KEY || "",
   fromEmail: env.FROM_EMAIL || "hello@watchmyfilm.online",
   fromName: env.FROM_NAME || "watchmyfilm", // a plain name: domain-looking sender names can trip spam filters
+  // Where replies to our emails go (every email we send carries it, unless a message sets its own).
+  replyToEmail: env.REPLY_TO_EMAIL || "hello@watchmyfilm.online",
   // Comma-separated. These accounts can open /admin/.
   adminEmails: (env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean),
   // Where sign-up and submission notices go.

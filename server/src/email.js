@@ -5,6 +5,7 @@ import { config } from "./config.js";
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
+// Replies go to replyTo if given, otherwise to config.replyToEmail (hello@watchmyfilm.online).
 export async function sendEmail({ to, subject, text, html, replyTo }) {
   if (!to) return;
   if (!config.sendgridKey) {
@@ -17,7 +18,7 @@ export async function sendEmail({ to, subject, text, html, replyTo }) {
     body: JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
       from: { email: config.fromEmail, name: config.fromName },
-      ...(replyTo ? { reply_to: { email: replyTo } } : {}),
+      ...((replyTo || config.replyToEmail) ? { reply_to: { email: replyTo || config.replyToEmail } } : {}),
       subject,
       content: [
         { type: "text/plain", value: text },
