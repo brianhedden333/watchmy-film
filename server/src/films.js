@@ -2,7 +2,7 @@
 
 import { Router } from "express";
 import multer from "multer";
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config.js";
@@ -466,27 +466,6 @@ filmsRouter.patch("/:id", async (req, res) => {
     );
   }
   res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
-});
-
-// A private test screening on indiefilm.club: the watch page as a paying viewer sees it, film playing, made from
-// the film's saved link. Admins make these from admin; filmmakers make them for their own film, to check the
-// embed works before sending it for review. Works for 24 hours; only the hash is kept.
-export function createScreeningLink(filmId, userId) {
-  const t = randomBytes(24).toString("base64url");
-  db.prepare("INSERT INTO screening_links (token_hash, film_id, created_by, expires_at) VALUES (?, ?, ?, ?)").run(
-    createHash("sha256").update(t).digest("hex"),
-    filmId,
-    userId,
-    new Date(Date.now() + 24 * 3_600_000).toISOString()
-  );
-  return `${config.clubUrl}/screening/?t=${t}`;
-}
-
-filmsRouter.post("/:id/screening", (req, res) => {
-  const film = getOwnFilm(req);
-  if (!film) return res.status(404).json({ error: "Film not found." });
-  if (!film.vimeo_url) return res.status(400).json({ error: "Add the link to your full film and save first." });
-  res.json({ url: createScreeningLink(film.id, req.user.id) });
 });
 
 filmsRouter.post("/:id/:kind", (req, res, next) => {

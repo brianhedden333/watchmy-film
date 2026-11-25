@@ -31,3 +31,6 @@ export function filmHref(f: { subdomain?: string | null }) {
 // A link to a page on the other site that keeps the person signed in: it passes through /api/auth/hop, which
 // signs them in there with a one-time code (or just goes there if they aren't signed in).
 export const cross = (url: string) => `/api/auth/hop?next=${encodeURIComponent(url)}`;
+
+// A film's test screening on the club (only its own account and admins can view it; see server/src/watch.js).
+export const screeningUrl = (filmId: number) => `${CLUB}/screening/?film=${filmId}`;

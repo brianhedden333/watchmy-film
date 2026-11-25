@@ -8,6 +8,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "./config.js";
 import { db } from "./db.js";
+import { isAdmin, loadUser } from "./auth.js";
 import { publicFilm } from "./films.js";
 import { filmAddress, filmPageUrl } from "./sales.js"; // (sales.js imports this file too; both are only used at request time)
 
@@ -105,21 +106,18 @@ function viewerFilm(row) {
   };
 }
 
-// Test screening (see createScreeningLink in films.js): the full film, film link included, for a valid unexpired screening link.
-// No sign-in needed (it's a secret link), so indiefilm.club sign-ins stay viewer-only.
-watchRouter.get("/screening", (req, res) => {
+// Test screening: GET /api/watch/screening?film=<id> on indiefilm.club. The film's watch page as a paying viewer
+// sees it, film playing, any status (even a draft without an address), so the Vimeo embed can be checked on the
+// domain it's allowed on. Only for the film's own account or an admin, signed in on indiefilm.club (add-a-film and
+// admin send them over through the sign-in hop). A forwarded link shows nothing to anyone else.
+watchRouter.get("/screening", loadUser, (req, res) => { // (this router runs before the app-wide loadUser)
   res.set("Cache-Control", "no-store").set("X-Robots-Tag", "noindex");
-  const t = String(req.query.t || "");
-  const link =
-    t &&
-    db
-      .prepare("SELECT * FROM screening_links WHERE token_hash = ? AND expires_at > ?")
-      .get(createHash("sha256").update(t).digest("hex"), new Date().toISOString());
-  if (!link) return res.status(404).json({ error: "This test link has expired or isn't valid. Make a new one where you got it." });
-  const row = db.prepare("SELECT * FROM films WHERE id = ? AND deleted_at IS NULL").get(link.film_id);
+  const row = db.prepare("SELECT * FROM films WHERE id = ? AND deleted_at IS NULL").get(Number(req.query.film) || 0);
+  const mine = row && req.user && (row.user_id === req.user.id || isAdmin(req.user));
+  if (!req.user) return res.status(401).json({ error: "Sign in to view this test screening." });
   if (!row) return res.status(404).json({ error: "That film no longer exists." });
-  // Made by the film's own filmmaker (from add-a-film) or by an admin: the page's notice and back link differ.
-  res.json({ film: publicFilm(row), expires_at: link.expires_at, by: link.created_by === row.user_id ? "owner" : "admin" });
+  if (!mine) return res.status(403).json({ error: "This test screening is only viewable to the film's own account and our admins." });
+  res.json({ film: publicFilm(row), by: row.user_id === req.user.id ? "owner" : "admin" });
 });
 
 // JSON for the page (and for local testing): GET /api/watch?host=mountaingoat.watchmyfilm.online

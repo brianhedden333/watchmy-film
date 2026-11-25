@@ -6,7 +6,7 @@ import { db, now } from "./db.js";
 import { requireAdmin, requireUser } from "./auth.js";
 import { CODE_RE, createCode, normalizeCode } from "./codes.js";
 import { filmStatusEmail } from "./email.js";
-import { createScreeningLink, publicFilm } from "./films.js";
+import { publicFilm } from "./films.js";
 
 const STATUSES = ["draft", "in_review", "changes_requested", "approved", "live"];
 
@@ -66,14 +66,6 @@ adminRouter.patch("/films/:id", async (req, res) => {
     }
   }
   res.json({ ok: true, emailed });
-});
-
-// A private test screening on indiefilm.club: the watch page with the film playing (any status, even without an
-// address), so we can check the Vimeo embed works on the domain it's allowed on. The link works for 24 hours.
-adminRouter.post("/films/:id/screening", (req, res) => {
-  const film = db.prepare("SELECT id FROM films WHERE id = ? AND deleted_at IS NULL").get(Number(req.params.id));
-  if (!film) return res.status(404).json({ error: "No such film." });
-  res.json({ url: createScreeningLink(film.id, req.user.id) });
 });
 
 adminRouter.post("/codes", (req, res) => {

@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { api, dollars, getMe, type User } from "./api";
-import { CLUB_DOMAIN } from "./sites";
+import { CLUB_DOMAIN, cross, screeningUrl } from "./sites";
 import { pillClass, STATUS_LABEL, statusLabel, type Film } from "./films";
 import { AppHeader } from "./AppHeader";
 import "./styles.css";
@@ -87,32 +87,12 @@ function Films({ films, statuses, reload }: { films: AdminFilm[]; statuses: Film
 
 // "Test on indiefilm.club": a private 24-hour link to the film's watch page there, film playable, so we can check the
 // Vimeo embed works on the domain the filmmaker allowed (vimeo.com itself says "page not found" for Embed-only videos).
+// The film's test screening on indiefilm.club (film playable, any status). The hop signs the admin in there.
 function TestScreening({ filmId }: { filmId: number }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  async function go() {
-    setBusy(true);
-    setError("");
-    // Open the tab now (a tab opened after waiting for the server would be blocked as a pop-up), then point it there.
-    const tab = window.open("about:blank", "_blank");
-    try {
-      const r = await api<{ url: string }>(`/admin/films/${filmId}/screening`, { body: {} });
-      if (tab) tab.location.href = r.url;
-      else location.assign(r.url);
-    } catch (e) {
-      tab?.close();
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
-    <>
-      <button type="button" className="link-btn" onClick={go} disabled={busy}>
-        {busy ? "Opening…" : "Test on indiefilm.club (film playable) ↗"}
-      </button>
-      {error && <span className="field-err"> {error}</span>}
-    </>
+    <a className="link-btn" href={cross(screeningUrl(filmId))} target="_blank" rel="noopener">
+      Test on indiefilm.club (film playable) ↗
+    </a>
   );
 }
 

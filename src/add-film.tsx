@@ -4,7 +4,7 @@ import { api, ApiError, dollars, getMe, type ConnectInfo, type User } from "./ap
 import { BONUS_MAX, COLOR_DEFAULTS, liveAddress, liveHref, pageTheme, pillClass, STATUS_LABEL, statusLabel, type Bonus, type BonusSet, type ColorKey, type Credit, type Film, type FilmsResponse } from "./films";
 import { AppHeader } from "./AppHeader";
 import { ConnectStripe } from "./ConnectStripe";
-import { CLUB_DOMAIN } from "./sites";
+import { CLUB_DOMAIN, cross, screeningUrl } from "./sites";
 import { cleanTag, QUICK_TAGS, suggestTags, TAG_RE, TAGS_MAX } from "./tags";
 import "./styles.css";
 import "./sample.css";
@@ -1775,29 +1775,12 @@ function Field({ label, hint, error, value, onChange, disabled, type = "text", p
   );
 }
 
-// "Test it behind the paywall": opens a private test screening on indiefilm.club (the watch page as a paying viewer
-// sees it, film playing, nobody charged), then the filmmaker ticks that it's visible and plays there. Uses the saved
-// film link, so a changed link has to be saved first (saving a new link also unticks the box).
+// "Test it behind the paywall": opens the film's test screening on indiefilm.club (the watch page as a paying viewer
+// sees it, film playing, nobody charged), then the filmmaker ticks that it's visible and plays there. Only this
+// account and our admins can view it. Uses the saved film link, so a changed link has to be saved first (saving a
+// new link also unticks the box).
 function TestScreening({ film, linkChanged, checked, onCheck, required }: { film: Film; linkChanged: boolean; checked: boolean; onCheck: (on: boolean) => void; required: boolean }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const ready = !!film.vimeo_url && !linkChanged;
-  async function go() {
-    setBusy(true);
-    setError("");
-    // Open the tab now (a tab opened after waiting for the server would be blocked as a pop-up), then point it there.
-    const tab = window.open("about:blank", "_blank");
-    try {
-      const r = await api<{ url: string }>(`/films/${film.id}/screening`, { body: {} });
-      if (tab) tab.location.href = r.url;
-      else location.assign(r.url);
-    } catch (e) {
-      tab?.close();
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
     <div className="pwyw test-screening" id="sec-playback">
       <p className="test-screening-head">
@@ -1807,15 +1790,23 @@ function TestScreening({ film, linkChanged, checked, onCheck, required }: { film
       <p className="hint">
         Opens your watch page on indiefilm.club as a viewer sees it after paying, with your film in the player. Nobody is
         charged. Make sure the film appears and plays. If Vimeo says it can't play here, check the embed settings above.
-        The link is private and works for 24 hours.
       </p>
-      <button type="button" className="btn btn-small" onClick={go} disabled={busy || !ready}>
-        {busy ? "Opening…" : "Open test screening ↗"}
-      </button>
+      {ready ? (
+        <a className="btn btn-small" href={cross(screeningUrl(film.id))} target="_blank" rel="noopener">
+          Open test screening ↗
+        </a>
+      ) : (
+        <button type="button" className="btn btn-small" disabled>
+          Open test screening ↗
+        </button>
+      )}
+      <p className="hint test-screening-private">
+        🔒 Only viewable when signed in to this account, and by our admins. No one else can watch it, even if they get
+        the link.
+      </p>
       {!ready && (
         <p className="hint">{film.vimeo_url ? "Save your new film link first, then test it." : "Add the link to your full film and save first."}</p>
       )}
-      {error && <p className="field-err" role="alert">{error}</p>}
       <label className="pwyw-toggle">
         <input type="checkbox" name="playback_confirmed_at" aria-required={required} checked={checked} disabled={!ready && !checked} onChange={(e) => onCheck(e.target.checked)} />
         <span>
