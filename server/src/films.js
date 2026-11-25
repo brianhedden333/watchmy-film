@@ -278,8 +278,12 @@ export function missingFields(f) {
   const hasTips = !!(f.tip_venmo || f.tip_paypal || f.tip_zelle);
   if (!f.rent_price_cents && !f.buy_price_cents && !f.pwyw_enabled && !f.free_watch && !hasTips) missing.push(LABELS.price);
   if (!f.subdomain) missing.push(LABELS.subdomain);
-  if (!f.ai_used) missing.push(LABELS.ai_used);
-  else if (f.ai_used === "yes" && !f.ai_use_notes) missing.push(LABELS.ai_use_notes);
+  // The generative AI question is required for new submissions only (drafts); films already sent to review or
+  // live before it existed aren't held up by it.
+  if (f.status === "draft") {
+    if (!f.ai_used) missing.push(LABELS.ai_used);
+    else if (f.ai_used === "yes" && !f.ai_use_notes) missing.push(LABELS.ai_use_notes);
+  }
   return missing;
 }
 

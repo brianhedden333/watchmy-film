@@ -687,7 +687,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
           <fieldset id="sec-ai">
             <legend>Generative AI</legend>
             <p className="ai-question" id="ai-used-q">
-              <strong>Was generative AI used in making this film?</strong> (required)
+              <strong>Was generative AI used in making this film?</strong>{film.status === "draft" && " (required)"}
             </p>
             <p className="fieldset-hint">
               For example AI-generated images, video, voices, music or script. Editing tools like noise reduction or
@@ -705,7 +705,7 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               />
             {errors.ai_used && <p className="field-err" role="alert">{errors.ai_used}.</p>}
             {form.ai_used === "yes" &&
-              field("ai_use_notes", "How was it used? (required)", {
+              field("ai_use_notes", film.status === "draft" ? "How was it used? (required)" : "How was it used?", {
                 multiline: 3,
                 maxLength: 1000,
                 placeholder: "e.g. AI-generated background music in two scenes; the narrator's voice was cloned with permission.",
