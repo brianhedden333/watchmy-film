@@ -2472,3 +2472,25 @@ a.library-poster:focus-visible {
 .sales-updates-list span {
   color: var(--text-soft);
 }
+
+/* Connect Stripe: which country the account is made in */
+.connect-country {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  max-width: 420px;
+}
+.connect-country select {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.connect-restart {
+  margin: 8px 0 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}

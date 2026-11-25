@@ -305,6 +305,12 @@ const MIGRATIONS = [
     PRIMARY KEY (user_id, film_id)
   );
   `,
+  `
+  -- The country the filmmaker's Stripe account was made in (two letters, e.g. 'us', 'dk'). Stripe can't change it.
+  ALTER TABLE users ADD COLUMN connect_country TEXT;
+  -- How many times they started Stripe setup over in another country (keeps each new account request distinct).
+  ALTER TABLE users ADD COLUMN connect_restarts INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

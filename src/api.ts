@@ -28,7 +28,7 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
 }
 
 export type StripeInfo = { hasAccount: boolean; email: string | null; accountId: string | null; country: string | null; updatedAt: string };
-export type ConnectInfo = { accountId: string | null; cardPayments: string | null; payouts: string | null; canAcceptPayments: boolean; checkedAt: string | null };
+export type ConnectInfo = { accountId: string | null; cardPayments: string | null; payouts: string | null; canAcceptPayments: boolean; checkedAt: string | null; country: string | null };
 export type User = { id: number; email: string; name: string | null; isAdmin: boolean; hasPassword: boolean; home: string; stripe: StripeInfo | null; connect: ConnectInfo; hasFilms: boolean;
   agreedTerms?: boolean; // false for accounts that began as viewers: their first film asks them to agree to the Terms
 };

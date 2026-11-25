@@ -14,6 +14,40 @@ import { api, type ConnectInfo } from "./api";
 
 type SessionResponse = { clientSecret: string; publishableKey: string; connect: ConnectInfo };
 
+// Where the filmmaker (or their business) is based. Stripe makes the account in this country and can't change it
+// later. Keep in step with CONNECT_COUNTRIES in server/src/connect.js.
+const COUNTRIES: [string, string][] = (
+  [
+    ["us", "United States"], ["au", "Australia"], ["at", "Austria"], ["be", "Belgium"], ["bg", "Bulgaria"], ["ca", "Canada"],
+    ["hr", "Croatia"], ["cy", "Cyprus"], ["cz", "Czech Republic"], ["dk", "Denmark"], ["ee", "Estonia"], ["fi", "Finland"],
+    ["fr", "France"], ["de", "Germany"], ["gi", "Gibraltar"], ["gr", "Greece"], ["hk", "Hong Kong"], ["hu", "Hungary"],
+    ["ie", "Ireland"], ["it", "Italy"], ["jp", "Japan"], ["lv", "Latvia"], ["li", "Liechtenstein"], ["lt", "Lithuania"],
+    ["lu", "Luxembourg"], ["my", "Malaysia"], ["mt", "Malta"], ["mx", "Mexico"], ["nl", "Netherlands"], ["nz", "New Zealand"],
+    ["no", "Norway"], ["pl", "Poland"], ["pt", "Portugal"], ["ro", "Romania"], ["sg", "Singapore"], ["sk", "Slovakia"],
+    ["si", "Slovenia"], ["es", "Spain"], ["se", "Sweden"], ["ch", "Switzerland"], ["gb", "United Kingdom"],
+  ] as [string, string][]
+);
+const countryName = (c: string | null) => COUNTRIES.find(([k]) => k === c)?.[1] || (c ? c.toUpperCase() : "");
+
+function CountrySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="connect-country">
+      <span>Where are you or your business based?</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {COUNTRIES.map(([k, name]) => (
+          <option key={k} value={k}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <span className="small-print">
+        Stripe sets up your account for this country and can't change it later. Sales are in US dollars; Stripe converts
+        them to your currency when it pays you.
+      </span>
+    </label>
+  );
+}
+
 // Matches the dark screening-room palette (src/styles.css).
 const appearance = {
   overlays: "dialog" as const,
@@ -36,6 +70,8 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
   const [mode, setMode] = useState<"" | "onboarding" | "manage">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [country, setCountry] = useState("us");
+  const [restarting, setRestarting] = useState(false); // "Wrong country? Start over" is open
 
   const update = (c: ConnectInfo) => {
     setInfo(c);
@@ -56,7 +92,7 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
     setError("");
     try {
       if (!instance) {
-        const first = await api<SessionResponse>("/connect/session", { body: {} });
+        const first = await api<SessionResponse>("/connect/session", { body: { country } });
         update(first.connect);
         let used = false;
         const inst = loadConnectAndInitialize({
@@ -66,13 +102,30 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
               used = true;
               return first.clientSecret;
             }
-            return (await api<SessionResponse>("/connect/session", { body: {} })).clientSecret;
+            return (await api<SessionResponse>("/connect/session", { body: { country } })).clientSecret;
           },
           appearance,
         });
         setInstance(inst);
       }
       setMode(next);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Unfinished account in the wrong country: drop it and open setup again in the chosen country.
+  async function restart() {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await api<{ connect: ConnectInfo }>("/connect/restart", { body: { country } });
+      update(r.connect);
+      setInstance(null);
+      setMode("");
+      setRestarting(false);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -117,17 +170,48 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
       ) : checking ? (
         <p role="status">Stripe is checking your details. This usually takes less than a minute…</p>
       ) : started ? (
-        <p>
-          {info?.cardPayments === "pending"
-            ? "Stripe is checking your details. This usually takes a few minutes."
-            : "Your Stripe account isn't finished yet. Pick up where you left off."}
-        </p>
+        <>
+          <p>
+            {info?.cardPayments === "pending"
+              ? "Stripe is checking your details. This usually takes a few minutes."
+              : "Your Stripe account isn't finished yet. Pick up where you left off."}
+          </p>
+          {info?.country && mode !== "onboarding" && (
+            <p className="small-print">
+              Country: {countryName(info.country)}.{" "}
+              {!restarting && (
+                <button type="button" className="link-btn" onClick={() => setRestarting(true)}>
+                  Wrong country? Start over
+                </button>
+              )}
+            </p>
+          )}
+          {restarting && (
+            <div className="connect-restart">
+              <CountrySelect value={country} onChange={setCountry} />
+              <p className="small-print">
+                This starts your Stripe setup over in the country you choose. What you entered so far isn't carried over.
+              </p>
+              <div className="stripe-actions">
+                <button type="button" className="btn btn-small" onClick={restart} disabled={busy || country === info?.country}>
+                  {busy ? "Starting over…" : `Start over in ${countryName(country)}`}
+                </button>
+                <button type="button" className="link-btn" onClick={() => setRestarting(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
-        <p>
-          Sales are charged on your own Stripe account and paid out to your bank. Setting it up takes about 10 minutes
-          inside this page: Stripe asks for your details and bank account, not us. Already have Stripe? Sign in to it
-          during setup.
-        </p>
+        <>
+          <p>
+            Sales are charged on your own Stripe account and paid out to your bank. Setting it up takes about 10 minutes
+            inside this page: Stripe asks for your details and bank account, not us. Already have Stripe? Sign in to it
+            during setup.
+          </p>
+          {mode !== "onboarding" && <CountrySelect value={country} onChange={setCountry} />}
+        </>
       )}
 
       {instance && (
@@ -147,7 +231,7 @@ export function ConnectStripe({ initial, onChange }: { initial?: ConnectInfo | n
       )}
 
       <div className="stripe-actions">
-        {!active && !checking && mode !== "onboarding" && (
+        {!active && !checking && !restarting && mode !== "onboarding" && (
           <button type="button" className="btn btn-small" onClick={() => start("onboarding")} disabled={busy}>
             {busy ? "Opening Stripe…" : started ? "Continue Stripe setup" : "Connect Stripe"}
           </button>
@@ -193,13 +277,13 @@ function SecureNote() {
       <div>
         <p className="connect-secure-title">Secure, and handled by Stripe</p>
         <p>
-          The form below is Stripe's own, running inside this page. Your ID, Social Security number and bank details go
-          straight to Stripe over an encrypted connection. watchmyfilm never sees or stores your full Social Security
-          number or bank account number.
+          The form below is Stripe's own, running inside this page. Your ID, tax number (such as a US Social Security
+          number) and bank details go straight to Stripe over an encrypted connection. watchmyfilm never sees or stores
+          your full tax number or bank account number.
         </p>
         <p>
           Stripe processes payments for millions of businesses and is certified to the payment industry's highest
-          security standard (PCI Level 1). It asks for these details because US law requires payment companies to
+          security standard (PCI Level 1). It asks for these details because the law requires payment companies to
           verify who they pay.
         </p>
       </div>
