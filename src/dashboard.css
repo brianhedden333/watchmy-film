@@ -245,6 +245,12 @@
   accent-color: var(--gold);
 }
 
+/* Add a film: the generative AI question */
+.ai-question {
+  margin: 0 0 4px;
+  color: var(--text);
+}
+
 /* ---------- Credits ---------- */
 
 .credits {

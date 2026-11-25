@@ -284,6 +284,11 @@ const MIGRATIONS = [
     expires_at TEXT NOT NULL
   );
   `,
+  `
+  -- "Was generative AI used in making this film?" (required): 'yes' or 'no' (null = not answered yet), and how it was used.
+  ALTER TABLE films ADD COLUMN ai_used TEXT;
+  ALTER TABLE films ADD COLUMN ai_use_notes TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

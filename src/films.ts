@@ -42,6 +42,8 @@ export type Film = {
   tip_zelle: string | null;
   free_watch: boolean;
   hide_title?: boolean; // Site design: banner as a plain image, no title over it
+  ai_used?: "yes" | "no" | null; // "Was generative AI used in making this film?" (required before review)
+  ai_use_notes?: string | null; // how it was used, when yes
   rights_confirmed_at?: string | null; // when the filmmaker ticked "I have the rights to sell this film"
   // Watch page only: the same account's other live films ("More films from this account").
   more?: { id: number; title: string; poster_url: string; address: string; url: string }[];

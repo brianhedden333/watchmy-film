@@ -237,6 +237,8 @@ const FIELDS = {
     return d && !isNaN(d) && d <= new Date() && v.length >= 20 ? d.toISOString() : new Date().toISOString();
   },
   tags,
+  ai_used: oneOf("yes", "no"),
+  ai_use_notes: text(1000),
   rental_days: int(1, 365),
   // Days to finish once a rental is started (replaced rental_hours, which is no longer used).
   rental_watch_days: int(1, 30),
@@ -263,6 +265,8 @@ const LABELS = {
   vimeo_url: "Film link (Vimeo or YouTube)",
   price: "A rent, buy or donation price, free viewing, or a tip jar",
   rights_confirmed_at: "Confirm you have the rights to sell this film",
+  ai_used: "Say whether generative AI was used",
+  ai_use_notes: "Describe how generative AI was used",
 };
 
 const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
@@ -274,6 +278,8 @@ export function missingFields(f) {
   const hasTips = !!(f.tip_venmo || f.tip_paypal || f.tip_zelle);
   if (!f.rent_price_cents && !f.buy_price_cents && !f.pwyw_enabled && !f.free_watch && !hasTips) missing.push(LABELS.price);
   if (!f.subdomain) missing.push(LABELS.subdomain);
+  if (!f.ai_used) missing.push(LABELS.ai_used);
+  else if (f.ai_used === "yes" && !f.ai_use_notes) missing.push(LABELS.ai_use_notes);
   return missing;
 }
 

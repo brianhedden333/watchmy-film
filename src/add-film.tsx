@@ -23,7 +23,7 @@ const TEXT_FIELDS = [
   "title", "logline", "synopsis", "year", "runtime_minutes", "languages", "genre", "trailer_url", "vimeo_url",
   "rental_days", "rental_watch_days", "tier", "address_type", "subdomain", "own_domain", "contact_name", "contact_phone", "notes",
   "color_background", "color_primary", "color_secondary", "color_button",
-  "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle",
+  "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle", "ai_used", "ai_use_notes",
 ] as const;
 type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable" | "hide_title" | "rights_confirmed_at", string>;
 
@@ -684,6 +684,34 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
             {field("notes", "Anything we should know?", { multiline: 3 })}
           </fieldset>
 
+          <fieldset id="sec-ai">
+            <legend>Generative AI</legend>
+            <p className="ai-question" id="ai-used-q">
+              <strong>Was generative AI used in making this film?</strong> (required)
+            </p>
+            <p className="fieldset-hint">
+              For example AI-generated images, video, voices, music or script. Editing tools like noise reduction or
+              auto-captions don't count.
+            </p>
+            <Choice
+                labelledBy="ai-used-q"
+                name="ai_used"
+                value={form.ai_used}
+                onChange={set("ai_used")}
+                options={[
+                  ["yes", "Yes, generative AI was used"],
+                  ["no", "No generative AI was used"],
+                ]}
+              />
+            {errors.ai_used && <p className="field-err" role="alert">{errors.ai_used}.</p>}
+            {form.ai_used === "yes" &&
+              field("ai_use_notes", "How was it used? (required)", {
+                multiline: 3,
+                maxLength: 1000,
+                placeholder: "e.g. AI-generated background music in two scenes; the narrator's voice was cloned with permission.",
+              })}
+          </fieldset>
+
           {(
             <div className="save-bar">
               <button className="btn" disabled={saveState === "saving" || !dirty} aria-busy={saveState === "saving"}>
@@ -719,6 +747,8 @@ const MISSING_TARGETS: Record<string, string> = {
   "Film link (Vimeo or YouTube)": '[name="vimeo_url"]',
   "Web address": "#sec-address",
   "Confirm you have the rights to sell this film": "#sec-rights",
+  "Say whether generative AI was used": "#sec-ai",
+  "Describe how generative AI was used": '[name="ai_use_notes"]',
 };
 const targetFor = (label: string) => MISSING_TARGETS[label] || (/price|free viewing|tip jar/i.test(label) ? "#sec-prices" : null);
 
@@ -1734,9 +1764,9 @@ function Field({ label, hint, error, value, onChange, disabled, type = "text", p
   );
 }
 
-function Choice({ name, value, onChange, options, disabled }: { name: string; value: string; onChange: (v: string) => void; options: [string, string][]; disabled?: boolean }) {
+function Choice({ name, value, onChange, options, disabled, labelledBy }: { name: string; value: string; onChange: (v: string) => void; options: [string, string][]; disabled?: boolean; labelledBy?: string }) {
   return (
-    <div className="choice" role="radiogroup">
+    <div className="choice" role="radiogroup" aria-labelledby={labelledBy}>
       {options.map(([v, label]) => (
         <label key={v} className={value === v ? "on" : ""}>
           <input type="radio" name={name} value={v} checked={value === v} onChange={() => onChange(v)} disabled={disabled} />

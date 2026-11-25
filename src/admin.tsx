@@ -242,6 +242,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Watch free</dt><dd>{film.free_watch ? "Yes" : "No"}</dd></div>
             <div><dt>Browse (indiefilm.club)</dt><dd>{film.discoverable ? `Listed${film.tags.length ? ` · ${film.tags.join(", ")}` : ""}` : "Not listed"}{film.staff_pick ? " · Staff pick" : ""}</dd></div>
             <div><dt>Banner title</dt><dd>{film.hide_title ? "Hidden (banner shown as a plain image)" : "Shown"}</dd></div>
+            <div><dt>Generative AI</dt><dd>{film.ai_used === "yes" ? "Used" : film.ai_used === "no" ? "Not used" : "Not answered yet"}</dd></div>
             <div><dt>Rights</dt><dd>{film.rights_confirmed_at ? `Confirmed ${day(film.rights_confirmed_at)}` : "Not confirmed yet"}</dd></div>
             <div><dt>Pay what you want</dt><dd>{film.pwyw_enabled ? `From ${dollars(film.pwyw_min_cents)}${film.pwyw_suggested_cents ? `, suggested ${dollars(film.pwyw_suggested_cents)}` : ""} · unlocks ${film.pwyw_access === "buy" ? "for keeps" : "a rental"}` : "Off"}</dd></div>
             <div><dt>Tip jar</dt><dd>{[film.tip_venmo && `Venmo @${film.tip_venmo}`, film.tip_paypal && `paypal.me/${film.tip_paypal}`, film.tip_zelle && `Zelle ${film.tip_zelle}`].filter(Boolean).join(" · ") || "None"}</dd></div>
@@ -257,6 +258,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
           <dl className="admin-details admin-text">
             <div><dt>One-line description</dt><dd>{film.logline || "None"}</dd></div>
             <div><dt>Synopsis</dt><dd className="admin-synopsis">{film.synopsis || "None"}</dd></div>
+            {film.ai_used === "yes" && <div><dt>How generative AI was used</dt><dd className="admin-synopsis">{film.ai_use_notes || "Not described yet"}</dd></div>}
             {film.notes && <div><dt>Their notes to us</dt><dd className="admin-synopsis">{film.notes}</dd></div>}
           </dl>
 
