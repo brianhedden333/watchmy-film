@@ -141,6 +141,7 @@ type Sale = {
 };
 type SalesResponse = {
   sales: Sale[];
+  updates: { email: string; film_title: string; date: string }[]; // said yes to "Get updates from the filmmakers"
   totals: { count: number; amount: number; refunded: number; stripe_fee: number; our_fee: number; setup_part: number; net: number; pending: number };
   setup: { id: number; title: string; recovered: number; setup_fee: number }[];
 };
@@ -149,6 +150,47 @@ const money = (c: number | null) => (c == null ? "…" : `$${(c / 100).toFixed(2
 const KIND = { rent: "Rental", buy: "Purchase", pwyw: "Pay what you want" } as const;
 const STATUS = { refunded: "Refunded", partly_refunded: "Partly refunded", disputed: "Disputed" } as const;
 const saleDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+// Viewers who said yes to "Get updates from the filmmakers" under the player (bought or not), with a copy button
+// for pasting into an email.
+function UpdatesList({ updates, several }: { updates: SalesResponse["updates"]; several: boolean }) {
+  const [copied, setCopied] = useState(false);
+  if (!updates.length)
+    return <p className="settings-hint">Viewers who choose "Get updates from the filmmakers" on your watch page will be listed here.</p>;
+  const emails = [...new Set(updates.map((x) => x.email))];
+  return (
+    <div className="sales-updates">
+      <h3>
+        Want updates from you <span className="sales-updates-n">{emails.length}</span>
+      </h3>
+      <p className="settings-hint">
+        These viewers said yes to "Allow the filmmakers to contact me about their newest work?" under your player. Use their
+        email only for news about your work, and stop if anyone asks.
+      </p>
+      <button
+        type="button"
+        className="btn btn-small"
+        onClick={() => {
+          navigator.clipboard?.writeText(emails.join(", ")).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          });
+        }}
+      >
+        {copied ? "Copied" : "Copy all emails"}
+      </button>
+      <ul className="sales-updates-list">
+        {updates.map((x) => (
+          <li key={`${x.email}-${x.film_title}`}>
+            {x.email}
+            {several && <span> · {x.film_title}</span>}
+            <span> · {saleDate(x.date)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function Sales() {
   const [data, setData] = useState<SalesResponse | null>(null);
@@ -160,7 +202,7 @@ function Sales() {
 
   if (error) return <p className="dash-alert" role="alert">{error}</p>;
   if (!data) return null;
-  const { sales, totals, setup } = data;
+  const { sales, totals, setup, updates } = data;
   const several = new Set(sales.map((s) => s.film_id)).size > 1;
 
   return (
@@ -250,6 +292,8 @@ function Sales() {
           </div>
         </>
       )}
+
+      <UpdatesList updates={updates} several={new Set(updates.map((x) => x.film_title)).size > 1} />
 
       {setup.map((f) => (
         <p key={f.id} className="settings-hint sales-setup-line">

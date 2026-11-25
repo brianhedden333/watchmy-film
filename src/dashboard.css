@@ -2447,3 +2447,28 @@ a.library-poster:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Sales: viewers who want updates */
+.sales-updates {
+  margin-top: 28px;
+}
+.sales-updates h3 {
+  margin: 0 0 6px;
+}
+.sales-updates-n {
+  font-size: 14px;
+  color: var(--text-soft);
+  font-weight: 400;
+}
+.sales-updates-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.sales-updates-list span {
+  color: var(--text-soft);
+}

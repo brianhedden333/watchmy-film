@@ -16,7 +16,7 @@ import Stripe from "stripe";
 import { config } from "./config.js";
 import { db, now } from "./db.js";
 import { createLoginToken, EMAIL_RE, startSession, useLoginToken } from "./auth.js";
-import { notifyAdmin, purchaseEmail, saleEmail, viewerSignInEmail } from "./email.js";
+import { notifyAdmin, purchaseEmail, saleEmail, updatesSignInEmail, viewerSignInEmail } from "./email.js";
 import { rateLimit } from "./limits.js";
 import { canSell } from "./connect.js";
 import { filmRowForHost } from "./watch.js";
@@ -220,8 +220,9 @@ filmmakerSalesRouter.get("/", async (req, res) => {
   if (!req.user) return res.status(401).json({ error: "Please sign in." });
   const rows = db
     .prepare(
-      `SELECT p.*, f.title AS film_title, u.email AS buyer_email FROM payments p JOIN films f ON f.id = p.film_id
+      `SELECT p.*, f.title AS film_title, u.email AS buyer_email, o.ok AS optin_ok FROM payments p JOIN films f ON f.id = p.film_id
        LEFT JOIN users u ON u.id = p.user_id
+       LEFT JOIN contact_optins o ON o.user_id = p.user_id AND o.film_id = p.film_id
        WHERE f.user_id = ? AND p.sale_kind IS NOT NULL ORDER BY p.created_at DESC LIMIT 500`
     )
     .all(req.user.id);
@@ -247,7 +248,8 @@ filmmakerSalesRouter.get("/", async (req, res) => {
       kind: r.sale_kind,
       // The buyer's email (the filmmaker also sees it in their Stripe Dashboard) and whether they agreed to be contacted.
       buyer_email: r.buyer_email || null,
-      contact_ok: r.contact_ok === 1 ? true : r.contact_ok === 0 ? false : null, // null: not asked
+      // Their "Get updates" answer under the player wins; otherwise what they said at checkout (older sales).
+      contact_ok: r.optin_ok === 1 ? true : r.optin_ok === 0 ? false : r.contact_ok === 1 ? true : r.contact_ok === 0 ? false : null, // null: not asked
       amount: r.amount_cents,
       refunded: r.refunded_cents ?? 0,
       status,
@@ -262,8 +264,16 @@ filmmakerSalesRouter.get("/", async (req, res) => {
     .prepare("SELECT id, title, setup_status, setup_recovered_cents FROM films WHERE user_id = ? AND setup_status = 'deferred' AND deleted_at IS NULL")
     .all(req.user.id)
     .map((f) => ({ id: f.id, title: f.title, recovered: f.setup_recovered_cents, setup_fee: config.setupFeeCents }));
+  // Everyone who said yes to "Get updates from the filmmakers", bought or not.
+  const updates = db
+    .prepare(
+      `SELECT u.email, f.title AS film_title, o.updated_at AS date FROM contact_optins o JOIN users u ON u.id = o.user_id
+       JOIN films f ON f.id = o.film_id WHERE f.user_id = ? AND o.ok = 1 ORDER BY o.updated_at DESC LIMIT 5000`
+    )
+    .all(req.user.id);
   res.json({
     sales,
+    updates,
     totals: {
       count: sales.length,
       amount: sum("amount"),
@@ -430,7 +440,56 @@ salesRouter.post("/signin/verify", rateLimit({ windowMs: 15 * 60_000, max: 30 })
   if (!film) return;
   const user = useLoginToken(req.body.token);
   if (!user) return res.status(400).json({ error: "That link has expired or was already used. Ask for a new one below." });
+  // The emailed link proves they own the address (new accounts from "Get updates" start unconfirmed).
+  if (!user.email_verified_at) db.prepare("UPDATE users SET email_verified_at = ? WHERE id = ?").run(now(), user.id);
   startSession(req, res, user.id);
   const ent = entitlement(user.id, film);
   res.json({ ok: true, ...(ent ? accessPayload(film, ent) : { access: null }) });
+});
+
+// ---------- "Get updates from the filmmakers" (the box under the player) ----------
+// A signed-in viewer's yes/no for this film. Not signed in: { signedIn: false }.
+salesRouter.get("/updates", (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  res.set("Cache-Control", "no-store");
+  if (!req.user) return res.json({ signedIn: false, email: null, ok: null });
+  const row = db.prepare("SELECT ok FROM contact_optins WHERE user_id = ? AND film_id = ?").get(req.user.id, film.id);
+  res.json({ signedIn: true, email: req.user.email, ok: row ? row.ok === 1 : null });
+});
+
+salesRouter.put("/updates", (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  if (!req.user) return res.status(401).json({ error: "Sign in to choose." });
+  if (typeof req.body.ok !== "boolean") return res.status(400).json({ error: "Choose yes or no." });
+  db.prepare(
+    `INSERT INTO contact_optins (user_id, film_id, ok, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT (user_id, film_id) DO UPDATE SET ok = excluded.ok, updated_at = excluded.updated_at`
+  ).run(req.user.id, film.id, req.body.ok ? 1 : 0, now());
+  res.json({ signedIn: true, email: req.user.email, ok: req.body.ok });
+});
+
+// Not signed in and pressed Yes or No: email a one-time link that signs them in on this film's page (creating a
+// free account for a new email; the link confirms it). The page then saves the choice they made.
+salesRouter.post("/updates/signin", rateLimit({ windowMs: 15 * 60_000, max: 6 }), async (req, res) => {
+  const film = liveFilm(req, res);
+  if (!film) return;
+  if (req.body._gotcha) return res.json({ ok: true }); // a bot filled the hidden field
+  const email = String(req.body.email || "").trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 254) return res.status(400).json({ error: "Enter a valid email address." });
+  let user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+  if (!user) {
+    const id = db.prepare("INSERT INTO users (email, agreed_terms_at) VALUES (?, ?)").run(email, now()).lastInsertRowid;
+    user = { id, email };
+    notifyAdmin("New sign-up", `${email} created an account (Get updates on ${film.title}).`);
+  }
+  const t = createLoginToken(user.id, 24 * 60);
+  try {
+    await updatesSignInEmail(email, { title: film.title, link: `${originOf(req)}${PAGE}?signin=${t}` });
+  } catch (e) {
+    console.error("Updates sign-in email failed:", e.message);
+    return res.status(502).json({ error: "We couldn't send the email. Try again in a minute." });
+  }
+  res.json({ ok: true });
 });

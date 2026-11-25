@@ -548,6 +548,9 @@ export function WatchPage({
         </div>
         </section>
 
+        {/* "Get updates from the filmmakers": always under the player, before and after buying. */}
+        <UpdatesBox filmId={f.id} live={live} refresh={acc} />
+
         {/* Under the screen: what every ticket includes, the fine print, the tip jar, and "Already paid?". */}
         {(!watching || showOptions) && (
           <div className="s-below">
@@ -640,6 +643,168 @@ function BulbIcon({ on }: { on: boolean }) {
       />
       <path d="M9.6 20.2h4.8M10.4 22.2h3.2" stroke={on ? "#fceb7e" : "currentColor"} strokeWidth="1.6" strokeLinecap="round" />
     </svg>
+  );
+}
+
+// "Get updates from the filmmakers": a signed-in viewer says yes or no (neither picked at first) to the filmmakers
+// contacting them at their account email. Once answered it shrinks to one line with a Change button. Signed out,
+// pressing Yes or No asks for their email and sends a sign-in link back to this page; the choice waits in this
+// browser and is saved when they return signed in. In the filmmaker's preview it works on the page only.
+type Updates = { signedIn: boolean; email: string | null; ok: boolean | null };
+const pendingKey = (filmId: number) => `wmf_updates_pending_${filmId}`;
+
+function UpdatesBox({ filmId, live, refresh }: { filmId: number; live: boolean; refresh: unknown }) {
+  const [u, setU] = useState<Updates | null>(live ? null : { signedIn: false, email: null, ok: null });
+  const [editing, setEditing] = useState(false);
+  const [asking, setAsking] = useState<boolean | null>(null); // signed out: the choice they pressed, while we ask for an email
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"" | "sending" | "sent">("");
+  const [error, setError] = useState("");
+  const id = useId();
+
+  // Load (and reload after the page signs them in from an emailed link). A choice made while signed out is saved now.
+  useEffect(() => {
+    if (!live) return;
+    let pending: string | null = null;
+    try {
+      pending = localStorage.getItem(pendingKey(filmId));
+    } catch {
+      /* storage blocked: they'll just choose again */
+    }
+    api<Updates>("/watch/updates")
+      .then(async (r) => {
+        if (r.signedIn && (pending === "yes" || pending === "no")) {
+          try {
+            r = await api<Updates>("/watch/updates", { method: "PUT", body: { ok: pending === "yes" } });
+            localStorage.removeItem(pendingKey(filmId));
+          } catch {
+            /* keep it for next time */
+          }
+        }
+        setU(r);
+      })
+      .catch(() => {});
+  }, [filmId, live, refresh]);
+
+  if (!u) return null;
+
+  async function choose(ok: boolean) {
+    setError("");
+    if (!live) return setU({ ...u!, ok }), setEditing(false); // preview: just show how it looks
+    if (!u!.signedIn) {
+      setAsking(ok);
+      return;
+    }
+    const before = u!;
+    setU({ ...before, ok });
+    setEditing(false);
+    try {
+      setU(await api<Updates>("/watch/updates", { method: "PUT", body: { ok } }));
+    } catch (e) {
+      setU(before);
+      setError((e as Error).message);
+    }
+  }
+
+  async function sendLink(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const gotcha = String(new FormData(e.currentTarget).get("_gotcha") || "");
+    setState("sending");
+    setError("");
+    try {
+      localStorage.setItem(pendingKey(filmId), asking ? "yes" : "no");
+    } catch {
+      /* private mode: they'll choose again after signing in */
+    }
+    try {
+      await api("/watch/updates/signin", { body: { email, _gotcha: gotcha } });
+      setState("sent");
+    } catch (err) {
+      setError((err as Error).message);
+      setState("");
+    }
+  }
+
+  const answered = u.ok != null && !editing;
+  const who = u.email ? <strong>{u.email}</strong> : "my account email";
+  return (
+    <section className={`s-updates${answered ? " is-answered" : ""}`} aria-labelledby={`${id}-h`}>
+      {answered ? (
+        <p className="s-updates-line" role="status">
+          <span id={`${id}-h`}>
+            {u.ok ? (
+              <>
+                ✓ <strong>Getting updates:</strong> the filmmakers may contact you at {u.email} about their newest work.
+              </>
+            ) : (
+              <>
+                <strong>No updates:</strong> the filmmakers won't contact you.
+              </>
+            )}
+          </span>{" "}
+          <button type="button" className="link-btn" onClick={() => setEditing(true)}>
+            Change
+          </button>
+        </p>
+      ) : (
+        <>
+          <h2 id={`${id}-h`}>Get Updates from the Filmmakers</h2>
+          <p className="s-updates-q" id={`${id}-q`}>
+            Allow the filmmakers to contact me at {who} about their newest work?
+          </p>
+          <div className="s-updates-choices" role="group" aria-labelledby={`${id}-q`}>
+            {([true, false] as const).map((ok) => (
+              <button
+                key={String(ok)}
+                type="button"
+                className={`s-updates-btn${(asking ?? u.ok) === ok ? " is-on" : ""}`}
+                aria-pressed={(asking ?? u.ok) === ok}
+                onClick={() => choose(ok)}
+              >
+                {ok ? "Yes" : "No"}
+              </button>
+            ))}
+            {editing && (
+              <button type="button" className="link-btn" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+            )}
+          </div>
+          {asking != null && !u.signedIn && (
+            <form className="s-updates-signin" onSubmit={sendLink}>
+              {state === "sent" ? (
+                <p role="status">
+                  Check your email. Click the link in it and you'll come back here signed in, with your choice saved.
+                </p>
+              ) : (
+                <>
+                  <label htmlFor={`${id}-e`}>Sign in to save your choice. Your email:</label>
+                  <div className="s-already-row">
+                    <input id={`${id}-e`} type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <button className="s-btn" disabled={state === "sending"}>
+                      {state === "sending" ? "Sending…" : "Email me a sign-in link"}
+                    </button>
+                  </div>
+                  <input type="text" name="_gotcha" tabIndex={-1} autoComplete="off" className="hp" aria-hidden="true" />
+                  <p className="s-fine">
+                    No password needed. New here? This makes you a free account. By continuing you agree to our{" "}
+                    <a href={`${CLUB}/terms/`} target="_blank" rel="noopener">
+                      Terms
+                    </a>{" "}
+                    and{" "}
+                    <a href={`${CLUB}/privacy/`} target="_blank" rel="noopener">
+                      Privacy Policy
+                    </a>
+                    .
+                  </p>
+                </>
+              )}
+            </form>
+          )}
+          {error && <p className="s-fine s-pwyw-err" role="alert">{error}</p>}
+        </>
+      )}
+    </section>
   );
 }
 

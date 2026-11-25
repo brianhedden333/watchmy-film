@@ -169,6 +169,23 @@ export function viewerSignInEmail(to, { title, link }) {
   });
 }
 
+// "Get updates from the filmmakers" while signed out: the link signs them in on the film's page, which then saves
+// their choice.
+export function updatesSignInEmail(to, { title, link }) {
+  return sendEmail({
+    to,
+    subject: `Confirm your email for ${title}`,
+    text: `Click to sign in and save your choice about updates from the filmmakers of ${title}. The link works once and expires in 24 hours.\n${link}\n\nIf you didn't ask for this, you can ignore this email.`,
+    html: layout(
+      `Updates from ${title}`,
+      para(`Click the button to sign in and save your choice about updates from the filmmakers of ${title}. The link works once and expires in 24 hours.`) +
+        button(link, "Sign in and save") +
+        small("No password needed. If you didn't ask for this, you can ignore this email."),
+      "club"
+    ),
+  });
+}
+
 // To a filmmaker whose Stripe account stopped taking payments (Stripe needs more information).
 export function stripeNeedsInfoEmail(to, accountLink) {
   const line =

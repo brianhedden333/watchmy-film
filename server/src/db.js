@@ -294,6 +294,17 @@ const MIGRATIONS = [
   -- whenever the link to the full film changes).
   ALTER TABLE films ADD COLUMN playback_confirmed_at TEXT;
   `,
+  `
+  -- "Get updates from the filmmakers" under a film's player: a signed-in viewer's yes (1) or no (0), per film.
+  -- The filmmaker sees the yeses (with the viewer's account email) on their Sales page.
+  CREATE TABLE contact_optins (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    film_id INTEGER NOT NULL REFERENCES films(id),
+    ok INTEGER NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    PRIMARY KEY (user_id, film_id)
+  );
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });
