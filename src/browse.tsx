@@ -117,6 +117,15 @@ function trailerSrc(link: string | null) {
   return `${src}${src.includes("?") ? "&" : "?"}autoplay=1${src.includes("youtube") ? "&rel=0" : ""}`;
 }
 
+// Search text, simplified: lower case, accents off ("Café" → "cafe"), punctuation turned into spaces.
+const fold = (v: string) =>
+  v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
 function Browse() {
   const [films, setFilms] = useState<Card[] | null>(null);
   const [error, setError] = useState("");
@@ -207,7 +216,22 @@ function Browse() {
   }, [films]);
 
   const donationCount = useMemo(() => (films || []).filter(takesDonations).length, [films]);
-  const query = q.trim().toLowerCase();
+  // Every word typed has to appear somewhere in the film (any order), ignoring case, accents and punctuation.
+  const words = useMemo(() => fold(q).split(" ").filter(Boolean), [q]);
+  const query = words.join(" ");
+  const haystacks = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const f of films || [])
+      m.set(
+        f.id,
+        fold(
+          [f.title, f.director, f.genre, f.logline, f.synopsis, f.languages, f.year, ...f.tags, ...f.credits.flatMap((c) => c.names)]
+            .filter(Boolean)
+            .join(" "),
+        ),
+      );
+    return m;
+  }, [films]);
   const filtering = !!aisle || !!query;
   const shown = useMemo(() => {
     if (!films) return [];
@@ -215,14 +239,11 @@ function Browse() {
       if (aisle === DONATION) {
         if (!takesDonations(f)) return false;
       } else if (aisle && !f.tags.some((t) => t.toLowerCase() === aisle.toLowerCase())) return false;
-      if (!query) return true;
-      const hay = [f.title, f.director, f.genre, f.logline, ...f.tags]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(query);
+      if (!words.length) return true;
+      const hay = ` ${haystacks.get(f.id) || ""}`;
+      return words.every((w) => hay.includes(w));
     });
-  }, [films, aisle, query]);
+  }, [films, aisle, words, haystacks]);
 
   // The front page of the stack: New Arrivals, Staff Picks, then one stack per aisle (the tags listed up top).
   const sections = useMemo(() => {
@@ -357,7 +378,15 @@ function Browse() {
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Titles, directors, subjects"
+              // Enter: jump down to the results.
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                document.getElementById("stack")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              enterKeyHint="search"
+              aria-controls="stack"
+              placeholder="Titles, people, subjects"
             />
           </label>
           {aisles.length > 0 && (
