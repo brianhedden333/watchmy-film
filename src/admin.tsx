@@ -242,6 +242,7 @@ function AdminFilmCard({ film, statuses, reload }: { film: AdminFilm; statuses: 
             <div><dt>Watch free</dt><dd>{film.free_watch ? "Yes" : "No"}</dd></div>
             <div><dt>Browse (indiefilm.club)</dt><dd>{film.discoverable ? `Listed${film.tags.length ? ` · ${film.tags.join(", ")}` : ""}` : "Not listed"}{film.staff_pick ? " · Staff pick" : ""}</dd></div>
             <div><dt>Banner title</dt><dd>{film.hide_title ? "Hidden (banner shown as a plain image)" : "Shown"}</dd></div>
+            <div><dt>Plays in test screening</dt><dd>{film.playback_confirmed_at ? `Filmmaker confirmed ${day(film.playback_confirmed_at)}` : "Not confirmed"}</dd></div>
             <div><dt>Generative AI</dt><dd>{film.ai_used === "yes" ? "Used" : film.ai_used === "no" ? "Not used" : "Not answered yet"}</dd></div>
             <div><dt>Rights</dt><dd>{film.rights_confirmed_at ? `Confirmed ${day(film.rights_confirmed_at)}` : "Not confirmed yet"}</dd></div>
             <div><dt>Pay what you want</dt><dd>{film.pwyw_enabled ? `From ${dollars(film.pwyw_min_cents)}${film.pwyw_suggested_cents ? `, suggested ${dollars(film.pwyw_suggested_cents)}` : ""} · unlocks ${film.pwyw_access === "buy" ? "for keeps" : "a rental"}` : "Off"}</dd></div>

@@ -25,7 +25,7 @@ const TEXT_FIELDS = [
   "color_background", "color_primary", "color_secondary", "color_button",
   "pwyw_access", "tip_venmo", "tip_paypal", "tip_zelle", "ai_used", "ai_use_notes",
 ] as const;
-type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable" | "hide_title" | "rights_confirmed_at", string>;
+type FormState = Record<(typeof TEXT_FIELDS)[number] | "rent_enabled" | "rent_price" | "buy_enabled" | "buy_price" | "pwyw_enabled" | "pwyw_min" | "pwyw_suggested" | "free_watch" | "discoverable" | "hide_title" | "rights_confirmed_at" | "playback_confirmed_at", string>;
 
 function toForm(f: Film): FormState {
   const out = {} as FormState;
@@ -41,6 +41,7 @@ function toForm(f: Film): FormState {
   out.free_watch = f.free_watch ? "1" : "";
   out.hide_title = f.hide_title ? "1" : "";
   out.rights_confirmed_at = f.rights_confirmed_at || "";
+  out.playback_confirmed_at = f.playback_confirmed_at || "";
   out.discoverable = f.discoverable ? "1" : "";
   return out;
 }
@@ -75,6 +76,7 @@ function toBody(s: FormState, credits: Credit[], bonus: Bonus, tags: string[]) {
   body.free_watch = s.free_watch ? 1 : 0;
   body.hide_title = s.hide_title ? 1 : 0;
   body.rights_confirmed_at = s.rights_confirmed_at || null;
+  body.playback_confirmed_at = s.playback_confirmed_at || null;
   body.discoverable = s.discoverable ? 1 : 0;
   return body;
 }
@@ -435,6 +437,14 @@ function FilmView({ film, meta, onChange, stripe, onStripe }: { film: Film; meta
               ),
             })}
             {field("trailer_url", "Trailer link (YouTube or Vimeo)", { placeholder: "https://youtube.com/watch?v=…" })}
+            <TestScreening
+              film={film}
+              linkChanged={(form.vimeo_url || "").trim() !== (film.vimeo_url || "")}
+              checked={!!form.playback_confirmed_at}
+              // Keep the original date if it was already ticked; "1" tells the server it's newly ticked.
+              onCheck={(on) => set("playback_confirmed_at")(on ? film.playback_confirmed_at || "1" : "")}
+              required={film.status === "draft"}
+            />
             <div className="pwyw" id="sec-rights">
               <label className="pwyw-toggle">
                 <input
@@ -748,6 +758,7 @@ const MISSING_TARGETS: Record<string, string> = {
   "Web address": "#sec-address",
   "Confirm you have the rights to sell this film": "#sec-rights",
   "Say whether generative AI was used": "#sec-ai",
+  "Check your film plays from the test screening": "#sec-playback",
   "Describe how generative AI was used": '[name="ai_use_notes"]',
 };
 const targetFor = (label: string) => MISSING_TARGETS[label] || (/price|free viewing|tip jar/i.test(label) ? "#sec-prices" : null);
@@ -1760,6 +1771,58 @@ function Field({ label, hint, error, value, onChange, disabled, type = "text", p
           {error ? `${label} ${error}.` : hint}
         </p>
       )}
+    </div>
+  );
+}
+
+// "Test it behind the paywall": opens a private test screening on indiefilm.club (the watch page as a paying viewer
+// sees it, film playing, nobody charged), then the filmmaker ticks that it's visible and plays there. Uses the saved
+// film link, so a changed link has to be saved first (saving a new link also unticks the box).
+function TestScreening({ film, linkChanged, checked, onCheck, required }: { film: Film; linkChanged: boolean; checked: boolean; onCheck: (on: boolean) => void; required: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const ready = !!film.vimeo_url && !linkChanged;
+  async function go() {
+    setBusy(true);
+    setError("");
+    // Open the tab now (a tab opened after waiting for the server would be blocked as a pop-up), then point it there.
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const r = await api<{ url: string }>(`/films/${film.id}/screening`, { body: {} });
+      if (tab) tab.location.href = r.url;
+      else location.assign(r.url);
+    } catch (e) {
+      tab?.close();
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="pwyw test-screening" id="sec-playback">
+      <p className="test-screening-head">
+        <strong>Test it behind the paywall</strong>
+        {required && " (required)"}
+      </p>
+      <p className="hint">
+        Opens your watch page on indiefilm.club as a viewer sees it after paying, with your film in the player. Nobody is
+        charged. Make sure the film appears and plays. If Vimeo says it can't play here, check the embed settings above.
+        The link is private and works for 24 hours.
+      </p>
+      <button type="button" className="btn btn-small" onClick={go} disabled={busy || !ready}>
+        {busy ? "Opening…" : "Open test screening ↗"}
+      </button>
+      {!ready && (
+        <p className="hint">{film.vimeo_url ? "Save your new film link first, then test it." : "Add the link to your full film and save first."}</p>
+      )}
+      {error && <p className="field-err" role="alert">{error}</p>}
+      <label className="pwyw-toggle">
+        <input type="checkbox" name="playback_confirmed_at" aria-required={required} checked={checked} disabled={!ready && !checked} onChange={(e) => onCheck(e.target.checked)} />
+        <span>
+          <strong>My film is visible and plays from the test screening link</strong>
+          {required && " (required)"}
+        </span>
+      </label>
     </div>
   );
 }

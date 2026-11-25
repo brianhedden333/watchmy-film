@@ -105,7 +105,7 @@ function viewerFilm(row) {
   };
 }
 
-// Admin test screening (see admin.js): the full film, film link included, for a valid unexpired screening link.
+// Test screening (see createScreeningLink in films.js): the full film, film link included, for a valid unexpired screening link.
 // No sign-in needed (it's a secret link), so indiefilm.club sign-ins stay viewer-only.
 watchRouter.get("/screening", (req, res) => {
   res.set("Cache-Control", "no-store").set("X-Robots-Tag", "noindex");
@@ -115,10 +115,11 @@ watchRouter.get("/screening", (req, res) => {
     db
       .prepare("SELECT * FROM screening_links WHERE token_hash = ? AND expires_at > ?")
       .get(createHash("sha256").update(t).digest("hex"), new Date().toISOString());
-  if (!link) return res.status(404).json({ error: "This test link has expired or isn't valid. Make a new one from admin." });
+  if (!link) return res.status(404).json({ error: "This test link has expired or isn't valid. Make a new one where you got it." });
   const row = db.prepare("SELECT * FROM films WHERE id = ? AND deleted_at IS NULL").get(link.film_id);
   if (!row) return res.status(404).json({ error: "That film no longer exists." });
-  res.json({ film: publicFilm(row), expires_at: link.expires_at });
+  // Made by the film's own filmmaker (from add-a-film) or by an admin: the page's notice and back link differ.
+  res.json({ film: publicFilm(row), expires_at: link.expires_at, by: link.created_by === row.user_id ? "owner" : "admin" });
 });
 
 // JSON for the page (and for local testing): GET /api/watch?host=mountaingoat.watchmyfilm.online

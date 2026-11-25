@@ -1,13 +1,12 @@
 // Admin: review films, manage waiver codes. Only ADMIN_EMAILS can reach these.
 
-import { createHash, randomBytes } from "node:crypto";
 import { Router } from "express";
 import { config } from "./config.js";
 import { db, now } from "./db.js";
 import { requireAdmin, requireUser } from "./auth.js";
 import { CODE_RE, createCode, normalizeCode } from "./codes.js";
 import { filmStatusEmail } from "./email.js";
-import { publicFilm } from "./films.js";
+import { createScreeningLink, publicFilm } from "./films.js";
 
 const STATUSES = ["draft", "in_review", "changes_requested", "approved", "live"];
 
@@ -74,14 +73,7 @@ adminRouter.patch("/films/:id", async (req, res) => {
 adminRouter.post("/films/:id/screening", (req, res) => {
   const film = db.prepare("SELECT id FROM films WHERE id = ? AND deleted_at IS NULL").get(Number(req.params.id));
   if (!film) return res.status(404).json({ error: "No such film." });
-  const t = randomBytes(24).toString("base64url");
-  db.prepare("INSERT INTO screening_links (token_hash, film_id, created_by, expires_at) VALUES (?, ?, ?, ?)").run(
-    createHash("sha256").update(t).digest("hex"),
-    film.id,
-    req.user.id,
-    new Date(Date.now() + 24 * 3_600_000).toISOString()
-  );
-  res.json({ url: `${config.clubUrl}/screening/?t=${t}` });
+  res.json({ url: createScreeningLink(film.id, req.user.id) });
 });
 
 adminRouter.post("/codes", (req, res) => {

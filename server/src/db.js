@@ -289,6 +289,11 @@ const MIGRATIONS = [
   ALTER TABLE films ADD COLUMN ai_used TEXT;
   ALTER TABLE films ADD COLUMN ai_use_notes TEXT;
   `,
+  `
+  -- When the filmmaker ticked "My film is visible and plays from the test screening link" (null = not yet; cleared
+  -- whenever the link to the full film changes).
+  ALTER TABLE films ADD COLUMN playback_confirmed_at TEXT;
+  `,
 ];
 
 const version = db.pragma("user_version", { simple: true });

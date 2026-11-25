@@ -245,6 +245,23 @@
   accent-color: var(--gold);
 }
 
+/* Add a film: "Test it behind the paywall" */
+.test-screening {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  margin-bottom: 12px;
+}
+.test-screening p {
+  margin: 0;
+}
+.test-screening-head {
+  color: var(--text);
+}
+.test-screening .pwyw-toggle {
+  margin-top: 6px;
+}
+
 /* Add a film: the generative AI question */
 .ai-question {
   margin: 0 0 4px;

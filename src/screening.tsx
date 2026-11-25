@@ -16,14 +16,16 @@ const token = new URLSearchParams(location.search).get("t") || "";
 function Screening() {
   const [film, setFilm] = useState<Film | null>(null);
   const [expires, setExpires] = useState("");
+  const [by, setBy] = useState<"owner" | "admin">("admin");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!token) return setError("This test link is missing its code. Make a new one from admin.");
-    api<{ film: Film; expires_at: string }>(`/watch/screening?t=${encodeURIComponent(token)}`)
+    api<{ film: Film; expires_at: string; by: "owner" | "admin" }>(`/watch/screening?t=${encodeURIComponent(token)}`)
       .then((r) => {
         setFilm(r.film);
         setExpires(r.expires_at);
+        setBy(r.by);
         document.title = `Test screening: ${r.film.title}`;
       })
       .catch((e) => setError((e as Error).message));
@@ -34,14 +36,19 @@ function Screening() {
     <div className="sample" style={film ? pageTheme(film) : undefined}>
       <div className="preview-bar" role="region" aria-label="Test screening notice">
         <div className="preview-bar-text">
-          <p className="preview-bar-title">Admin test screening{film ? ` of ${film.title}` : ""}, on indiefilm.club.</p>
+          <p className="preview-bar-title">
+            {by === "owner" ? "Test screening" : "Admin test screening"}
+            {film ? ` of ${film.title}` : ""}, on indiefilm.club.
+          </p>
           <p>
-            The film is unlocked as if you'd bought it: press play to check its Vimeo embed works on this domain. Nobody is
-            charged. This private link works until {until || "it expires"}.
+            {by === "owner"
+              ? "This is your page as a viewer sees it after paying. Press play and make sure your film appears and plays, then tick the box on Add a film. "
+              : "The film is unlocked as if you'd bought it: press play to check its Vimeo embed works on this domain. "}
+            Nobody is charged. This private link works until {until || "it expires"}.
           </p>
         </div>
-        <a href={`${APP}/admin/`} className="btn btn-small">
-          Back to admin
+        <a href={by === "owner" && film ? `${APP}/add-a-film/?film=${film.id}` : `${APP}/admin/`} className="btn btn-small">
+          {by === "owner" ? "Back to Add a film" : "Back to admin"}
         </a>
       </div>
       {error ? (
