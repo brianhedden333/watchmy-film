@@ -36,8 +36,8 @@ function Screening() {
         <div className="preview-bar-text">
           <p className="preview-bar-title">Admin test screening{film ? ` of ${film.title}` : ""}, on indiefilm.club.</p>
           <p>
-            Press Rent Now, Buy Now or Watch Free to play the film here and check its Vimeo embed works on this domain. Nobody
-            is charged. This private link works until {until || "it expires"}.
+            The film is unlocked as if you'd bought it: press play to check its Vimeo embed works on this domain. Nobody is
+            charged. This private link works until {until || "it expires"}.
           </p>
         </div>
         <a href={`${APP}/admin/`} className="btn btn-small">
@@ -53,7 +53,7 @@ function Screening() {
           <p role="status">Loading…</p>
         </div>
       ) : (
-        <WatchPage film={film} canWatch />
+        <WatchPage film={film} canWatch startOpen={film.buy_price_cents ? "buy" : film.rent_price_cents ? "rent" : film.free_watch ? "free" : film.pwyw_access} />
       )}
     </div>
   );

@@ -166,12 +166,23 @@ function TipJar({ film: f }: { film: Film }) {
 
 // mode "preview": the filmmaker's or admin's preview (placeholders for missing parts; admins can open the screening room).
 // mode "public": the live page at the film's address. Checkout isn't open yet, so Rent/Buy explain that.
-export function WatchPage({ film: f, canWatch = false, mode = "preview" }: { film: Film; canWatch?: boolean; mode?: "preview" | "public" }) {
+// startOpen: open straight into the player, as if already bought (the admin test screening).
+export function WatchPage({
+  film: f,
+  canWatch = false,
+  mode = "preview",
+  startOpen = null,
+}: {
+  film: Film;
+  canWatch?: boolean;
+  mode?: "preview" | "public";
+  startOpen?: "rent" | "buy" | "free" | null;
+}) {
   const preview = mode === "preview";
   const note = preview ? "Preview only: on your live page this opens checkout." : "Online checkout is opening soon. Check back shortly.";
   const [tried, setTried] = useState("");
   // Admins skip checkout: Rent/Buy opens the screening room a renter or buyer would get.
-  const [watching, setWatching] = useState<"rent" | "buy" | "free" | null>(null);
+  const [watching, setWatching] = useState<"rent" | "buy" | "free" | null>(startOpen);
   // Watching: the house lights go down (page and header dim to black); the lightbulb brings them back up.
   const [lightsOff, setLightsOff] = useState(true);
   // Watching: the buying options shrink to a "See purchase options" button.
