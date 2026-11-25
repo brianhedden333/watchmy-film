@@ -2,7 +2,7 @@
 
 import { Router } from "express";
 import multer from "multer";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config.js";
@@ -205,6 +205,13 @@ const color = (v) => {
   return s;
 };
 
+// A confirmation box: unticked → null; already ticked → keep the original date it was ticked; newly ticked → now.
+function tickedAt(v) {
+  if (!v) return null;
+  const d = typeof v === "string" ? new Date(v) : null;
+  return d && !isNaN(d) && d <= new Date() && v.length >= 20 ? d.toISOString() : new Date().toISOString();
+}
+
 const FIELDS = {
   title: text(200),
   logline: text(120), // one line under the title (the form counts down from 120 too)
@@ -231,13 +238,11 @@ const FIELDS = {
   discoverable: flag,
   hide_title: flag,
   // The rights box: unticked → null; already ticked → keep the original date it was ticked; newly ticked → now.
-  rights_confirmed_at: (v) => {
-    if (!v) return null;
-    const d = typeof v === "string" ? new Date(v) : null;
-    return d && !isNaN(d) && d <= new Date() && v.length >= 20 ? d.toISOString() : new Date().toISOString();
-  },
+  rights_confirmed_at: tickedAt,
+  // "My film is visible and plays from the test screening link": same as the rights box.
+  playback_confirmed_at: tickedAt,
   tags,
-  ai_used: oneOf("yes", "no"),
+  ai_used: (v) => (v == null || v === "" ? null : oneOf("yes", "no")(v)), // blank = not answered yet
   ai_use_notes: text(1000),
   rental_days: int(1, 365),
   // Days to finish once a rental is started (replaced rental_hours, which is no longer used).
@@ -267,6 +272,7 @@ const LABELS = {
   rights_confirmed_at: "Confirm you have the rights to sell this film",
   ai_used: "Say whether generative AI was used",
   ai_use_notes: "Describe how generative AI was used",
+  playback_confirmed_at: "Check your film plays from the test screening",
 };
 
 const EDITABLE = new Set(["draft", "in_review", "changes_requested"]);
@@ -280,7 +286,9 @@ export function missingFields(f) {
   if (!f.subdomain) missing.push(LABELS.subdomain);
   // The generative AI question is required for new submissions only (drafts); films already sent to review or
   // live before it existed aren't held up by it.
+  // The same goes for the test screening check (added later, like the AI question).
   if (f.status === "draft") {
+    if (f.vimeo_url && !f.playback_confirmed_at) missing.push(LABELS.playback_confirmed_at);
     if (!f.ai_used) missing.push(LABELS.ai_used);
     else if (f.ai_used === "yes" && !f.ai_use_notes) missing.push(LABELS.ai_use_notes);
   }
@@ -438,6 +446,8 @@ filmsRouter.patch("/:id", async (req, res) => {
     if (film.status === "live" && sellsWithStripe(after) && !sellsWithStripe(film) && !(await canSell(req.user)))
       return res.status(400).json({ error: "Connect your Stripe account before turning on Rent, Buy or donations, so sales can be paid to you." });
   }
+  // A new film link hasn't been checked yet: untick "it plays from the test screening".
+  if ("vimeo_url" in out && (out.vimeo_url || null) !== (film.vimeo_url || null)) out.playback_confirmed_at = null;
   const minC = out.pwyw_min_cents ?? film.pwyw_min_cents;
   const sugC = "pwyw_suggested_cents" in out ? out.pwyw_suggested_cents : film.pwyw_suggested_cents;
   if (sugC != null && minC != null && sugC < minC) errors.pwyw_suggested_cents = "must be at least the minimum";
@@ -456,6 +466,27 @@ filmsRouter.patch("/:id", async (req, res) => {
     );
   }
   res.json({ film: publicFilm(db.prepare("SELECT * FROM films WHERE id = ?").get(film.id)) });
+});
+
+// A private test screening on indiefilm.club: the watch page as a paying viewer sees it, film playing, made from
+// the film's saved link. Admins make these from admin; filmmakers make them for their own film, to check the
+// embed works before sending it for review. Works for 24 hours; only the hash is kept.
+export function createScreeningLink(filmId, userId) {
+  const t = randomBytes(24).toString("base64url");
+  db.prepare("INSERT INTO screening_links (token_hash, film_id, created_by, expires_at) VALUES (?, ?, ?, ?)").run(
+    createHash("sha256").update(t).digest("hex"),
+    filmId,
+    userId,
+    new Date(Date.now() + 24 * 3_600_000).toISOString()
+  );
+  return `${config.clubUrl}/screening/?t=${t}`;
+}
+
+filmsRouter.post("/:id/screening", (req, res) => {
+  const film = getOwnFilm(req);
+  if (!film) return res.status(404).json({ error: "Film not found." });
+  if (!film.vimeo_url) return res.status(400).json({ error: "Add the link to your full film and save first." });
+  res.json({ url: createScreeningLink(film.id, req.user.id) });
 });
 
 filmsRouter.post("/:id/:kind", (req, res, next) => {
